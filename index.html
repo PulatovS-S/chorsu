@@ -215,11 +215,19 @@ body.kb .fabs{display:none}
 
 </head>
 <body>
-<div id="splash" aria-hidden="true"><svg id="splashSvg" viewBox="170 240 660 640" preserveAspectRatio="xMidYMid meet"></svg></div>
+<div id="splash" aria-hidden="true"><svg id="splashSvg" viewBox="170 240 660 640" preserveAspectRatio="xMidYMid meet"></svg>
+<div id="splashStatus"><span></span><i></i></div></div>
 <style>
 #splash{position:fixed;inset:0;z-index:100;background:#1D5C45;display:flex;align-items:center;justify-content:center;transition:opacity .35s ease}
 #splash svg{width:100%;height:100%;max-width:640px}
 #splash.out{opacity:0;pointer-events:none}
+#splashStatus{position:absolute;left:0;right:0;bottom:calc(12% + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:12px;color:#F2F5F0;font:600 18px 'Golos Text','Segoe UI',Roboto,Arial,sans-serif;opacity:0;transition:opacity .3s ease;padding:0 24px;text-align:center}
+#splashStatus.on{opacity:.92}
+#splashStatus i{display:block;width:140px;height:4px;border-radius:2px;background:rgba(242,245,240,.18);overflow:hidden;position:relative}
+#splashStatus i::after{content:"";position:absolute;top:0;bottom:0;width:40%;border-radius:2px;background:#E8B05A;animation:spl 1.1s ease-in-out infinite}
+#splashStatus.ok i{visibility:hidden}
+@keyframes spl{0%{left:-40%}100%{left:100%}}
+@media (prefers-reduced-motion:reduce){#splashStatus i::after{animation:none;left:30%}}
 </style>
 <script>
 /* Заставка «Магазин Чорсу» — плоская 2D-векторная анимация.
@@ -394,12 +402,29 @@ body.kb .fabs{display:none}
   const box = document.getElementById('splash'); if (!box) return;
   const S = ChorsuSplash.mount(document.getElementById('splashSvg'));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => S.measure());
+  const st = document.getElementById('splashStatus'), txt = st.querySelector('span');
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let t0 = null, done = false;
+  const MAX_WAIT = 8;                      // не держим заставку дольше 8 с — обновление продолжится в фоне
+  let t0 = null, done = false, watching = false, holdDone = false, resultAt = null;
   const finish = () => { if (done) return; done = true; box.classList.add('out'); setTimeout(() => box.remove(), 400); };
+  const watch = () => { if (watching || window.splashHold === undefined) return; watching = true;
+    const h = window.splashHold; if (!h || !h.then) { holdDone = true; return; }
+    h.then(() => { holdDone = true; }, () => { holdDone = true; }); };
   box.addEventListener('click', () => { S.render(S.DUR); finish(); });
-  if (reduce){ S.render(S.DUR); setTimeout(finish, 700); return; }
-  const tick = now => { if (done) return; if (t0 == null) t0 = now; const t = (now - t0) / 1000; S.render(t); if (t >= S.DUR - 0.15) finish(); else requestAnimationFrame(tick); };
+  const tick = now => {
+    if (done) return; if (t0 == null) t0 = now; const t = (now - t0) / 1000;
+    watch();
+    S.render(reduce ? S.DUR : t);
+    const animEnd = reduce ? 0.3 : S.DUR - 0.15;
+    if (t > (reduce ? 0 : 2.5)){
+      if (!holdDone){ txt.textContent = 'Обновляю базу…'; st.className = 'on'; }
+      else if (resultAt == null){ const r = window.splashResult ? window.splashResult() : ''; resultAt = t;
+        if (r){ txt.textContent = r; st.className = 'on ok'; } else st.className = ''; }
+    }
+    if (t >= animEnd && holdDone && resultAt != null && t - resultAt >= (txt.textContent ? 0.7 : 0)) return finish();
+    if (t >= MAX_WAIT){ txt.textContent = 'Обновление продолжится в фоне'; st.className = 'on ok'; done = true; setTimeout(() => { box.classList.add('out'); setTimeout(() => box.remove(), 400); }, 600); return; }
+    requestAnimationFrame(tick);
+  };
   requestAnimationFrame(tick);
 })();
 </script>
@@ -557,6 +582,7 @@ async function pull(full){
   const since = (full || !DB) ? -1 : DB.rev;
   const j = await api('GET', {key:CFG.k, action:'pull', since});
   if (!j || !j.ok) throw new Error(j && j.error === 'key' ? 'key' : (j && j.error) || 'pull');
+  if (since !== -1 && Number(j.rev) < since) return pull(true);   // база на сервере пересоздана — загрузить заново целиком
   if (since === -1){ DB = {rev:0, t:{}}; TABLES.forEach(k => DB.t[k] = {}); }
   let changed = since === -1;
   for (const k in j.tables){
@@ -1302,7 +1328,8 @@ function tryConnect(s){
     firstLoad(); return true;
   } catch(e){ return false; }
 }
-async function firstLoad(){
+function firstLoad(){ const p = firstLoadRun(); window.splashHold = p; return p; }
+async function firstLoadRun(){
   LOADERR = ''; render();
   try { await pull(true); S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); SYNC.state = 'ok'; SYNC.last = Date.now(); ls.set('chorsu_last', SYNC.last); HIST.length = 0; R = {s:'home'}; render(); }
   catch(e){ LOADERR = e.message === 'key' ? 'ключ не подходит — нужна новая ссылка подключения' : (navigator.onLine ? 'база не отвечает' : 'нет интернета'); render(); }
@@ -1346,10 +1373,19 @@ function render(){
   if (!isText(document.activeElement)) document.body.classList.remove('kb');
   if (q){ const el = document.getElementById('q'); if (el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
 }
-// boot
+// boot: the splash waits for this first update of the base
+window.splashResult = () => {
+  if (!CFG) return '';
+  if (!DB) return LOADERR ? 'Не удалось загрузить базу' : '';
+  if (SYNC.state === 'offline') return 'Нет интернета — открываю сохранённые данные';
+  if (SYNC.state === 'key') return 'Нужна новая ссылка подключения';
+  if (SYNC.state === 'err') return 'База не отвечает — открываю сохранённые данные';
+  return '✓ База обновлена';
+};
 if (location.hash.includes('connect=')) tryConnect(location.hash);
 else if (CFG && !DB) firstLoad();
-else { render(); if (CFG) sync(); }
+else { render(); window.splashHold = CFG ? sync() : null; }
+if (window.splashHold === undefined) window.splashHold = null;
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 window.addEventListener('hashchange', () => { if (location.hash.includes('connect=')) tryConnect(location.hash); });
 </script>
