@@ -3,17 +3,16 @@
  * Хранит все записи приложения на листах этой таблицы.
  *
  * Установка (один раз):
- *   1. Расширения → Apps Script → вставить этот код → Сохранить.
- *   2. Развернуть → Новое развертывание → Тип: Веб-приложение →
- *      Запуск от имени: «Я», Доступ: «Все» → Развернуть → разрешить доступ.
- *   3. Скопировать «URL веб-приложения» (…/exec) и вставить в WEB_APP_URL ниже → Сохранить.
- *   4. Выбрать функцию setup → Выполнить. В «Журнале выполнения» появится
- *      ссылка для подключения телефонов. Откройте её на каждом телефоне.
+ *   1. Расширения → Apps Script → стереть всё → вставить этот код → Сохранить.
+ *   2. Начать развертывание → Новое развертывание → Веб-приложение →
+ *      Запуск от имени: «Я», Доступ: «Все» → Начать развертывание → разрешить доступ.
+ *   3. Нажать на «URL веб-приложения». Откроется страница с QR-кодом и ссылкой
+ *      для телефонов (её видит только владелец таблицы).
  */
 
 // Адрес приложения на GitHub Pages
 const APP_URL = 'https://pulatovs-s.github.io/chorsu/';
-// Вставьте сюда «URL веб-приложения» из окна развертывания (заканчивается на /exec)
+// Не обязательно: адрес …/exec, если страница подключения не открывается сама
 const WEB_APP_URL = '';
 
 const TABLES = {
@@ -54,7 +53,38 @@ function setup() {
 /** Если ссылку надо отключить (например, потеряли телефон): новый ключ, старые ссылки перестанут работать. */
 function resetKey() { props_().deleteProperty('KEY'); return setup(); }
 
-function doGet(e) { return handle_(e.parameter || {}); }
+function doGet(e) {
+  const p = (e && e.parameter) || {};
+  if (!p.key && !p.action) return ownerPage_();
+  return handle_(p);
+}
+
+/** Страница подключения: показывает ссылку и QR-код только владельцу таблицы. */
+function ownerPage_() {
+  let me = '', owner = '';
+  try { me = Session.getActiveUser().getEmail(); owner = Session.getEffectiveUser().getEmail(); } catch (err) {}
+  if (!me || me !== owner) {
+    return HtmlService.createHtmlOutput('<div style="font:18px/1.45 sans-serif;padding:20px;max-width:560px">' +
+      '<b>Магазин Чорсу.</b> Приложение открывается по личной ссылке подключения.<br><br>' +
+      '<span style="color:#56645D">Если вы владелец таблицы и не видите здесь QR-код: в редакторе Apps Script выберите вверху функцию <b>setup</b> и нажмите «Выполнить» — ссылка появится внизу, в «Журнале выполнения».</span></div>');
+  }
+  const link = setup();
+  const qr = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=10&data=' + encodeURIComponent(link);
+  const html = '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<div style="font:18px/1.45 -apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;padding:20px;color:#16201B">' +
+    '<h1 style="font-size:26px;margin:0 0 6px">Готово! База подключена</h1>' +
+    '<p style="margin:0 0 18px;color:#56645D">Таблица «' + SpreadsheetApp.getActive().getName() + '» работает как база приложения.</p>' +
+    '<h2 style="font-size:20px;margin:0 0 8px">Как подключить телефон</h2>' +
+    '<p style="margin:0 0 10px"><b>Способ 1.</b> Наведите камеру телефона на этот QR-код и откройте ссылку.</p>' +
+    '<img src="' + qr + '" width="320" height="320" alt="QR-код" style="display:block;border:1px solid #D3DCD5;border-radius:12px;margin:0 0 16px">' +
+    '<p style="margin:0 0 8px"><b>Способ 2.</b> Скопируйте ссылку и отправьте себе и папе в Telegram (лично, не в группу):</p>' +
+    '<textarea readonly onclick="this.select()" style="width:100%;height:110px;font:14px monospace;padding:10px;border:2px solid #1D5C45;border-radius:10px;box-sizing:border-box">' + link + '</textarea>' +
+    '<button onclick="var t=document.querySelector(\'textarea\');t.select();document.execCommand(\'copy\');this.textContent=\'Скопировано ✓\'" style="margin:10px 0 18px;font:bold 18px sans-serif;background:#1D5C45;color:#fff;border:0;border-radius:12px;padding:14px 20px;width:100%">Скопировать ссылку</button>' +
+    '<p style="margin:0 0 6px"><b>Потом поставьте иконку на экран:</b></p>' +
+    '<p style="margin:0">iPhone — в Safari кнопка «Поделиться» → «На экран Домой».<br>Android — в Chrome ⋮ → «Добавить на главный экран».</p>' +
+    '<p style="margin:18px 0 0;color:#8A5A00;background:#FFF1D2;padding:12px;border-radius:10px">Эта ссылка — ключ к вашей базе. Не пересылайте её посторонним.</p></div>';
+  return HtmlService.createHtmlOutput(html).setTitle('Магазин Чорсу — подключение').addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
 function doPost(e) {
   let body = {};
   try { body = JSON.parse(e.postData.contents); } catch (err) { return out_({ok: false, error: 'bad json'}); }
