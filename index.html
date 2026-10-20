@@ -1,0 +1,1170 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D5C45">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Магазин">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Магазин Чорсу</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+
+/* Layout: one-column phone app; sticky header; actions live in floating circles bottom-right (thumb zone) */
+:root{
+  --bg:#EEF2EE; --surface:#FFFFFF; --sunk:#E3E9E4; --ink:#16201B; --muted:#56645D; --faint:#7A8780; --line:#D3DCD5;
+  --accent:#1D5C45; --accent-ink:#FFFFFF; --accent-soft:#DCEBE3;
+  --kkm:#2353A3; --kkm-soft:#E1E9F7; --om:#94570F; --om-soft:#F6EAD9; --own:#4B3D69; --own-soft:#E9E4F2; --goods:#16706F; --goods-soft:#DDF0EF;
+  --bad:#BE2E26; --bad-soft:#FBE6E3; --good:#227046; --good-soft:#DFF1E6; --warn:#8A5A00; --warn-soft:#FFF1D2;
+  --shadow:rgba(10,30,20,.28);
+  --f:"Golos Text", "Segoe UI", Roboto, Arial, sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101613; --surface:#18211D; --sunk:#202B26; --ink:#EDF2EE; --muted:#A2B0A8; --faint:#6F7D76; --line:#2D3833;
+  --accent:#5DBE93; --accent-ink:#0C1A13; --accent-soft:#1E3A2E;
+  --kkm:#86AEF0; --kkm-soft:#1C2A44; --om:#E2A75A; --om-soft:#3A2A16; --own:#B9AADF; --own-soft:#2B2540; --goods:#62C9C7; --goods-soft:#163634;
+  --bad:#FF8076; --bad-soft:#3D1D1A; --good:#6FD39A; --good-soft:#173524; --warn:#F0C25E; --warn-soft:#3A2E12; --shadow:rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101613; --surface:#18211D; --sunk:#202B26; --ink:#EDF2EE; --muted:#A2B0A8; --faint:#6F7D76; --line:#2D3833;
+  --accent:#5DBE93; --accent-ink:#0C1A13; --accent-soft:#1E3A2E;
+  --kkm:#86AEF0; --kkm-soft:#1C2A44; --om:#E2A75A; --om-soft:#3A2A16; --own:#B9AADF; --own-soft:#2B2540; --goods:#62C9C7; --goods-soft:#163634;
+  --bad:#FF8076; --bad-soft:#3D1D1A; --good:#6FD39A; --good-soft:#173524; --warn:#F0C25E; --warn-soft:#3A2E12; --shadow:rgba(0,0,0,.6); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f);font-size:18px;line-height:1.35;font-variant-numeric:tabular-nums;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+#app{max-width:560px;margin:0 auto;min-height:100%;padding-bottom:210px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input,select{font:inherit;color:var(--ink)}
+/* header */
+.hdr{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);padding-block:8px}
+.hrow{display:flex;align-items:center;gap:10px;min-height:52px}
+.hdr h1{font-size:22px;margin:0;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hsum-row{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;column-gap:12px;padding-top:6px}
+.hsum-row h1{flex:0 1 auto;font-size:26px;white-space:normal}
+.hsum{font-size:32px;font-weight:700;letter-spacing:-.5px;white-space:nowrap;margin-left:auto}
+.back{min-height:48px;padding:0 14px 0 8px;border-radius:12px;background:var(--sunk);font-weight:600;font-size:18px;flex:none}
+.syncbar{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;font-size:15px;padding-block:10px;min-height:48px;background:var(--good-soft);color:var(--good)}
+.syncbar b{white-space:nowrap;text-decoration:underline}
+.syncbar.warn{background:var(--warn-soft);color:var(--warn)}.syncbar.bad{background:var(--bad-soft);color:var(--bad)}.syncbar.busy{background:var(--sunk);color:var(--muted)}
+.demo{font-size:15px;color:var(--warn);background:var(--warn-soft);padding-block:8px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.demo button{font-size:15px;text-decoration:underline;color:var(--warn);padding:0 8px;min-height:44px;min-width:44px}
+.stack{display:flex;flex-direction:column;gap:12px;padding-block:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.muted{color:var(--muted)}
+.small{font-size:15px}
+.big{font-size:34px;font-weight:700;letter-spacing:-.5px}
+.lbl{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.home-date{font-size:26px;font-weight:700;margin:4px 0 0}
+.tile{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-height:84px}
+.tile .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;flex:none}
+.tile .ic svg{width:28px;height:28px}
+.tile b{display:block;font-size:22px;color:var(--ink)}
+.tile span{font-size:15px;color:var(--muted)}
+.tile .chev{margin-left:auto;color:var(--muted);font-size:26px}
+.tile:active{background:var(--sunk)}
+.datenav{display:flex;align-items:center;gap:8px}
+.datenav .d{flex:1;text-align:center;font-weight:700;font-size:19px;min-height:52px;display:flex;flex-direction:column;justify-content:center;border-radius:12px}
+.datenav .d:active{background:var(--sunk)}
+.datenav button{width:56px;height:52px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:22px;font-weight:700}
+.datenav button:disabled{opacity:.35}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--sunk);padding:5px;border-radius:16px}
+.seg button{min-height:56px;border-radius:12px;font-weight:700;font-size:17px;color:var(--muted);padding:4px}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.sumrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 0}
+.sumrow + .sumrow{border-top:1px dashed var(--line)}
+.sumrow b{font-size:20px}
+.pill{display:inline-block;font-size:15px;font-weight:700;padding:3px 10px;border-radius:99px;vertical-align:middle}
+.p-kkm{background:var(--kkm-soft);color:var(--kkm)}.p-om{background:var(--om-soft);color:var(--om)}.p-own{background:var(--own-soft);color:var(--own)}.p-g{background:var(--goods-soft);color:var(--goods)}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;min-height:62px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row:active{background:var(--sunk)}
+.num{min-width:40px;font-size:15px;color:var(--muted);font-weight:600}
+.row .nm{flex:1;min-width:0;font-size:18px}
+.row .rt{font-weight:700;white-space:nowrap;font-size:19px}
+.badge{font-weight:700;font-size:16px;padding:4px 10px;border-radius:10px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.x{width:44px;height:44px;border-radius:12px;background:var(--bad-soft);color:var(--bad);font-size:20px;font-weight:700;flex:none}
+.btn{min-height:60px;border-radius:14px;font-weight:700;font-size:19px;padding:0 18px;width:100%}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}
+.btn.sec{background:var(--surface);border:2px solid var(--line)}
+.btn.give{background:var(--om);color:#fff}
+.btn.ret{background:var(--good);color:#fff}
+.btn.dang{background:var(--bad-soft);color:var(--bad)}
+.btn:disabled{opacity:.4}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:15px;font-weight:600;color:var(--muted)}
+.field input,.field select{min-height:60px;border-radius:12px;border:2px solid var(--line);background:var(--surface);padding:0 14px;font-size:24px;font-weight:700;width:100%;min-width:0}
+.field input:focus{border-color:var(--accent);outline:none}
+.field.txt input,.field.txt select{font-size:19px;font-weight:500}
+/* inventory cells */
+.cell{display:flex;flex-direction:column;gap:4px}
+.cell label{font-size:16px;font-weight:700}
+.cell .box{position:relative}
+.cell input{width:100%;min-width:0;height:84px;border-radius:14px;border:2px solid var(--line);background:var(--surface);padding:0 14px 18px;font-size:38px;font-weight:700;letter-spacing:-.5px}
+.cell input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.cell .was{position:absolute;right:12px;bottom:6px;font-size:15px;color:var(--faint);pointer-events:none;font-weight:500}
+.cell.kkm label{color:var(--kkm)}.cell.om label{color:var(--om)}.cell.own label{color:var(--own)}.cell.ret label{color:var(--muted)}
+.cell.kkm input{border-color:color-mix(in srgb,var(--kkm) 30%,var(--line))}
+.cell.om input{border-color:color-mix(in srgb,var(--om) 30%,var(--line))}
+.cell.own input{border-color:color-mix(in srgb,var(--own) 30%,var(--line))}
+.money{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:84px;padding:12px 16px;border-radius:var(--r);background:var(--surface);border:2px solid var(--line);text-align:left}
+.money b{font-size:28px}
+.money.dirty{border-color:var(--warn)}
+.note{border-radius:12px;padding:12px 14px;font-size:16px}
+.note.info{background:var(--sunk);color:var(--ink)}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.neg{color:var(--bad)!important;font-weight:700}
+.tbl-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:16px}
+th,td{padding:10px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:15px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;background:var(--sunk)}
+td.l,th.l{text-align:left}
+td.nmc{white-space:normal;text-align:left;width:100%;min-width:120px;overflow-wrap:break-word;line-height:1.25}
+td.nmc .sm{font-size:15px;color:var(--muted);margin-top:2px}
+td.nmc .n{color:var(--muted);font-size:15px;margin-right:4px}
+table.tight th,table.tight td{padding:9px 6px}
+table.tight td:first-child,table.tight th:first-child{padding-left:10px}
+tr.tot td{font-weight:700;background:var(--sunk)}
+.srow{display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;padding:12px 14px;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:0}
+.srow.negrow{background:var(--bad-soft)}
+.srow .sold{font-weight:700;font-size:20px;text-align:right}
+.srow .sub{font-size:15px;color:var(--muted)}
+.detail{grid-column:1/-1;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:15px}
+.detail .sumrow b{font-size:16px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:8px}
+.g4 div{min-width:0}.g4 span{display:block;font-size:15px;color:var(--muted)}.g4 b{font-size:clamp(17px,4.8vw,20px);white-space:nowrap}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.stat b{display:block;font-size:clamp(18px,5.2vw,22px);margin-top:2px;white-space:nowrap}
+.stat.badst{background:var(--bad-soft);border-color:transparent}.stat.badst b,.stat.badst .lbl{color:var(--bad)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.chip{flex:none;min-height:46px;padding:0 16px;border-radius:99px;border:2px solid var(--line);background:var(--surface);font-weight:600;font-size:16px}
+.chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.prog{height:8px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent)}
+.pname{font-size:28px;font-weight:700;line-height:1.15;margin:0;text-wrap:balance}
+.bal{display:flex;justify-content:space-between;align-items:center;gap:10px;border-radius:12px;padding:10px 14px;background:var(--sunk)}
+.bal b{font-size:26px}
+.bal .small{color:var(--muted)}
+.bal.badlive{background:var(--bad-soft)}.bal.badlive b,.bal.badlive span{color:var(--bad)}
+.hint{font-size:15px;color:var(--own);font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:20px}
+.hint button{background:var(--own-soft);color:var(--own);border-radius:8px;padding:0 12px;min-height:44px;font-weight:700;font-size:15px}
+.sec-h{font-size:15px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:6px 0 -4px}
+.empty-st{padding:22px;text-align:center;color:var(--muted)}
+.doc-ic{width:70px;height:46px;border-radius:12px;display:grid;place-items:center;flex:none;font-weight:700;font-size:15px}
+/* floating actions */
+.fabs{position:fixed;right:max(18px,env(safe-area-inset-right,0px));bottom:calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:14px;z-index:8}
+.fabs.up{bottom:calc(104px + env(safe-area-inset-bottom,0px))}
+body.kb .fabs{display:none}
+.fab{width:70px;height:70px;border-radius:50%;background:var(--accent);color:var(--accent-ink);box-shadow:0 6px 18px var(--shadow);display:grid;place-items:center}
+.fab svg{width:32px;height:32px}
+.fab.s{width:60px;height:60px;background:var(--surface);color:var(--ink);border:2px solid var(--line)}
+.fab.s svg{width:28px;height:28px}
+.fab.dirty{box-shadow:0 0 0 5px var(--warn-soft),0 6px 18px var(--shadow)}
+.fab:active{transform:scale(.95)}
+.fabw{display:flex;flex-direction:column;align-items:center;gap:4px}
+.fab-cap{font-size:15px;font-weight:700;color:var(--ink);background:var(--surface);border:1px solid var(--line);padding:1px 8px;border-radius:8px;white-space:nowrap}
+.banner{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--warn-soft);color:var(--warn);border-radius:var(--r);padding:14px 16px;font-weight:700;font-size:17px}
+.banner b{margin-left:auto;white-space:nowrap}
+.dpick{position:relative}
+.dpick input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.amt-pos{color:var(--om)}.amt-neg{color:var(--good)}
+.rowtap{cursor:pointer}
+.botbar{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--surface);border-top:1px solid var(--line);padding-top:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+.botbar .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:1fr 74px 1.4fr;gap:10px}
+.botbar .btn{padding:0 8px;white-space:nowrap}
+.botbar .sbtn{border-radius:14px;background:var(--sunk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:60px}.botbar .sbtn svg{width:24px;height:24px}
+/* search bar */
+.sbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 69px);z-index:4;background:var(--bg);padding-block:10px;display:flex;gap:8px}
+.sbar input{flex:1;min-width:0;min-height:56px;border-radius:14px;border:2px solid var(--accent);background:var(--surface);padding:0 16px;font-size:20px}
+.sbar input:focus{outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.sbar button{width:56px;border-radius:14px;background:var(--sunk);font-size:22px;font-weight:700}
+.hdr.tall + .sbar{top:calc(env(safe-area-inset-top,0px) + 128px)}
+/* sheet */
+.ov{position:fixed;inset:0;background:rgba(10,20,15,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:10px;max-height:92%;overflow:auto}
+.sheet h2{margin:0;font-size:22px;line-height:1.2}
+.disp{background:var(--sunk);border-radius:14px;padding:0 16px;text-align:right;font-size:44px;font-weight:700;height:72px;line-height:72px;letter-spacing:-.5px;overflow:hidden;white-space:nowrap}
+.disp.empty{color:var(--muted);font-weight:500}
+.npx{font-size:15px;color:var(--muted);text-align:right;height:20px;line-height:20px}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.keys button{height:62px;border-radius:14px;background:var(--sunk);font-size:28px;font-weight:600;touch-action:manipulation}
+.keys button:active{background:var(--line)}
+.sheet-btns{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.typebtn{display:flex;align-items:center;gap:14px;min-height:72px;border-radius:16px;padding:0 18px;font-size:21px;font-weight:700;text-align:left;width:100%}
+.toast{position:fixed;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:14px 20px;border-radius:14px;font-weight:700;z-index:30;font-size:18px;max-width:calc(100% - 130px)}
+.botbar ~ .toast{bottom:calc(104px + env(safe-area-inset-bottom,0px))}
+.ov.anim .sheet{animation:up .18s ease-out}
+@media (prefers-reduced-motion:reduce){.ov.anim .sheet{animation:none}}
+@keyframes up{from{transform:translateY(30px);opacity:.6}}
+</style>
+
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const TYPES = {kkm:{n:'ККМ',full:'Склад ККМ',c:'kkm'}, om:{n:'Омбор',full:'Склад Омбор',c:'om'}, own:{n:'Свои',full:'За свои деньги',c:'own'}, g:{n:'Товары',full:'Прочие товары',c:'g'}};
+const WD = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+const MON = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const SV = (p, w=2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ICON = {
+  box:SV('<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>'),
+  card:SV('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>'),
+  ppl:SV('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.8c1.8.8 3 2.6 3.5 5.2"/>'),
+  list:SV('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'),
+  chart:SV('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
+  gear:SV('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/>'),
+  lock:SV('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>'),
+  scale:SV('<path d="M12 3v18M5 21h14M6 7h12M6 7l-3 7a3 3 0 006 0zM18 7l-3 7a3 3 0 006 0z"/>'),
+  stack:SV('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'),
+  cal:SV('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+  plus:SV('<path d="M12 5v14M5 12h14"/>', 2.6),
+  check:SV('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 2.8),
+  search:SV('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>', 2.6),
+  coin:SV('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 10a2.5 2 0 015 0c0 2.5-5 1.5-5 4a2.5 2 0 005 0"/>')
+};
+
+/* ---------- utils ---------- */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = n => { n = Math.round(n||0); const s = String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return (n<0?'−':'') + s; };
+const pd = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const iso = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+const addD = (s, n) => { const d = pd(s); d.setDate(d.getDate()+n); return iso(d); };
+let TODAY = iso(new Date());
+const dLong = s => { const d = pd(s); return WD[d.getDay()] + ', ' + d.getDate() + ' ' + MON[d.getMonth()]; };
+const dShort = s => { const d = pd(s); return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0'); };
+const wdShort = s => ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'][pd(s).getDay()];
+const uid = () => Math.random().toString(36).slice(2, 9);
+let TS = 1;
+const TR = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'j',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sh',ъ:'',ы:'i',ь:'',э:'e',ю:'yu',я:'ya',ў:'o',қ:'k',ғ:'g',ҳ:'h'};
+const NC = {};
+const norm = s => (NC[s] ??= s.toLowerCase().replace(/[а-яёўқғҳ]/g, c => TR[c] ?? c).replace(/c(?!h)/g,'k').replace(/q/g,'k').replace(/x/g,'h').replace(/w/g,'v').replace(/\./g,',').replace(/[^a-z0-9,]+/g,' '));
+const match = (name, q) => { const n = norm(name); return norm(q).split(' ').filter(Boolean).every(w => n.includes(w)); };
+
+/* ---------- data: local copy of the Google Sheet + outbox ---------- */
+const CFG_KEY = 'chorsu_cfg', DB_KEY = 'chorsu_db', LOC_KEY = 'chorsu_local', OUT_KEY = 'chorsu_outbox';
+const ls = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+let CFG = ls.get(CFG_KEY, null);
+let DB = ls.get(DB_KEY, null);          // {rev, t:{table:{id:[cells]}}}
+let OUT = ls.get(OUT_KEY, []);          // unsent changes [{s, t, id, row|del}]
+const LOC = ls.get(LOC_KEY, {drafts:{}, wip:null});
+let SEQ = OUT.reduce((m, o) => Math.max(m, o.s||0), 0);
+const TABLES = ['products','prices','docs','prihod','inv','invlines','extra','cash','adj','debtors','moves','settings'];
+const CATn = {cig:'сигареты', goods:'товары'}, CATr = {'сигареты':'cig', 'товары':'goods'};
+const TYPn = {kkm:'ККМ', om:'Омбор', own:'Свои', g:'Товары'}, TYPr = {'ККМ':'kkm', 'Омбор':'om', 'Свои':'own', 'Товары':'g'};
+const GRPn = {a:'должник', n:'несгор'}, GRPr = {'должник':'a', 'несгор':'n'};
+const Nn = v => { const n = Number(v); return isFinite(n) ? n : 0; };
+const Sx = v => v == null ? '' : String(v);
+const rk = row => row.map(Sx).join('\u0001');
+const emptyS = () => ({products:[], prices:[], docs:[], prihod:[], inv:[], cash:{}, adj:[], debtors:[], moves:[], pin:'0422', bal0:{date:'2026-04-19', amount:0}, drafts:LOC.drafts || {}, wip:LOC.wip || null});
+
+function toTables(S){
+  const T = {}; TABLES.forEach(k => T[k] = {});
+  const pn = {}; S.products.forEach(p => pn[p.id] = p.name);
+  const pos = {cig:0, goods:0};
+  S.products.forEach(p => { T.products[p.id] = [p.id, ++pos[p.cat], p.name, CATn[p.cat], p.hidden ? 'да' : '']; });
+  S.prices.forEach(x => { const id = x.pid + '|' + x.from; T.prices[id] = [id, x.pid, pn[x.pid]||'', x.from, x.cost, x.sale]; });
+  S.docs.forEach(d => { T.docs[d.id] = [d.id, d.date, TYPn[d.type], d.ts]; });
+  S.prihod.forEach(x => { const c = priceAt(x.pid, x.date).cost; T.prihod[x.id] = [x.id, x.doc, x.date, TYPn[x.type], x.pid, pn[x.pid]||'', x.qty, c, c * x.qty]; });
+  S.inv.forEach(i => {
+    if (!i.id) i.id = (i.cat === 'cig' ? 'i' : 'g') + i.date.replace(/-/g, '');
+    const disp = i.disp || addD(i.date, -1);
+    T.inv[i.id] = [i.id, disp, CATn[i.cat], i.date];
+    Object.keys(i.rows).forEach(pid => { const r = i.rows[pid], lid = i.id + '|' + pid;
+      T.invlines[lid] = i.cat === 'goods' ? [lid, i.id, disp, pid, pn[pid]||'', 0,0,0,0,0,0, r[0]||0] : [lid, i.id, disp, pid, pn[pid]||'', r[0]||0, r[1]||0, r[2]||0, r[3]||0, r[4]||0, r[5]||0, 0]; });
+    (i.extra || []).forEach(x => { T.extra[x.id] = [x.id, i.id, x.name, x.amt]; });
+  });
+  Object.keys(S.cash).forEach(d => { const c = S.cash[d]; if (c.t || c.k || (DB && DB.t.cash && DB.t.cash[d])) T.cash[d] = [d, d, c.t||0, c.k||0]; });
+  (S.adj || []).forEach(a => { T.adj[a.id] = [a.id, a.date, a.amt, a.note||'']; });
+  const dn = {}; S.debtors.forEach(d => { dn[d.id] = d.name; T.debtors[d.id] = [d.id, d.name, GRPn[d.grp], d.ts]; });
+  S.moves.forEach(m => { T.moves[m.id] = [m.id, m.did, dn[m.did]||'', m.date, m.amt, m.note||'']; });
+  T.settings.pin = ['pin', S.pin]; T.settings.bal0_date = ['bal0_date', S.bal0.date]; T.settings.bal0_amount = ['bal0_amount', S.bal0.amount];
+  return T;
+}
+function fromTables(){
+  const t = DB.t, S2 = emptyS(), g = k => Object.values(t[k] || {});
+  const prods = g('products').map(r => ({id:Sx(r[0]), pos:Nn(r[1]), name:Sx(r[2]), cat:CATr[r[3]] || 'cig', hidden:r[4] === 'да'}));
+  prods.sort((a, b) => a.cat === b.cat ? a.pos - b.pos : (a.cat === 'cig' ? -1 : 1));
+  S2.products = prods.map(p => ({id:p.id, name:p.name, cat:p.cat, hidden:p.hidden}));
+  S2.prices = g('prices').map(r => ({pid:Sx(r[1]), from:Sx(r[3]), cost:Nn(r[4]), sale:Nn(r[5])}));
+  S2.docs = g('docs').map(r => ({id:Sx(r[0]), date:Sx(r[1]), type:TYPr[r[2]] || 'kkm', ts:Nn(r[3])}));
+  S2.prihod = g('prihod').map(r => ({id:Sx(r[0]), doc:Sx(r[1]), date:Sx(r[2]), type:TYPr[r[3]] || 'kkm', pid:Sx(r[4]), qty:Nn(r[6])}));
+  const invs = {};
+  g('inv').forEach(r => { invs[r[0]] = {id:Sx(r[0]), disp:Sx(r[1]), eve:true, cat:CATr[r[2]] || 'cig', date:Sx(r[3]), rows:{}, extra:[]}; });
+  g('invlines').forEach(r => { const i = invs[r[1]]; if (!i) return; i.rows[Sx(r[3])] = i.cat === 'goods' ? [Nn(r[11])] : [Nn(r[5]), Nn(r[6]), Nn(r[7]), Nn(r[8]), Nn(r[9]), Nn(r[10])]; });
+  g('extra').forEach(r => { const i = invs[r[1]]; if (i) i.extra.push({id:Sx(r[0]), name:Sx(r[2]), amt:Nn(r[3])}); });
+  S2.inv = Object.values(invs);
+  g('cash').forEach(r => { S2.cash[Sx(r[1])] = {t:Nn(r[2]), k:Nn(r[3])}; });
+  S2.adj = g('adj').map(r => ({id:Sx(r[0]), date:Sx(r[1]), amt:Nn(r[2]), note:Sx(r[3])}));
+  S2.debtors = g('debtors').map(r => ({id:Sx(r[0]), name:Sx(r[1]), grp:GRPr[r[2]] || 'a', ts:Nn(r[3])}));
+  S2.moves = g('moves').map(r => ({id:Sx(r[0]), did:Sx(r[1]), date:Sx(r[3]), amt:Nn(r[4]), note:Sx(r[5])}));
+  const st = t.settings || {};
+  if (st.pin) S2.pin = Sx(st.pin[1]).padStart(4, '0');
+  if (st.bal0_date) S2.bal0.date = Sx(st.bal0_date[1]);
+  if (st.bal0_amount) S2.bal0.amount = Nn(st.bal0_amount[1]);
+  return S2;
+}
+let S = DB ? fromTables() : emptyS();
+let persistT = null;
+const persistDB = () => { clearTimeout(persistT); persistT = setTimeout(() => { if (!ls.set(DB_KEY, DB)) SYNC.warn = 'Память телефона переполнена'; }, 250); };
+function queue(ops){
+  const keys = new Set(ops.map(o => o.t + '\u0001' + o.id));
+  OUT = OUT.filter(o => !keys.has(o.t + '\u0001' + o.id)).concat(ops.map(o => Object.assign({s:++SEQ}, o)));
+  ls.set(OUT_KEY, OUT);
+}
+function save(){
+  LOC.drafts = S.drafts; LOC.wip = S.wip; ls.set(LOC_KEY, LOC);
+  if (!DB) return;
+  const T = toTables(S), ops = [];
+  TABLES.forEach(k => {
+    const old = DB.t[k] || {}, nw = T[k];
+    for (const id in nw) if (!old[id] || rk(old[id]) !== rk(nw[id])) ops.push({t:k, id, row:nw[id]});
+    for (const id in old) if (!nw[id]) ops.push({t:k, id, del:1});
+    DB.t[k] = nw;
+  });
+  if (ops.length){ queue(ops); persistDB(); schedulePush(); }
+}
+
+/* ---------- sync with the Google Sheet ---------- */
+const SYNC = {state:'idle', last:ls.get('chorsu_last', 0), err:'', warn:''};
+let pushT = null, syncing = null;
+const schedulePush = () => { clearTimeout(pushT); pushT = setTimeout(() => sync(), 1500); };
+async function api(method, payload){
+  if (method === 'GET'){
+    const q = Object.keys(payload).map(k => k + '=' + encodeURIComponent(payload[k])).join('&');
+    const r = await fetch(CFG.u + (CFG.u.includes('?') ? '&' : '?') + q, {redirect:'follow'});
+    return r.json();
+  }
+  const r = await fetch(CFG.u, {method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)});
+  return r.json();
+}
+async function push(){
+  while (OUT.length){
+    const batch = OUT.slice(0, 400), sent = new Set(batch.map(o => o.s));
+    const j = await api('POST', {key:CFG.k, action:'push', ops:batch.map(o => o.del ? {t:o.t, id:o.id, del:1} : {t:o.t, id:o.id, row:o.row})});
+    if (!j || !j.ok) throw new Error(j && j.error === 'key' ? 'key' : (j && j.error) || 'push');
+    OUT = OUT.filter(o => !sent.has(o.s)); ls.set(OUT_KEY, OUT);
+  }
+}
+async function pull(full){
+  const since = (full || !DB) ? -1 : DB.rev;
+  const j = await api('GET', {key:CFG.k, action:'pull', since});
+  if (!j || !j.ok) throw new Error(j && j.error === 'key' ? 'key' : (j && j.error) || 'pull');
+  if (since === -1){ DB = {rev:0, t:{}}; TABLES.forEach(k => DB.t[k] = {}); }
+  let changed = since === -1;
+  for (const k in j.tables){
+    DB.t[k] = DB.t[k] || {};
+    j.tables[k].forEach(row => { const id = Sx(row[0]); changed = true;
+      if (row[row.length - 1] === 'x') delete DB.t[k][id]; else DB.t[k][id] = row.slice(0, row.length - 2); });
+  }
+  OUT.forEach(o => { DB.t[o.t] = DB.t[o.t] || {}; if (o.del) delete DB.t[o.t][o.id]; else DB.t[o.t][o.id] = o.row; }); // my unsent changes win
+  DB.rev = j.rev; persistDB();
+  return changed;
+}
+function sync(full){
+  if (!CFG) return Promise.resolve();
+  if (syncing) return syncing;
+  SYNC.state = 'busy'; paintStatus();
+  syncing = (async () => {
+    try {
+      await push();
+      const changed = await pull(full);
+      SYNC.state = 'ok'; SYNC.err = ''; SYNC.last = Date.now(); ls.set('chorsu_last', SYNC.last);
+      if (changed){ S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); softRender(); }
+    } catch(e){
+      SYNC.state = !navigator.onLine ? 'offline' : (e.message === 'key' ? 'key' : 'err'); SYNC.err = e.message;
+      if (SYNC.state !== 'key'){ clearTimeout(pushT); pushT = setTimeout(() => sync(), 20000); }
+    } finally { syncing = null; paintStatus(); }
+  })();
+  return syncing;
+}
+function softRender(){ // do not interrupt typing or an open number pad
+  if (NP || CONF || TSHEET || isText(document.activeElement)) { NEED_RENDER = true; return; }
+  render();
+}
+let NEED_RENDER = false;
+function statusText(){
+  const n = OUT.length, t = SYNC.last ? new Date(SYNC.last).toTimeString().slice(0,5) : '';
+  if (SYNC.state === 'busy') return ['busy', 'Сохраняю в базу…'];
+  if (SYNC.state === 'key') return ['bad', 'Телефон не подключён к базе: ключ не подходит. Откройте ссылку подключения ещё раз.'];
+  if (n && SYNC.state === 'offline') return ['warn', `Нет интернета · ${n} ${n===1?'запись ждёт':'записей ждут'} отправки`];
+  if (n && SYNC.state === 'err') return ['warn', `Нет связи с базой · ${n} ${n===1?'запись ждёт':'записей ждут'}, отправится само`];
+  if (n) return ['warn', `${n} ${n===1?'запись ждёт':'записей ждут'} отправки`];
+  if (SYNC.state === 'offline') return ['warn', 'Нет интернета' + (t ? ` · база обновлена в ${t}` : '')];
+  if (SYNC.state === 'err') return ['warn', 'База недоступна, повторю позже' + (t ? ` · обновлена в ${t}` : '')];
+  return ['ok', t ? `Всё сохранено в базе · ${t}` : 'Всё сохранено в базе'];
+}
+function paintStatus(){ const el = document.getElementById('sync'); if (el){ const [c, txt] = statusText(); el.className = 'syncbar ' + c; el.querySelector('span').textContent = txt; } }
+setInterval(() => { if (document.visibilityState === 'visible') sync(); }, 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible'){ const t = iso(new Date()); if (t !== TODAY){ TODAY = t; softRender(); } sync(); } });
+window.addEventListener('online', () => sync());
+
+
+/* ---------- domain ---------- */
+const P = id => S.products.find(p => p.id === id);
+const ordered = cat => S.products.filter(p => p.cat === cat && !p.hidden);
+const numOf = id => { const p = P(id); return ordered(p.cat).findIndex(x => x.id === id) + 1; };
+function priceAt(pid, date){
+  const list = S.prices.filter(x => x.pid === pid).sort((a,b) => a.from < b.from ? -1 : 1);
+  let cur = list[0] || {cost:0, sale:0};
+  for (const x of list) if (x.from <= date) cur = x;
+  return cur;
+}
+const curPrice = pid => priceAt(pid, '9999-12-31');
+function dayPrihod(date){
+  const r = {kkm:0, om:0, own:0, g:0};
+  S.prihod.forEach(x => { if (x.date === date) r[x.type] += x.qty * priceAt(x.pid, date).cost; });
+  return r;
+}
+const docSum = (items, date) => items.reduce((a,x) => a + x.qty * priceAt(x.pid, date).cost, 0);
+const cashOf = date => S.cash[date] || {t:0, k:0};
+function balanceEnd(date){
+  if (!S.bal0 || date < S.bal0.date) return null;
+  let b = S.bal0.amount, d = S.bal0.date; const by = {};
+  S.prihod.forEach(x => { if (x.type==='kkm' || x.type==='om') by[x.date] = (by[x.date]||0) + x.qty * priceAt(x.pid, x.date).cost; });
+  (S.adj||[]).forEach(a => by[a.date] = (by[a.date]||0) + a.amt);
+  while (d <= date){ const c = cashOf(d); b += (by[d]||0) - c.t - c.k; d = addD(d, 1); }
+  return b;
+}
+const balanceStart = date => date <= S.bal0.date ? S.bal0.amount : balanceEnd(addD(date, -1));
+const invList = cat => S.inv.filter(i => i.cat === cat).sort((a,b) => a.date < b.date ? -1 : 1);
+function prihodSum(pid, from, to){
+  const r = {kkm:0, om:0, own:0, g:0};
+  S.prihod.forEach(x => { if (x.pid === pid && x.date >= from && (!to || x.date < to)) r[x.type] += x.qty; });
+  return r;
+}
+const Z = [0,0,0,0,0,0];
+function calc(pid, prevRow, nowRow, from, to){
+  const p = P(pid), pr = prihodSum(pid, from, to);
+  if (p.cat === 'goods'){
+    const a = (prevRow||[0])[0]||0, b = (nowRow||[0])[0]||0;
+    return {was:a, inc:pr.g, now:b, sold:a + pr.g - b, pr};
+  }
+  const a = prevRow || Z, b = nowRow || Z;
+  const wasOff = a[0]+a[1]+a[2]+a[3], nowOff = b[0]+b[1]+b[2]+b[3];
+  const soldOff = wasOff + pr.kkm + pr.om - nowOff;
+  const soldBl = (a[4]||0) + pr.own - (b[4]||0);
+  return {was: wasOff + (a[4]||0), inc: pr.kkm + pr.om + pr.own, now: nowOff + (b[4]||0), sold: soldOff + soldBl, soldOff, soldBl, wasOff, nowOff, wasBl:a[4]||0, nowBl:b[4]||0, pr, a, b};
+}
+const prevInvFor = (cat, date) => invList(cat).filter(i => i.date < date).slice(-1)[0];
+const invShort = i => dShort(i.disp || addD(i.date, -1));
+const invLong = i => dLong(i.disp || addD(i.date, -1));
+const repProducts = cat => S.products.filter(p => p.cat === cat); // in reports hidden goods still count
+const repNum = id => numOf(id) || '—';
+const adjOn = date => (S.adj||[]).filter(a => a.date === date).reduce((s,a) => s + a.amt, 0);
+const debtOf = id => S.moves.filter(m => m.did === id).reduce((a,m) => a + m.amt, 0);
+function debtTotals(){ let a=0, n=0; S.debtors.forEach(d => { const v = debtOf(d.id); if (d.grp==='n') n += v; else a += v; }); return {a, n}; }
+function goodsAgg(dr){ const m = {}; dr.adds.forEach(x => { (m[x.pid] = m[x.pid] || []).push(x); }); return m; }
+const extraSum = arr => (arr||[]).reduce((a,x) => a + x.amt, 0);
+
+/* ---------- router & ui state ---------- */
+let R = {s:'home'}; const HIST = [];
+let NP = null, CONF = null, TSHEET = false, TOAST = null, UNLOCK = false, ANIM = false;
+const go = (s, p={}) => { HIST.push(R); R = Object.assign({s}, p); NP = null; render(); window.scrollTo(0,0); };
+function back(){
+  if (R.sOpen || R.q){ R.q = ''; R.sOpen = false; document.body.classList.remove('kb'); return render(); }
+  if (R.s === 'pdoc' && S.wip && S.wip.dirty) return askSave(savePdoc, () => { S.wip = null; save(); doBack(); });
+  if (R.s === 'cash' && R.dirty) return askSave(saveCash, () => { R.dirty = false; doBack(); });
+  if (R.s === 'pdoc'){ S.wip = null; save(); }
+  doBack();
+}
+function doBack(){ R = HIST.pop() || {s:'home'}; NP = null; render(); window.scrollTo(0,0); }
+function toast(t){ TOAST = t; render(); clearTimeout(toast.h); toast.h = setTimeout(() => { TOAST = null; const el = document.querySelector('.toast'); if (el) el.remove(); }, 1700); }
+function askSave(saveFn, discardFn){ CONF = {text:'Сохранить изменения?', yes:{l:'Сохранить', c:'pri', f:saveFn}, no:{l:'Не сохранять', f:discardFn}}; ANIM = true; render(); }
+function confirmBox(text, okLabel, fn){ CONF = {text, yes:{l:okLabel, c:'dang', f:fn}, no:{l:'Нет', f:() => {}}}; ANIM = true; render(); }
+
+const hdr = (title, opt={}) => {
+  if (opt.sum != null) return `<div class="hdr tall wrap"><div class="hrow"><button class="back" data-a="back">‹ Назад</button>${opt.tag||''}</div><div class="hsum-row"><h1>${title}</h1><span class="hsum">${fmt(opt.sum)}</span></div></div>`;
+  return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Назад</button><h1>${title}</h1></div></div>`;
+};
+const datenav = (date, act) => `<div class="datenav"><button data-a="${act}" data-v="-1" aria-label="Предыдущий день">‹</button><label class="d dpick">${dLong(date)}<span class="small muted">${date===TODAY?'сегодня · ':''}нажмите для календаря</span><input type="date" data-in="date" data-act="${act}" value="${date}" max="${TODAY}" aria-label="Выбрать дату"></label><button data-a="${act}" data-v="1" ${date>=TODAY?'disabled':''} aria-label="Следующий день">›</button></div>`;
+const fabs = (btns, up) => `<div class="fabs ${up?'up':''}">${btns.map(b => `<div class="fabw"><button class="fab ${b.s?'s':''} ${b.dirty?'dirty':''}" data-a="${b.a}" aria-label="${b.l}">${ICON[b.i]}</button><span class="fab-cap">${b.c || b.l}</span></div>`).join('')}</div>`;
+const sbar = ph => (R.sOpen || R.q) ? `<div class="sbar wrap"><input id="q" data-in="q" type="text" placeholder="${ph}" value="${esc(R.q||'')}" autocomplete="off" enterkeyhint="search"><button data-a="sclear" aria-label="Закрыть поиск">✕</button></div>` : '';
+
+/* ---------- screens ---------- */
+const V = {};
+V.home = () => {
+  const dp = dayPrihod(TODAY), c = cashOf(TODAY), debts = debtTotals();
+  const draft = S.drafts.cig || S.drafts.goods, li = invList('cig').slice(-1)[0];
+  const ndoc = S.docs.filter(d => d.date === TODAY).length;
+  const [sc, st] = statusText();
+  return `<button id="sync" class="syncbar ${sc} wrap" data-a="syncnow"><span>${st}</span><b>Обновить</b></button>
+  <div class="wrap stack">
+    <p class="home-date">${dLong(TODAY)}</p>
+    ${S.wip && S.wip.items.length ? `<button class="banner" data-a="wipopen">Есть несохранённый приход: ${TYPES[S.wip.type].full}, ${S.wip.items.length} поз. <b>Открыть ›</b></button>` : ''}
+    ${tile('plist','box','--accent','Приход', ndoc ? `Сегодня ${ndoc} шт · ${fmt(dp.kkm+dp.om+dp.own+dp.g)}` : 'Сегодня приходов нет')}
+    ${tile('cash','card','--kkm','Терминал и касса', c.t||c.k ? 'Терминал ' + fmt(c.t) + ' · касса ' + fmt(c.k) : 'Сегодня ещё не записано')}
+    ${tile('debts','ppl','--om','Долги клиентов', 'Должны нам: ' + fmt(debts.a + debts.n))}
+    ${tile('inv','list','--own','Инвентаризация', draft ? 'Есть незаконченная — продолжить' : 'Последняя: ' + (li ? invLong(li) : '—'))}
+    ${tile('reports','chart','--goods','Отчёты', 'Остатки, по дням, продажи, баланс')}
+    ${tile('settings','gear','--muted','Настройки', 'Товары и цены')}
+  </div>`;
+};
+const tile = (to, ic, col, title, sub) => `<button class="tile" data-a="go" data-v="${to}"><span class="ic" style="background:var(--sunk);background:color-mix(in srgb, var(${col}) 14%, transparent);color:var(${col})">${ICON[ic]}</span><span style="min-width:0"><b>${title}</b><span>${sub}</span></span><span class="chev">›</span></button>`;
+
+/* Приходы за день */
+V.plist = () => {
+  R.date = R.date || TODAY;
+  const docs = S.docs.filter(d => d.date === R.date).sort((a,b) => a.ts - b.ts);
+  return hdr('Приходы') + `<div class="wrap stack">
+    ${datenav(R.date, 'pdate')}
+    ${docs.length ? `<div class="list">${docs.map((d,i) => { const items = S.prihod.filter(x => x.doc === d.id); const t = TYPES[d.type];
+      return `<button class="row" data-a="popen" data-v="${d.id}"><span class="doc-ic p-${t.c}">${t.n}</span><span class="nm">Приход № ${i+1}<div class="small muted">${t.full} · ${items.length} поз.</div></span><span class="rt">${fmt(docSum(items, d.date))}</span></button>`; }).join('')}</div>`
+    : `<div class="card empty-st">В этот день приходов нет.<br>Нажмите <b>+</b> внизу справа, чтобы создать.</div>`}
+  </div>` + fabs([{a:'pnew', i:'plus', l:'Новый приход', c:'Новый'}]);
+};
+/* Документ прихода */
+V.pdoc = () => {
+  const w = S.wip; if (!w) return V.plist();
+  const t = TYPES[w.type], cat = w.type === 'g' ? 'goods' : 'cig';
+  const sum = docSum(w.items, w.date);
+  const counts = {}; w.items.forEach(x => counts[x.pid] = (counts[x.pid]||0) + x.qty);
+  return hdr('Приход', {sum, tag:`<span class="pill p-${t.c}" style="margin-left:auto">${t.full}</span>`}) + sbar('Название или номер товара') + `<div class="wrap stack">
+    ${!R.q ? `<div class="small muted">${dLong(w.date)}${w.docId ? '' : ' · новый приход'}${w.dirty ? ' · <b style="color:var(--warn)">не сохранено</b>' : ''}</div>` : ''}
+    ${!R.q && w.items.length ? `<div class="sec-h">В этом приходе · ${w.items.length}</div><div class="list">${w.items.map((e,i) => { const pr = priceAt(e.pid, w.date).cost; return `<button class="row" data-a="piedit" data-v="${i}"><span class="num">${numOf(e.pid)||'—'}</span><span class="nm">${esc(P(e.pid).name)}<div class="small muted">${fmt(pr)} × ${e.qty} = ${fmt(pr*e.qty)}</div></span><span class="badge">+${e.qty}</span></button>`; }).join('')}</div><div class="small muted">Чтобы исправить или удалить строку — нажмите на неё.</div>` : ''}
+    <div class="sec-h">${R.q ? 'Найдено' : 'Все товары · нажмите, чтобы добавить'}</div>
+    <div class="list" id="plist">${prodRows(cat, R.q||'', pid => counts[pid] ? `<span class="badge">+${counts[pid]}</span>` : '', 'padd')}</div>
+    ${w.docId && !R.q ? `<button class="btn dang" data-a="pdocdel">Удалить этот приход</button>` : ''}
+  </div>` + fabs([{a:'search', i:'search', l:'Поиск', s:1}, {a:'psave', i:'check', l:'Сохранить приход', c:'Сохранить', dirty:w.dirty}]);
+};
+function prodRows(cat, q, right, act){
+  const ql = q.trim().toLowerCase();
+  const items = ordered(cat).map((p,i) => ({p, n:i+1})).filter(({p,n}) => !ql || String(n) === ql || match(p.name, ql));
+  if (!items.length) return `<div class="empty-st">Ничего не найдено</div>`;
+  return items.map(({p,n}) => `<button class="row" data-a="${act}" data-v="${p.id}"><span class="num">${n}</span><span class="nm">${esc(p.name)}</span>${right(p.id)}</button>`).join('');
+}
+function savePdoc(){
+  const w = S.wip; if (!w) return;
+  if (!w.items.length && !w.docId){ S.wip = null; save(); doBack(); return toast('Пустой приход не сохранён'); }
+  let doc = w.docId && S.docs.find(d => d.id === w.docId);
+  if (!doc){ doc = {id:uid(), date:w.date, type:w.type, ts:Date.now()}; S.docs.push(doc); }
+  S.prihod = S.prihod.filter(x => x.doc !== doc.id);
+  w.items.forEach(x => S.prihod.push({id:uid(), doc:doc.id, date:doc.date, pid:x.pid, type:doc.type, qty:x.qty}));
+  if (!w.items.length) S.docs = S.docs.filter(d => d.id !== doc.id);
+  S.wip = null; save(); doBack(); toast('Приход сохранён');
+}
+
+/* Терминал и касса */
+V.cash = () => {
+  R.date = R.date || TODAY;
+  if (!R.cd || R.cdDate !== R.date){ R.cd = Object.assign({t:0,k:0}, cashOf(R.date)); R.cdDate = R.date; R.dirty = false; }
+  const days = []; for (let i=6; i>=0; i--) days.push(addD(R.date, -i));
+  return hdr('Терминал и касса') + `<div class="wrap stack">
+    ${datenav(R.date, 'cdate')}
+    <button class="money ${R.dirty?'dirty':''}" data-a="cset" data-v="t"><span class="lbl">Терминал</span><b>${fmt(R.cd.t)}</b></button>
+    <button class="money ${R.dirty?'dirty':''}" data-a="cset" data-v="k"><span class="lbl">Сдано в офис (касса)</span><b>${fmt(R.cd.k)}</b></button>
+    ${R.dirty ? `<div class="note warn">Не сохранено. Нажмите ✓ внизу справа.</div>` : ''}
+    <div class="sec-h">Последние 7 дней</div>
+    <div class="tbl-wrap"><table><tr><th class="l">День</th><th>Терминал</th><th>Касса</th></tr>
+      ${days.map(d => { const cc = cashOf(d); return `<tr><td class="l">${wdShort(d)} ${dShort(d)}</td><td>${fmt(cc.t)}</td><td>${fmt(cc.k)}</td></tr>`; }).join('')}
+    </table></div>
+  </div>` + fabs([{a:'csave', i:'check', l:'Сохранить', dirty:R.dirty}]);
+};
+function saveCash(){ S.cash[R.date] = {t:R.cd.t, k:R.cd.k}; R.dirty = false; save(); toast('Сохранено'); }
+
+/* Долги */
+V.debts = () => {
+  const tot = debtTotals();
+  const row = d => { const v = debtOf(d.id); return `<button class="row" data-a="dopen" data-v="${d.id}"><span class="nm">${esc(d.name)}</span><span class="rt ${v<0?'neg':''}" style="${v===0?'color:var(--faint)':''}">${fmt(v)}</span></button>`; };
+  const q = R.q || '', fl = d => !q || match(d.name, q);
+  const all = S.debtors.filter(fl).sort((a,b) => a.ts - b.ts);
+  const zero = all.filter(d => debtOf(d.id) === 0);
+  const ns = all.filter(d => d.grp==='n' && debtOf(d.id) !== 0), as = all.filter(d => d.grp==='a' && debtOf(d.id) !== 0);
+  return hdr('Долги клиентов', {sum:tot.a + tot.n}) + sbar('Имя') + `<div class="wrap stack">
+    ${ns.length || !q ? `<div class="sec-h">Несгор · ${fmt(tot.n)}</div><div class="list">${ns.map(row).join('') || '<div class="empty-st">Нет</div>'}</div>` : ''}
+    ${as.length || !q ? `<div class="sec-h">Должники · ${fmt(tot.a)}</div><div class="list">${as.map(row).join('') || '<div class="empty-st">Нет</div>'}</div>` : ''}
+    ${zero.length ? (R.showZero || q ? `<div class="sec-h">Погашены · ${zero.length}</div><div class="list">${zero.map(row).join('')}</div>` : `<button class="btn sec" data-a="dzero">Показать погашенных (${zero.length})</button>`) : ''}
+    ${q && !ns.length && !as.length && !zero.length ? '<div class="card empty-st">Никого не нашли</div>' : ''}
+    <p class="small muted">Новые должники добавляются в конец списка. Кто вернул весь долг, уходит в «Погашены».</p>
+  </div>` + fabs([{a:'search', i:'search', l:'Поиск', s:1}, {a:'dnew', i:'plus', l:'Новый должник', c:'Новый'}]);
+};
+V.debtor = () => {
+  const d = S.debtors.find(x => x.id === R.id); if (!d) return V.debts();
+  const mv = S.moves.filter(m => m.did === d.id).sort((a,b) => a.date < b.date ? 1 : -1);
+  return hdr(esc(d.name), {sum:debtOf(d.id), tag: d.grp==='n' ? '<span class="pill p-om" style="margin-left:auto">Несгор</span>' : ''}) + `<div class="wrap stack">
+    <div class="grid2"><button class="btn give" data-a="dmove" data-v="1">Дал в долг +</button><button class="btn ret" data-a="dmove" data-v="-1">Вернул −</button></div>
+    <div class="sec-h">История</div>
+    <div class="list">${mv.map(m => `<div class="row"><span class="nm">${dShort(m.date)} <span class="small muted">${esc(m.note||'')}</span></span><span class="rt" style="color:var(${m.amt>0?'--om':'--good'})">${m.amt>0?'+':''}${fmt(m.amt)}</span><button class="x" data-a="mdel" data-v="${m.id}" aria-label="Удалить запись">✕</button></div>`).join('') || '<div class="empty-st">Записей нет</div>'}</div>
+    <button class="btn sec" data-a="dgrp">${d.grp==='n' ? 'Вернуть в должники' : 'Перенести в Несгор'}</button>
+    <button class="btn sec" data-a="dren">Изменить имя</button>
+  </div>`;
+};
+V.dnew = () => { const d = R.id && S.debtors.find(x => x.id === R.id); return hdr(d ? 'Изменить имя' : 'Новый должник') + `<div class="wrap stack">
+  <div class="field txt"><label for="dname">Имя</label><input id="dname" placeholder="Например: Нилуфар, ряд 3" autocomplete="off" value="${d ? esc(d.name) : ''}"></div>
+  ${d ? '' : '<p class="small muted">Сумму долга добавите на следующем экране кнопкой «Дал в долг».</p>'}</div>` + fabs([{a:'dcreate', i:'check', l:'Сохранить должника', c:'Сохранить'}]); };
+
+/* Инвентаризация */
+V.inv = () => {
+  R.cat = R.cat || 'cig';
+  const list = invList(R.cat), last = list.slice(-1)[0], dr = S.drafts[R.cat];
+  const total = ordered(R.cat).length;
+  const prog = dr ? (R.cat === 'goods' ? `записано ${Object.keys(goodsAgg(dr)).length} товаров` : `заполнено ${Object.keys(dr.rows).length} из ${total}`) : '';
+  return hdr('Инвентаризация') + `<div class="wrap stack">
+    <div class="seg"><button class="${R.cat==='cig'?'on':''}" data-a="icat" data-v="cig">Сигареты</button><button class="${R.cat==='goods'?'on':''}" data-a="icat" data-v="goods">Товары</button></div>
+    <div class="card"><div class="lbl">Последняя инвентаризация</div><div style="font-size:22px;font-weight:700;margin-top:4px">${last ? invLong(last) : 'ещё не было'}</div></div>
+    ${dr ? `<div class="note warn">Незаконченная инвентаризация ${dr.lbl || dShort(dr.date)}: ${prog}</div>
+      <button class="btn pri" data-a="icont">Продолжить</button>
+      <button class="btn sec" data-a="ifinish">Завершить сейчас</button>
+      <button class="btn dang" data-a="idrop">Удалить незаконченную</button>`
+    : `<div class="field"><label for="idate">Дата инвентаризации</label><input type="date" id="idate" value="${TODAY}" max="${TODAY}"></div>
+      <button class="btn pri" data-a="istart">Начать</button>
+      <p class="small muted">Инвентаризация вечером: приход этого дня остаётся в старой неделе.</p>
+      <p class="small muted">${R.cat === 'cig' ? 'Сигареты идут в вашем порядке, по одному на экране. Все количества — в пачках.' : 'Товары ищете по названию. Один товар можно добавлять сколько угодно раз — с разных полок, количество сложится.'}</p>`}
+    <div class="sec-h">Прошлые</div>
+    <div class="list">${list.slice().reverse().map(i => `<div class="row"><span class="nm">${invLong(i)}</span><span class="small muted">${Object.keys(i.rows).length} поз.</span></div>`).join('') || '<div class="empty-st">Нет</div>'}</div>
+  </div>`;
+};
+V.icard = () => {
+  const cat = 'cig', dr = S.drafts.cig; if (!dr) return V.inv();
+  const items = ordered(cat); dr.idx = Math.min(Math.max(dr.idx||0, 0), items.length-1);
+  const p = items[dr.idx], prev = prevInvFor(cat, dr.date), a = (prev && prev.rows[p.id]) || Z;
+  const pr = prihodSum(p.id, prev ? prev.date : '0000', dr.date);
+  const sug = (a[4]||0) + pr.own;
+  let row = dr.rows[p.id];
+  if (!row){ row = dr.rows[p.id] = [null,null,null,null, sug>0 ? sug : null, null]; dr.sugs = dr.sugs || {}; if (sug>0) dr.sugs[p.id] = 1; save(); }
+  const isLast = dr.idx === items.length - 1;
+  const pct = Math.round(Object.keys(dr.rows).length / items.length * 100);
+  const cell = (i, cls, label) => `<div class="cell ${cls}"><label for="f${i}">${label}</label><div class="box"><input id="f${i}" data-in="inv" data-i="${i}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="next" value="${row[i]==null?'':row[i]}" placeholder="0" autocomplete="off"><span class="was">было ${a[i]||0}</span></div></div>`;
+  return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Выйти</button><h1>№ ${dr.idx+1} из ${items.length}</h1><span class="small muted">${dr.lbl||''}</span></div><div class="prog" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>
+  <div class="wrap stack">
+    <p class="pname">${esc(p.name)}</p>
+    <div class="grid2">${cell(0,'kkm','ККМ блок')}${cell(1,'kkm','ККМ дона')}${cell(2,'om','Омбор блок')}${cell(3,'om','Омбор дона')}${cell(4,'own','Чёрный')}${cell(5,'ret','Возврат')}</div>
+    <div class="hint" id="bhint">${dr.sugs && dr.sugs[p.id] ? `Чёрный подставлен: было ${a[4]||0} + куплено ${pr.own}. Исправьте, если не так.` : (sug>0 && row[4]!==sug ? `Ожидается чёрный: ${sug} <button data-a="isug" data-v="${sug}">Подставить</button>` : '')}</div>
+    <div id="live">${liveHtml(p.id)}</div>
+  </div>
+  <div class="botbar wrap"><div class="in"><button class="btn sec" data-a="inav" data-v="-1" ${dr.idx===0?'disabled':''}>‹ Назад</button><button class="sbtn" data-a="ilist" aria-label="Список товаров">${ICON.list}<span style="font-size:15px;font-weight:700">Список</span></button><button class="btn pri" data-a="${isLast?'ifinish':'inav'}" data-v="1">${isLast?'Завершить':'Дальше ›'}</button></div></div>`;
+};
+function liveHtml(pid){
+  const dr = S.drafts.cig, prev = prevInvFor('cig', dr.date);
+  const row = (dr.rows[pid] || []).map(x => x||0);
+  const c = calc(pid, prev && prev.rows[pid], row, prev ? prev.date : '0000', dr.date);
+  if (!prev) return `<div class="bal"><span>Сейчас всего</span><b>${c.now}</b></div>`;
+  const b = (v, title, sub) => `<div class="bal ${v<0?'badlive':''}"><span>${title}<div class="small">${sub}</div></span><b>${v}</b></div>`;
+  return `<div class="stack" style="padding:0;gap:8px">
+    ${b(c.soldOff, 'Баланс с офисом', `без чёрного и прихода за свои · приход ККМ ${c.pr.kkm}, Омбор ${c.pr.om}`)}
+    ${b(c.sold, 'Общий баланс', `с чёрным и приходом за свои (${c.pr.own})`)}
+  </div>`;
+}
+V.ifinish = () => {
+  const cat = R.cat, dr = S.drafts[cat];
+  if (cat === 'goods'){
+    const agg = goodsAgg(dr); let s = 0; Object.keys(agg).forEach(pid => s += agg[pid].reduce((a,x)=>a+x.qty,0) * curPrice(pid).sale); s += extraSum(dr.extra);
+    return hdr('Завершить') + `<div class="wrap stack">
+      <div class="card"><div class="lbl">Товары · ${dLong(dr.date)}</div><div class="big">${fmt(s)}</div><div class="muted">${Object.keys(agg).length} товаров из списка${dr.extra.length ? ' · ' + dr.extra.length + ' сумм вне списка' : ''}</div></div>
+      <div class="note warn">Товары, которых нет в этой инвентаризации, будут записаны как 0.</div>
+      <button class="btn pri" data-a="isave">Сохранить инвентаризацию</button><button class="btn sec" data-a="back">Вернуться</button></div>`;
+  }
+  const items = ordered(cat), filled = items.filter(p => dr.rows[p.id] && dr.rows[p.id].some(x => x!=null)).length;
+  return hdr('Завершить') + `<div class="wrap stack">
+    <div class="card"><div class="lbl">Сигареты · ${dLong(dr.date)}</div><div class="big">${filled} из ${items.length}</div><div class="muted">товаров заполнено</div></div>
+    ${filled < items.length ? `<div class="note warn">Незаполненные товары (${items.length-filled}): ККМ и Омбор запишутся как 0, чёрный — как было (прошлый чёрный + купленный за свои).</div><button class="btn sec" data-a="ifirst">Перейти к первому незаполненному</button>` : ''}
+    <button class="btn pri" data-a="isave">Сохранить инвентаризацию</button>
+    <button class="btn sec" data-a="back">Вернуться</button></div>`;
+};
+V.ijump = () => {
+  const dr = S.drafts.cig; R.q = R.q || '';
+  return hdr('Список сигарет') + sbar('Название или номер') + `<div class="wrap stack">
+    ${!R.q ? `<div class="grid2"><button class="btn sec" data-a="ifirst">Первый незаполненный</button><button class="btn sec" data-a="ifinish">Завершить</button></div>
+    <div class="small muted">Цифры справа: <b style="color:var(--kkm)">ККМ</b> · <b style="color:var(--om)">Омбор</b> · <b style="color:var(--own)">Чёрный</b>. Нажмите на товар, чтобы перейти к нему.</div>` : ''}
+    <div class="list" id="plist">${prodRows('cig', R.q, pid => { const r = dr.rows[pid]; if (!r || !r.some(x=>x!=null)) return '<span class="small muted">не заполнен</span>'; const k=(r[0]||0)+(r[1]||0), o=(r[2]||0)+(r[3]||0), b=r[4]||0; return `<span class="small" style="text-align:right;white-space:nowrap"><b style="color:var(--kkm)">${k}</b> · <b style="color:var(--om)">${o}</b> · <b style="color:var(--own)">${b}</b></span>`; }, 'ijumpto')}</div></div>`
+    + fabs([{a:'search', i:'search', l:'Поиск', s:1}]);
+};
+/* Инвентаризация товаров — по названию, с суммированием */
+V.ginv = () => {
+  const dr = S.drafts.goods; if (!dr) return V.inv();
+  const agg = goodsAgg(dr), prev = prevInvFor('goods', dr.date);
+  let total = extraSum(dr.extra);
+  const order = Object.keys(agg).sort((x,y) => Math.max(...agg[y].map(a=>a.ts)) - Math.max(...agg[x].map(a=>a.ts)));
+  order.forEach(pid => total += agg[pid].reduce((a,x)=>a+x.qty,0) * curPrice(pid).sale);
+  const counted = order.map(pid => { const q = agg[pid].reduce((a,x)=>a+x.qty,0); return `<button class="row" data-a="gopen" data-v="${pid}"><span class="nm">${esc(P(pid).name)}<div class="small muted">${agg[pid].map(x=>x.qty).join(' + ')}</div></span><span class="rt">${q}</span></button>`; }).join('');
+  return hdr('Товары', {sum:total, tag:`<span class="small muted" style="margin-left:auto">${dShort(dr.date)}</span>`}) + sbar('Название товара') + `<div class="wrap stack">
+    ${R.q ? `<div class="sec-h">Найдено · нажмите, чтобы добавить</div><div class="list" id="plist">${goodsResults()}</div>` : `
+      <div class="sec-h">Посчитано · ${order.length}</div>
+      <div class="list">${counted || '<div class="empty-st">Пока пусто. Нажмите 🔍 внизу справа и начните писать название.</div>'}</div>
+      <div class="sec-h">Вне списка · ${fmt(extraSum(dr.extra))}</div>
+      ${dr.extra.length ? `<div class="list">${dr.extra.map(x => `<button class="row" data-a="gxedit" data-v="${x.id}"><span class="nm">${esc(x.name || 'Без названия')}</span><span class="rt">${fmt(x.amt)}</span></button>`).join('')}</div>` : ''}
+      <button class="btn sec" data-a="gxadd">+ Добавить сумму вне списка</button>
+      <button class="btn pri" data-a="ifinish">Завершить инвентаризацию</button>
+      <div class="sec-h">Все товары · нажмите, чтобы добавить</div>
+      <div class="list">${goodsResults()}</div>`}
+  </div>` + fabs([{a:'search', i:'search', l:'Найти товар', c:'Найти'}]);
+};
+function goodsResults(){
+  const dr = S.drafts.goods, agg = goodsAgg(dr), ql = (R.q||'').trim().toLowerCase();
+  const items = ordered('goods').filter(p => !ql || match(p.name, ql));
+  if (!items.length) return `<div class="empty-st">Не найдено. Можно добавить как сумму вне списка.</div>`;
+  return items.map(p => { const q = (agg[p.id]||[]).reduce((a,x)=>a+x.qty,0); return `<button class="row" data-a="gadd" data-v="${p.id}"><span class="nm">${esc(p.name)}<div class="small muted">${fmt(curPrice(p.id).sale)}</div></span>${q ? `<span class="badge">${q}</span>` : ''}</button>`; }).join('');
+}
+V.gitem = () => {
+  const dr = S.drafts.goods, adds = dr.adds.filter(x => x.pid === R.pid), q = adds.reduce((a,x)=>a+x.qty,0);
+  return hdr(esc(P(R.pid).name), {sum:q}) + `<div class="wrap stack">
+    <div class="small muted">Цена ${fmt(curPrice(R.pid).sale)} · на сумму ${fmt(q*curPrice(R.pid).sale)}</div>
+    <div class="list">${adds.map((x,i) => `<button class="row" data-a="gedit" data-v="${x.id}"><span class="num">${i+1}</span><span class="nm">+ ${x.qty}</span><span class="small muted">изменить</span></button>`).join('') || '<div class="empty-st">Нет записей</div>'}</div>
+  </div>` + fabs([{a:'gadd1', i:'plus', l:'Добавить ещё', c:'Ещё'}]);
+};
+
+/* Отчёты */
+const REPORTS = [
+  {id:'rstock', t:'Остатки', s:'Что осталось на сумму: ККМ, Омбор, чёрный', i:'stack', c:'--accent'},
+  {id:'rdays', t:'По дням', s:'Приходы, терминал и касса за каждый день', i:'cal', c:'--kkm'},
+  {id:'rsales', t:'Продажи', s:'Сколько продано за неделю, ошибки, прибыль', i:'chart', c:'--goods'},
+  {id:'rprice', t:'Прайс-лист', s:'Цены на любой день, что поменялось', i:'coin', c:'--own'},
+  {id:'rbal', t:'Баланс с офисом', s:'Долг магазина перед офисом · по ПИН-коду', i:'lock', c:'--om'}
+];
+V.reports = () => hdr('Отчёты') + `<div class="wrap stack">${REPORTS.map(r => tile(r.id, r.i, r.c, r.t, r.s)).join('')}</div>`;
+const catSeg = () => `<div class="seg"><button class="${R.cat==='cig'?'on':''}" data-a="rcat" data-v="cig">Сигареты</button><button class="${R.cat==='goods'?'on':''}" data-a="rcat" data-v="goods">Товары</button></div>`;
+function periods(cat){ const l = invList(cat), out = []; for (let i=1; i<l.length; i++) out.push({from:l[i-1], to:l[i]}); return out; }
+V.rsales = () => {
+  R.cat = R.cat || 'cig';
+  const ps = periods(R.cat);
+  let body;
+  if (!ps.length) body = `<div class="note info">Для отчёта нужны две инвентаризации. Сейчас есть ${invList(R.cat).length}. После следующей инвентаризации здесь появятся продажи.</div>`;
+  else {
+    if (R.pi == null || R.pi >= ps.length) R.pi = ps.length - 1;
+    const per = ps[R.pi];
+    const rows = repProducts(R.cat).map(p => ({p, n:repNum(p.id), c:calc(p.id, per.from.rows[p.id], per.to.rows[p.id], per.from.date, per.to.date), pr:priceAt(p.id, per.to.date)}));
+    let qty=0, cost=0, sale=0, neg=0; const T = {o:{q:0,c:0,s:0}, b:{q:0,c:0,s:0}};
+    rows.forEach(r => { qty += r.c.sold; cost += r.c.sold * r.pr.cost; sale += r.c.sold * r.pr.sale; if (r.c.sold < 0) neg++;
+      if (r.p.cat === 'cig'){ T.o.q += r.c.soldOff; T.o.c += r.c.soldOff*r.pr.cost; T.o.s += r.c.soldOff*r.pr.sale; T.b.q += r.c.soldBl; T.b.c += r.c.soldBl*r.pr.cost; T.b.s += r.c.soldBl*r.pr.sale; } });
+    const grp = (title, g, col) => `<div class="card" style="padding:12px 14px"><div class="lbl" style="${col?'color:var(--own)':''}">${title}</div><div class="g4">
+      <div><span>Продано, пачек</span><b>${fmt(g.q)}</b></div><div><span>Прибыль</span><b style="color:var(--good)">${fmt(g.s-g.c)}</b></div>
+      <div><span>По себестоимости</span><b>${fmt(g.c)}</b></div><div><span>По продажной</span><b>${fmt(g.s)}</b></div></div></div>`;
+    const split = R.cat === 'cig' ? grp('Без чёрного (ККМ + Омбор)', T.o) + grp('Чёрный (за свои деньги)', T.b, 1) + grp('Всего', {q:qty, c:cost, s:sale}) : '';
+    const shown = rows.filter(r => (r.c.was || r.c.inc || r.c.now) && (!R.onlyNeg || r.c.sold < 0) && (!R.q || match(r.p.name, R.q)));
+    const ex = R.cat === 'goods' ? `<div class="card"><div class="sumrow"><span>Вне списка: было ${fmt(extraSum(per.from.extra))}, стало ${fmt(extraSum(per.to.extra))}</span><b>${fmt(extraSum(per.from.extra) - extraSum(per.to.extra))}</b></div></div>` : '';
+    body = `<div class="chips">${ps.map((x,i) => `<button class="chip ${i===R.pi?'on':''}" data-a="rper" data-v="${i}">${invShort(x.from)} – ${invShort(x.to)}</button>`).join('')}</div>
+      ${R.cat === 'cig' ? split + `<button class="stat ${neg?'badst':''}" data-a="rneg" style="text-align:left"><span class="lbl">Ошибки (минус) · нажмите, чтобы ${R.onlyNeg?'показать все':'показать только их'}</span><b>${neg}</b></button>` : `
+      <div class="tiles">
+        <div class="stat"><span class="lbl">Продано шт</span><b>${fmt(qty)}</b></div>
+        <button class="stat ${neg?'badst':''}" data-a="rneg" style="text-align:left"><span class="lbl">Ошибки (минус)</span><b>${neg}${R.onlyNeg?' · показаны':''}</b></button>
+        <div class="stat"><span class="lbl">Сумма продаж</span><b>${fmt(sale)}</b></div>
+      </div>`}
+      ${ex}
+      ${R.onlyNeg ? `<button class="btn sec" data-a="rneg">Показать все товары</button>` : ''}
+      <div class="list" id="plist">${shown.map(r => salesRow(r, per)).join('') || '<div class="empty-st">Нет строк</div>'}</div>
+      ${R.q ? '' : `<button class="btn sec" data-a="xls">⬇ Скачать эту неделю в Excel</button>`}`;
+  }
+  return hdr('Продажи') + sbar('Название товара') + `<div class="wrap stack">${R.q ? '' : catSeg()}${body}</div>` + fabs([{a:'search', i:'search', l:'Поиск', c:'Найти', s:1}]);
+};
+function salesRow(r, per){
+  const c = r.c, open = R.open === r.p.id;
+  const det = !open ? '' : (r.p.cat === 'goods'
+    ? `<div class="detail"><div class="sumrow"><span>Было (${invShort(per.from)})</span><b>${c.was}</b></div><div class="sumrow"><span>+ Приход</span><b>${c.inc}</b></div><div class="sumrow"><span>− Стало (${invShort(per.to)})</span><b>${c.now}</b></div><div class="sumrow"><span>Сумма продаж</span><b>${fmt(c.sold*r.pr.sale)}</b></div></div>`
+    : `<div class="detail">
+      <div class="sumrow"><span><span class="pill p-kkm">ККМ</span> было</span><b>${c.a[0]+c.a[1]}</b></div>
+      <div class="sumrow"><span><span class="pill p-om">Омбор</span> было</span><b>${c.a[2]+c.a[3]}</b></div>
+      <div class="sumrow"><span>+ Приход ККМ / Омбор</span><b>${c.pr.kkm} / ${c.pr.om}</b></div>
+      <div class="sumrow"><span>− Стало ККМ / Омбор</span><b>${c.b[0]+c.b[1]} / ${c.b[2]+c.b[3]}</b></div>
+      <div class="sumrow"><span>Баланс с офисом</span><b class="${c.soldOff<0?'neg':''}">${c.soldOff}</b></div>
+      <div class="sumrow"><span><span class="pill p-own">Чёрный</span> было ${c.wasBl} + куплено ${c.pr.own} − стало ${c.nowBl}</span><b class="${c.soldBl<0?'neg':''}">${c.soldBl}</b></div>
+      <div class="sumrow"><span>Цена ${fmt(r.pr.cost)} / ${fmt(r.pr.sale)}</span><b>${fmt(c.sold*r.pr.sale)}</b></div>
+      ${c.b[5] ? `<div class="sumrow"><span>Возврат</span><b>${c.b[5]}</b></div>`:''}
+    </div>`);
+  const sub = r.p.cat === 'goods' ? `<div class="sub">было ${c.was} + приход ${c.inc} − стало ${c.now}</div>`
+    : ((c.wasBl || c.pr.own || c.nowBl) ? `<div class="sub">было ${c.wasOff} + приход ${c.pr.kkm + c.pr.om} − стало ${c.nowOff} = <b class="${c.soldOff<0?'neg':''}" style="color:var(--ink)">${c.soldOff}</b></div>` : `<div class="sub">было ${c.wasOff} + приход ${c.pr.kkm + c.pr.om} − стало ${c.nowOff}</div>`)
+      + ((c.wasBl || c.pr.own || c.nowBl) ? `<div class="sub" style="color:var(--own)">чёрный: было ${c.wasBl} + куплено ${c.pr.own} − стало ${c.nowBl} = <b class="${c.soldBl<0?'neg':''}">${c.soldBl}</b></div>` : '');
+  return `<button class="srow ${c.sold<0?'negrow':''}" data-a="ropen" data-v="${r.p.id}"><span class="num">${r.n}</span><span style="min-width:0">${esc(r.p.name)}${sub}</span><span class="sold ${c.sold<0?'neg':''}">${c.sold}</span>${det}</button>`;
+}
+function dayPeriods(){
+  const l = invList('cig'), last = l.slice(-1)[0];
+  const opts = periods('cig').map(x => ({from:x.from.date, to:addD(x.to.date,-1), lbl:invShort(x.from) + ' – ' + invShort(x.to)}));
+  if (last) opts.push({from:last.date, to:TODAY, cur:true});
+  return opts;
+}
+V.rdays = () => {
+  const opts = dayPeriods();
+  if (R.di == null || R.di >= opts.length) R.di = opts.length - 1;
+  const o = opts[R.di]; const days = []; for (let d=o.from; d<=o.to; d=addD(d,1)) days.push(d);
+  const T = {kkm:0, om:0, own:0, g:0, t:0, k:0};
+  const rows = days.map(d => { const p = dayPrihod(d), c = cashOf(d); T.kkm+=p.kkm; T.om+=p.om; T.own+=p.own; T.g+=p.g; T.t+=c.t; T.k+=c.k; return `<tr><td class="l">${wdShort(d)} ${dShort(d)}</td><td>${fmt(p.kkm)}</td><td>${fmt(p.om)}</td><td style="color:var(--own)">${fmt(p.own)}</td><td>${fmt(p.g)}</td><td>${fmt(c.t)}</td><td>${fmt(c.k)}</td></tr>`; }).join('');
+  return hdr('По дням') + `<div class="wrap stack">
+    <div class="chips">${opts.map((x,i) => `<button class="chip ${i===R.di?'on':''}" data-a="rday" data-v="${i}">${x.cur ? 'Эта неделя' : x.lbl}</button>`).join('')}</div>
+    <div class="tbl-wrap"><table><tr><th class="l">День</th><th>ККМ</th><th>Омбор</th><th style="color:var(--own)">Чёрный (свои)</th><th>Товары</th><th>Терминал</th><th>Касса</th></tr>${rows}
+    <tr class="tot"><td class="l">Итого</td><td>${fmt(T.kkm)}</td><td>${fmt(T.om)}</td><td style="color:var(--own)">${fmt(T.own)}</td><td>${fmt(T.g)}</td><td>${fmt(T.t)}</td><td>${fmt(T.k)}</td></tr></table></div>
+    <p class="small muted">Таблицу можно листать вбок. Приход — по себестоимости на день прихода.</p></div>`;
+};
+V.rstock = () => {
+  R.cat = R.cat || 'cig';
+  const last = invList(R.cat).slice(-1)[0], items = repProducts(R.cat);
+  let body;
+  if (!last) body = '<div class="note info">Инвентаризаций ещё не было.</div>';
+  else if (R.cat === 'goods'){
+    let s = 0; const rows = items.map((p,i) => { const q = (last.rows[p.id]||[0])[0]||0; const v = q*priceAt(p.id,last.date).sale; s += v; return q ? `<tr><td class="nmc"><span class="n">${repNum(p.id)}.</span>${esc(p.name)}<div class="sm">${fmt(v)}</div></td><td>${q}</td></tr>` : ''; }).join('');
+    const ex = extraSum(last.extra);
+    body = `<div class="card"><div class="lbl">Остаток на ${invLong(last)}</div><div class="big">${fmt(s + ex)}</div>${ex ? `<div class="sumrow"><span>в т.ч. вне списка</span><b>${fmt(ex)}</b></div>` : ''}</div><div class="tbl-wrap"><table class="tight"><tr><th class="l">Товар · сумма</th><th>Кол-во</th></tr>${rows}${(last.extra||[]).map(x => `<tr><td class="nmc">${esc(x.name||'Вне списка')}<div class="sm">${fmt(x.amt)}</div></td><td>—</td></tr>`).join('')}</table></div>`;
+  } else {
+    let k=0, o=0, b=0;
+    const rows = items.map((p,i) => { const r = last.rows[p.id] || Z, c = priceAt(p.id, last.date).cost; const qk=r[0]+r[1], qo=r[2]+r[3], qb=r[4]||0; k+=qk*c; o+=qo*c; b+=qb*c; return (qk||qo||qb) ? `<tr><td class="nmc"><span class="n">${repNum(p.id)}.</span>${esc(p.name)}<div class="sm">${fmt((qk+qo)*c)}${qb ? ` · <span style="color:var(--own)">чёрн. ${fmt(qb*c)}</span>` : ''}</div></td><td>${qk}</td><td>${qo}</td><td style="color:var(--own)">${qb}</td></tr>` : ''; }).join('');
+    const pk = k+o ? Math.round(k/(k+o)*100) : 0;
+    body = `<div class="card"><div class="lbl">Остаток на ${invLong(last)} (без чёрного)</div><div class="big">${fmt(k+o)}</div>
+      <div class="sumrow"><span><span class="pill p-kkm">ККМ</span> ${pk}%</span><b>${fmt(k)}</b></div>
+      <div class="sumrow"><span><span class="pill p-om">Омбор</span> ${100-pk}%</span><b>${fmt(o)}</b></div>
+      <div class="sumrow"><span><span class="pill p-own">Чёрный</span></span><b>${fmt(b)}</b></div>
+      <div class="sumrow"><span><b>Всего с чёрным</b></span><b>${fmt(k+o+b)}</b></div></div>
+      <div class="tbl-wrap"><table class="tight"><tr><th class="l">Товар · сумма</th><th>ККМ</th><th>Омб.</th><th style="color:var(--own)">Чёрн.</th></tr>${rows}</table></div>
+      <p class="small muted">Под названием — сумма по ККМ и Омбор; чёрный отдельно.</p>`;
+  }
+  return hdr('Остатки') + `<div class="wrap stack">${catSeg()}${body}</div>`;
+};
+V.rbal = () => {
+  if (!UNLOCK) return hdr('Баланс с офисом') + lockScreen();
+  R.date = R.date || TODAY;
+  const c = cashOf(R.date), dp = dayPrihod(R.date);
+  const days = []; for (let i=6; i>=0; i--) days.push(addD(R.date, -i));
+  return hdr('Баланс с офисом', {sum:balanceEnd(TODAY), tag:'<span class="small muted" style="margin-left:auto">долг сейчас</span>'}) + `<div class="wrap stack">
+    ${datenav(R.date, 'bdate')}
+    <div class="card">
+      <div class="sumrow"><span>Утром</span><b>${fmt(balanceStart(R.date))}</b></div>
+      <div class="sumrow"><span>+ Приход со склада (ККМ и Омбор)</span><b>${fmt(dp.kkm+dp.om)}</b></div>
+      <div class="sumrow"><span>− Терминал</span><b>${fmt(c.t)}</b></div>
+      <div class="sumrow"><span>− Сдано в офис (касса)</span><b>${fmt(c.k)}</b></div>
+      ${adjOn(R.date) ? `<div class="sumrow"><span>± Корректировка</span><b>${fmt(adjOn(R.date))}</b></div>` : ''}
+      <div class="sumrow"><span><b>Вечером</b></span><b style="font-size:24px">${fmt(balanceEnd(R.date))}</b></div>
+    </div>
+    <div class="sec-h">7 дней</div>
+    <div class="tbl-wrap"><table><tr><th class="l">День</th><th>Приход</th><th>Терминал</th><th>Касса</th><th>Коррект.</th><th>Долг вечером</th></tr>
+      ${days.map(d => { const p = dayPrihod(d), cc = cashOf(d); return `<tr><td class="l">${wdShort(d)} ${dShort(d)}</td><td>${fmt(p.kkm+p.om)}</td><td>${fmt(cc.t)}</td><td>${fmt(cc.k)}</td><td>${fmt(adjOn(d))}</td><td><b>${fmt(balanceEnd(d))}</b></td></tr>`; }).join('')}
+    </table></div>
+    <div class="sec-h">Корректировки по сверке с офисом</div>
+    ${(S.adj||[]).length ? `<div class="list">${S.adj.slice().sort((a,b)=>a.date<b.date?1:-1).map(a => `<div class="row"><span class="nm">${dShort(a.date)} <span class="small muted">${esc(a.note)}</span></span><span class="rt">${a.amt>0?'+':''}${fmt(a.amt)}</span><button class="x" data-a="adel" data-v="${a.id}" aria-label="Удалить">✕</button></div>`).join('')}</div>` : ''}
+    <div class="grid2"><button class="btn sec" data-a="aadd" data-v="-1">Уменьшить долг</button><button class="btn sec" data-a="aadd" data-v="1">Увеличить долг</button></div>
+    <p class="small muted">Если офис прислал сверку и долг отличается — запишите разницу на выбранную выше дату.</p>
+    <button class="money" data-a="sbal"><span class="lbl">Начальный долг на ${dShort(S.bal0.date)}</span><b>${fmt(S.bal0.amount)}</b></button>
+    <p class="small muted">Приход за свои деньги в долг перед офисом не входит.</p>
+  </div>`;
+};
+V.rprice = () => {
+  R.cat = R.cat || 'cig'; R.date = R.date || TODAY;
+  const items = ordered(R.cat).filter(p => !R.q || match(p.name, R.q));
+  let changed = 0;
+  const rows = items.map(p => { const c = priceAt(p.id, R.date), prev = priceAt(p.id, addD(R.date, -30)); const ch = c.from > addD(R.date,-30) && c.from !== '2026-01-01' && (prev.cost !== c.cost || prev.sale !== c.sale); if (ch) changed++;
+    if (R.onlyCh && !ch) return '';
+    return `<tr><td class="nmc"><span class="n">${numOf(p.id)}.</span>${esc(p.name)}${ch ? `<div class="small" style="color:var(--warn)">с ${dShort(c.from)}, было ${fmt(prev.cost)}</div>` : ''}</td><td>${fmt(c.cost)}</td>${R.cat==='cig' ? `<td>${fmt(c.sale)}</td>` : ''}</tr>`; }).join('');
+  return hdr('Прайс-лист') + sbar('Название товара') + `<div class="wrap stack">
+    ${datenav(R.date, 'prdate')}
+    ${catSeg()}
+    <button class="btn sec" data-a="ronlych">${R.onlyCh ? 'Показать все цены' : `Изменились за 30 дней: ${changed}`}</button>
+    <div class="tbl-wrap"><table class="tight"><tr><th class="l">Товар</th><th>${R.cat==='cig' ? 'Себест.' : 'Цена'}</th>${R.cat==='cig' ? '<th>Продажа</th>' : ''}</tr>${rows || `<tr><td class="l" colspan="3">Нет строк</td></tr>`}</table></div>
+  </div>` + fabs([{a:'search', i:'search', l:'Поиск', c:'Найти', s:1}]);
+};
+const lockScreen = () => `<div class="wrap stack"><div class="card" style="text-align:center"><div style="color:var(--muted);width:48px;margin:0 auto 8px">${ICON.lock}</div>Этот раздел открывается по ПИН-коду.<div class="small muted" style="margin-top:6px">В прототипе ПИН: 1234</div></div><button class="btn pri" data-a="pin">Ввести ПИН</button></div>`;
+
+/* Настройки */
+V.settings = () => {
+  if (!UNLOCK) return hdr('Настройки') + lockScreen();
+  return hdr('Настройки') + `<div class="wrap stack">
+    ${tile2('sprod','cig','Сигареты', ordered('cig').length + ' товаров · порядок, цены')}
+    ${tile2('sprod','goods','Прочие товары', ordered('goods').length + ' товаров · цены')}
+    <button class="tile" data-a="pinchange"><span style="min-width:0"><b>Сменить ПИН-код</b><span>Сейчас: ${'•'.repeat(S.pin.length)}</span></span><span class="chev">›</span></button>
+    <div class="sec-h">База (Google Таблица)</div>
+    <div class="card small"><div>${statusText()[1]}</div><div class="muted" style="margin-top:4px">Неотправленных записей: ${OUT.length}</div></div>
+    <button class="btn sec" data-a="syncnow">Обновить сейчас</button>
+    <button class="btn sec" data-a="fullpull">Загрузить базу заново целиком</button>
+    <button class="btn dang" data-a="disconnect">Отключить этот телефон от базы</button></div>`;
+};
+const tile2 = (a, v, t, s) => `<button class="tile" data-a="${a}" data-v="${v}"><span style="min-width:0"><b>${t}</b><span>${s}</span></span><span class="chev">›</span></button>`;
+V.sprod = () => {
+  R.q = R.q || '';
+  return hdr(R.cat==='cig'?'Сигареты':'Прочие товары') + sbar('Поиск') + `<div class="wrap stack">
+    <div class="list" id="plist">${prodRows(R.cat, R.q, pid => { const c = curPrice(pid); return `<span class="small muted" style="white-space:nowrap">${fmt(c.cost)}${R.cat==='cig' ? ' / ' + fmt(c.sale) : ''}</span>`; }, 'sedit')}</div>
+    ${S.products.some(p => p.cat===R.cat && p.hidden) ? `<div class="sec-h">Скрытые</div><div class="list">${S.products.filter(p=>p.cat===R.cat&&p.hidden).map(p=>`<button class="row" data-a="sedit" data-v="${p.id}"><span class="nm muted">${esc(p.name)}</span></button>`).join('')}</div>`:''}
+  </div>` + fabs([{a:'search', i:'search', l:'Поиск', s:1}, {a:'sadd', i:'plus', l:'Новый товар', c:'Новый'}]);
+};
+V.sedit = () => {
+  const isNew = !R.id; const p = isNew ? {name:'', cat:R.cat} : P(R.id);
+  const c = isNew ? {cost:'', sale:''} : curPrice(p.id);
+  const list = ordered(R.cat);
+  const hist = isNew ? [] : S.prices.filter(x => x.pid === p.id).sort((a,b) => a.from < b.from ? 1 : -1);
+  return hdr(isNew ? 'Новый товар' : 'Товар') + `<div class="wrap stack">
+    <div class="field txt"><label for="e_name">Название</label><input id="e_name" value="${esc(p.name)}" autocomplete="off"></div>
+    <div class="grid2"><div class="field"><label for="e_cost">Себестоимость</label><input id="e_cost" inputmode="numeric" value="${c.cost}"></div>
+    <div class="field"><label for="e_sale">Продажная</label><input id="e_sale" inputmode="numeric" value="${c.sale}"></div></div>
+    ${isNew ? `<div class="field txt"><label for="e_after">Поставить после</label><select id="e_after"><option value="__top">— в начало списка —</option>${list.map((x,i) => `<option value="${x.id}" ${i===list.length-1?'selected':''}>${i+1}. ${esc(x.name)}</option>`).join('')}</select></div>`
+    : `<div class="field txt"><label for="e_from">Новая цена действует с</label><input type="date" id="e_from" value="${TODAY}"></div>
+      <div class="grid2"><button class="btn sec" data-a="smove" data-v="-1">↑ Выше</button><button class="btn sec" data-a="smove" data-v="1">↓ Ниже</button></div>
+      <button class="btn sec" data-a="shide">${p.hidden ? 'Показать товар снова' : 'Скрыть товар (не продаётся)'}</button>
+      <div class="sec-h">История цен</div><div class="list">${hist.map(h => `<div class="row"><span class="nm">с ${h.from === '2026-01-01' ? 'начала' : dShort(h.from) + '.' + h.from.slice(2,4)}</span><span class="rt">${fmt(h.cost)} / ${fmt(h.sale)}</span></div>`).join('')}</div>`}
+  </div>` + fabs([{a:'ssave', i:'check', l: isNew ? 'Добавить товар' : 'Сохранить', c:'Сохранить'}]);
+};
+
+/* ---------- numpad (updates in place — no re-render on key press) ---------- */
+function openNP(o){ NP = Object.assign({val:''}, o); NP.fresh = !!NP.val; TOAST = null; ANIM = true; render(); }
+const qtyWarn = n => n >= 1000 ? ' · ⚠ Проверьте: очень большое количество' : '';
+function npDisp(){ const v = NP.val, n = Number(v||0); return v ? (NP.mask ? '•'.repeat(v.length) : fmt(n)) : (NP.money ? '0 сум' : '0'); }
+function npHtml(){
+  const n = Number(NP.val||0);
+  return `<div class="ov ${ANIM?'anim':''}"><div class="sheet" role="dialog" aria-label="${esc(NP.title)}">
+    <h2>${esc(NP.title)}</h2>${NP.sub ? `<div class="muted small" id="npsub">${NP.sub}</div>` : ''}
+    <div class="disp ${NP.val?'':'empty'}" id="npdisp">${npDisp()}</div>
+    <div class="npx" id="npx">${NP.extra ? NP.extra(n) : ''}</div>
+    <div class="keys">${['1','2','3','4','5','6','7','8','9', NP.money?'000':'00','0','⌫'].map(k => `<button data-a="npk" data-v="${k}">${k}</button>`).join('')}</div>
+    <div class="sheet-btns"><button class="btn sec" data-a="npclose">Отмена</button><button class="btn pri" id="npok" data-a="npok" ${NP.allowZero || n>0 ? '' : 'disabled'}>${NP.ok || 'Записать'}</button></div>
+    ${NP.onDel ? `<button class="btn dang" data-a="npdel">${NP.delL || 'Удалить строку'}</button>` : ''}
+  </div></div>`;
+}
+function npUpdate(){
+  const n = Number(NP.val||0), d = document.getElementById('npdisp');
+  d.textContent = npDisp(); d.classList.toggle('empty', !NP.val);
+  if (NP.extra) document.getElementById('npx').textContent = NP.extra(n);
+  document.getElementById('npok').disabled = !(NP.allowZero || n>0);
+}
+function confHtml(){ return `<div class="ov ${ANIM?'anim':''}"><div class="sheet" role="alertdialog"><h2>${CONF.text}</h2><div class="sheet-btns"><button class="btn sec" data-a="cfno">${CONF.no.l}</button><button class="btn ${CONF.yes.c}" data-a="cfyes">${CONF.yes.l}</button></div></div></div>`; }
+function typeSheetHtml(){ return `<div class="ov ${ANIM?'anim':''}" data-a="tsclose"><div class="sheet" data-stop="1"><h2>Какой приход?</h2>
+  ${Object.keys(TYPES).map(k => `<button class="typebtn p-${TYPES[k].c}" data-a="pnewt" data-v="${k}">${TYPES[k].full}</button>`).join('')}
+  <button class="btn sec" data-a="tsclose">Отмена</button></div></div>`; }
+
+/* ---------- actions ---------- */
+const A = {
+  back, go: d => go(d.v),
+  syncnow: () => { sync().then(() => { if (SYNC.state === 'ok') toast('База обновлена'); }); },
+  fullpull: () => confirmBox('Загрузить всю базу заново? Это займёт немного времени.', 'Загрузить', () => { sync(true).then(() => toast(SYNC.state === 'ok' ? 'База загружена' : 'Не получилось, нет связи')); }),
+  disconnect: () => confirmBox(OUT.length ? `Есть ${OUT.length} неотправленных записей — они пропадут. Всё равно отключить?` : 'Отключить этот телефон от базы?', 'Отключить', () => { [CFG_KEY, DB_KEY, OUT_KEY, 'chorsu_last'].forEach(k => ls.del(k)); CFG = null; DB = null; OUT = []; S = emptyS(); HIST.length = 0; R = {s:'home'}; }),
+  pinchange: () => openNP({title:'Новый ПИН-код', sub:'Наберите 4 цифры', mask:true, allowZero:true, ok:'Дальше', onOk:() => { const p1 = NP.val; if (p1.length !== 4){ NP.val=''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Нужно ровно 4 цифры</span>'; return; }
+    openNP({title:'Повторите новый ПИН-код', sub:'Ещё раз те же 4 цифры', mask:true, allowZero:true, ok:'Сохранить', onOk:() => { if (NP.val !== p1){ NP.val=''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Не совпало, наберите ещё раз</span>'; return; } S.pin = p1; save(); NP = null; toast('ПИН-код изменён'); }}); }}),
+  xls: () => exportWeek(),
+  connectgo: () => { const v = (document.getElementById('cfg_link').value || '').trim(); if (!tryConnect(v)) toast('Ссылка не подходит. Скопируйте её целиком.'); },
+  retryload: () => firstLoad(),
+  search: () => { R.sOpen = true; render(); const q = document.getElementById('q'); if (q){ q.focus(); } },
+  sclear: () => { R.q = ''; R.sOpen = false; document.body.classList.remove('kb'); render(); },
+  pdate: d => { R.date = addD(R.date, +d.v); render(); },
+  wipopen: () => { HIST.length = 0; HIST.push({s:'home'}); R = {s:'plist', date:S.wip.date}; go('pdoc'); },
+  piedit: d => { const w = S.wip, i = +d.v, e = w.items[i], pr = priceAt(e.pid, w.date);
+    openNP({title:P(e.pid).name, sub:'Сейчас ' + e.qty + '. Наберите новое количество — оно заменит старое.', val:String(e.qty), extra:n => 'Сумма: ' + fmt(n*pr.cost) + qtyWarn(n), ok:'Сохранить',
+      onOk:n => { e.qty = n; w.dirty = true; save(); NP = null; render(); toast('Исправлено: ' + n); },
+      onDel:() => { w.items.splice(i,1); w.dirty = true; save(); NP = null; render(); toast('Строка удалена'); }}); },
+  dzero: () => { R.showZero = true; render(); },
+  dren: () => go('dnew', {id:R.id}),
+  ifirst: () => { const dr = S.drafts.cig, items = ordered('cig'); const i = items.findIndex(p => !dr.rows[p.id]); dr.idx = i < 0 ? items.length-1 : i; save(); HIST.length = 0; HIST.push({s:'home'}, {s:'inv', cat:'cig'}); R = {s:'icard', cat:'cig'}; render(); window.scrollTo(0,0); },
+  gedit: d => { const dr = S.drafts.goods, x = dr.adds.find(a => a.id === d.v);
+    openNP({title:P(x.pid).name, sub:'Исправить это добавление · сейчас ' + x.qty, val:String(x.qty), ok:'Сохранить', extra:qtyWarn,
+      onOk:n => { x.qty = n; save(); NP = null; render(); toast('Исправлено'); }, onDel:() => { dr.adds = dr.adds.filter(a => a.id !== x.id); save(); NP = null; render(); toast('Удалено'); }, delL:'Удалить это добавление'}); },
+  gxedit: d => { const dr = S.drafts.goods, x = dr.extra.find(a => a.id === d.v);
+    openNP({title:x.name, sub:'Исправить сумму', money:true, val:String(x.amt), ok:'Сохранить', onOk:n => { x.amt = n; save(); NP = null; render(); }, onDel:() => { dr.extra = dr.extra.filter(a => a.id !== x.id); save(); NP = null; render(); }, delL:'Удалить сумму'}); },
+  prdate: d => { R.date = addD(R.date, +d.v); render(); },
+  ronlych: () => { R.onlyCh = !R.onlyCh; render(); },
+  aadd: d => { const s = +d.v; openNP({title: s<0 ? 'Уменьшить долг' : 'Увеличить долг', sub:'Корректировка на ' + dLong(R.date) + ' · по сверке с офисом', money:true, ok:'Записать',
+      onOk:n => { S.adj = S.adj || []; S.adj.push({id:uid(), date:R.date, amt:s*n, note:'сверка с офисом'}); save(); NP = null; toast('Корректировка записана'); }}); },
+  adel: d => confirmBox('Удалить корректировку?', 'Удалить', () => { S.adj = S.adj.filter(a => a.id !== d.v); save(); }),
+  npdel: () => NP.onDel(),
+  pnew: () => { TSHEET = true; ANIM = true; render(); },
+  tsclose: () => { TSHEET = false; render(); },
+  pnewt: d => { TSHEET = false; S.wip = {docId:null, date:R.date || TODAY, type:d.v, items:[], dirty:false}; save(); go('pdoc'); },
+  popen: d => { const doc = S.docs.find(x => x.id === d.v); S.wip = {docId:doc.id, date:doc.date, type:doc.type, items:S.prihod.filter(x => x.doc === doc.id).map(x => ({pid:x.pid, qty:x.qty})), dirty:false}; save(); go('pdoc'); },
+  padd: d => { const w = S.wip, pid = d.v, pr = priceAt(pid, w.date), already = w.items.filter(x => x.pid===pid).reduce((a,x)=>a+x.qty,0);
+    openNP({title:P(pid).name, sub:`<span class="pill p-${TYPES[w.type].c}">${TYPES[w.type].full}</span> · цена ${fmt(pr.cost)}${already ? ' · уже в приходе: ' + already : ''}`, extra:n => 'Сумма: ' + fmt(n*pr.cost) + qtyWarn(n), ok:'Добавить',
+      onOk:n => { w.items.push({pid, qty:n}); w.dirty = true; save(); NP = null; R.q = ''; R.sOpen = false; toast('Добавлено: +' + n); }}); },
+  pidel: d => { S.wip.items.splice(+d.v, 1); S.wip.dirty = true; save(); render(); },
+  psave: () => savePdoc(),
+  pdocdel: () => confirmBox('Удалить весь этот приход?', 'Удалить', () => { const id = S.wip.docId; S.docs = S.docs.filter(x => x.id !== id); S.prihod = S.prihod.filter(x => x.doc !== id); S.wip = null; save(); doBack(); toast('Приход удалён'); }),
+  cdate: d => { const f = () => { R.date = addD(R.date, +d.v); render(); }; if (R.dirty) askSave(() => { saveCash(); f(); }, () => { R.dirty = false; R.cd = null; f(); }); else f(); },
+  cset: d => openNP({title: d.v==='t' ? 'Терминал' : 'Сдано в офис (касса)', sub: dLong(R.date) + (R.cd[d.v] ? ' · сейчас ' + fmt(R.cd[d.v]) : ''), money:true, allowZero:true, ok:'Готово', onOk:n => { R.cd[d.v] = n; R.dirty = true; NP = null; render(); }}),
+  csave: () => saveCash(),
+  dopen: d => go('debtor', {id:d.v}),
+  dnew: () => go('dnew'),
+  dcreate: () => { const n = document.getElementById('dname').value.trim(); if (!n) return toast('Введите имя');
+    if (R.id){ const dd = S.debtors.find(x => x.id === R.id); dd.name = n; save(); doBack(); return toast('Имя изменено'); }
+    const id = uid(); S.debtors.push({id, name:n, grp:'a', ts:Date.now()}); save(); R = {s:'debtor', id}; render(); toast('Должник добавлен'); },
+  dmove: d => { const s = +d.v, dd = S.debtors.find(x => x.id === R.id);
+    openNP({title:(s>0 ? 'Дал в долг: ' : 'Вернул: ') + dd.name, sub:dLong(TODAY), money:true, onOk:n => { S.moves.push({id:uid(), did:R.id, date:TODAY, amt:s*n, note: s>0 ? 'дал в долг' : 'вернул'}); save(); NP = null; toast(s>0 ? 'Долг добавлен' : 'Возврат записан'); }}); },
+  mdel: d => confirmBox('Удалить эту запись долга?', 'Удалить', () => { S.moves = S.moves.filter(m => m.id !== d.v); save(); toast('Удалено'); }),
+  dgrp: () => { const dd = S.debtors.find(x => x.id === R.id); dd.grp = dd.grp === 'n' ? 'a' : 'n'; dd.ts = Date.now(); save(); toast(dd.grp==='n' ? 'Перенесено в Несгор' : 'Перенесено в должники'); },
+  icat: d => { R.cat = d.v; render(); },
+  istart: d => { const disp = document.getElementById('idate').value || TODAY, eve = true, date = addD(disp, 1);
+    const lbl = dShort(disp);
+    S.drafts[R.cat] = R.cat === 'goods' ? {date, disp, eve, lbl, adds:[], extra:[]} : {date, disp, eve, lbl, idx:0, rows:{}}; save(); go(R.cat === 'goods' ? 'ginv' : 'icard', {cat:R.cat}); },
+  icont: () => go(R.cat === 'goods' ? 'ginv' : 'icard', {cat:R.cat}),
+  idrop: () => confirmBox('Удалить незаконченную инвентаризацию?', 'Удалить', () => { delete S.drafts[R.cat]; save(); toast('Удалено'); }),
+  inav: d => { const dr = S.drafts.cig; dr.idx += +d.v; save(); render(); window.scrollTo(0,0); },
+  isug: d => { const dr = S.drafts.cig, p = ordered('cig')[dr.idx]; dr.rows[p.id][4] = +d.v; save(); render(); },
+  ifinish: () => go('ifinish', {cat:R.cat || 'cig'}),
+  ilist: () => go('ijump', {cat:'cig'}),
+  ijump: () => { go('ijump', {cat:'cig', sOpen:true}); const q = document.getElementById('q'); if (q) q.focus(); },
+  ijumpto: d => { S.drafts.cig.idx = ordered('cig').findIndex(p => p.id === d.v); save(); doBack(); },
+  isave: () => { const cat = R.cat, dr = S.drafts[cat], rows = {}; let extra;
+    if (cat === 'goods'){ const agg = goodsAgg(dr); Object.keys(agg).forEach(pid => rows[pid] = [agg[pid].reduce((a,x)=>a+x.qty,0)]); extra = dr.extra.slice(); }
+    else { const prev = prevInvFor('cig', dr.date);
+      ordered(cat).forEach(p => { let r = dr.rows[p.id];
+        if (!r){ const a = (prev && prev.rows[p.id]) || Z, own = prihodSum(p.id, prev ? prev.date : '0000', dr.date).own, bl = (a[4]||0) + own; if (bl) r = [0,0,0,0,bl,0]; }
+        if (r && r.some(x => x)) rows[p.id] = r.map(x => x||0); }); }
+    S.inv = S.inv.filter(i => !(i.cat === cat && i.date === dr.date)); S.inv.push(Object.assign({date:dr.date, disp:dr.disp || dr.date, eve:!!dr.eve, cat, rows}, extra ? {extra} : {})); delete S.drafts[cat]; save();
+    HIST.length = 0; R = {s:'home'}; HIST.push(R); R = {s:'reports'}; go('rstock', {cat}); toast('Инвентаризация сохранена'); },
+  gadd: d => { const pid = d.v, dr = S.drafts.goods, have = dr.adds.filter(x => x.pid===pid).reduce((a,x)=>a+x.qty,0), prev = prevInvFor('goods', dr.date), pq = prev && prev.rows[pid] ? prev.rows[pid][0] : 0;
+    openNP({title:P(pid).name, sub:`Уже посчитано: <b>${have}</b> · в прошлый раз было ${pq}`, extra:n => (n ? 'Станет: ' + (have + n) : '') + qtyWarn(n), ok:'Добавить',
+      onOk:n => { dr.adds.push({id:uid(), pid, qty:n, ts:Date.now()}); save(); NP = null; R.q = ''; R.sOpen = false; toast(P(pid).name.slice(0,24) + ': ' + (have+n)); }}); },
+  gadd1: () => A.gadd({v:R.pid}),
+  gopen: d => go('gitem', {pid:d.v, cat:'goods'}),
+  gdel: d => confirmBox('Удалить эту запись?', 'Удалить', () => { const dr = S.drafts.goods; dr.adds = dr.adds.filter(x => x.id !== d.v); save(); }),
+  gxadd: () => { const nm = ''; openNP({title:'Сумма вне списка', sub:'Товары, которых нет в списке. Введите общую сумму.', money:true, ok:'Добавить', onOk:n => { S.drafts.goods.extra.push({id:uid(), name:'Вне списка ' + (S.drafts.goods.extra.length+1), amt:n}); save(); NP = null; toast('Сумма добавлена'); }}); },
+  gxdel: d => confirmBox('Удалить эту сумму?', 'Удалить', () => { const dr = S.drafts.goods; dr.extra = dr.extra.filter(x => x.id !== d.v); save(); }),
+  rcat: d => { R.cat = d.v; R.pi = null; R.open = null; render(); },
+  rper: d => { R.pi = +d.v; R.open = null; render(); }, rday: d => { R.di = +d.v; render(); },
+  rneg: () => { R.onlyNeg = !R.onlyNeg; render(); },
+  ropen: d => { R.open = R.open === d.v ? null : d.v; render(); },
+  bdate: d => { R.date = addD(R.date, +d.v); render(); },
+  pin: () => openNP({title:'ПИН-код', sub:'Введите 4 цифры', mask:true, allowZero:true, ok:'Войти', onOk:() => { if (NP.val === S.pin){ UNLOCK = true; NP = null; render(); } else { NP.val = ''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Неверный ПИН, попробуйте ещё</span>'; } }}),
+  sprod: d => go('sprod', {cat:d.v}),
+  sadd: () => go('sedit', {cat:R.cat, id:null}),
+  sedit: d => go('sedit', {cat:R.cat, id:d.v}),
+  ssave: () => {
+    const name = document.getElementById('e_name').value.trim(), cost = +document.getElementById('e_cost').value.replace(/\D/g,'') || 0, sale = +document.getElementById('e_sale').value.replace(/\D/g,'') || cost;
+    if (!name) return toast('Введите название');
+    if (!R.id){
+      const after = document.getElementById('e_after').value, id = R.cat[0] + uid(), np = {id, name, cat:R.cat, hidden:false};
+      const pos = after === '__top' ? S.products.findIndex(p => p.cat === R.cat) : S.products.findIndex(p => p.id === after) + 1;
+      S.products.splice(Math.max(pos,0), 0, np); S.prices.push({pid:id, from:'2026-01-01', cost, sale}); save(); doBack(); toast('Товар добавлен под № ' + numOf(id));
+    } else {
+      const p = P(R.id); p.name = name; const c = curPrice(p.id);
+      if (c.cost !== cost || c.sale !== sale){ const from = document.getElementById('e_from').value || TODAY; S.prices = S.prices.filter(x => !(x.pid===p.id && x.from===from)); S.prices.push({pid:p.id, from, cost, sale}); }
+      save(); doBack(); toast('Сохранено');
+    }
+  },
+  smove: d => { const p = P(R.id), list = ordered(p.cat), i = list.findIndex(x => x.id === p.id), j = i + +d.v; if (j<0 || j>=list.length) return;
+    const ai = S.products.indexOf(p), bi = S.products.indexOf(list[j]); [S.products[ai], S.products[bi]] = [S.products[bi], S.products[ai]]; save(); toast('Теперь № ' + numOf(p.id)); },
+  shide: () => { const p = P(R.id); p.hidden = !p.hidden; save(); doBack(); toast(p.hidden ? 'Товар скрыт' : 'Товар снова в списке'); },
+  sbal: () => openNP({title:'Начальный долг на ' + dShort(S.bal0.date), money:true, allowZero:true, ok:'Сохранить', onOk:n => { S.bal0.amount = n; save(); NP = null; toast('Сохранено'); }}),
+  npk: d => { const k = d.v; if (NP.fresh){ NP.fresh = false; if (k !== '⌫') NP.val = ''; } if (k === '⌫') NP.val = NP.val.slice(0,-1); else if (NP.val.length < 12) NP.val = NP.mask ? (NP.val + k).slice(0, 4) : (NP.val + k).replace(/^0+/, ''); npUpdate(); },
+  npok: () => NP.onOk(Number(NP.val||0)),
+  npclose: () => { NP = null; render(); },
+  cfno: () => { const f = CONF.no.f; CONF = null; f(); render(); },
+  cfyes: () => { const f = CONF.yes.f; CONF = null; f(); render(); }
+};
+
+document.addEventListener('click', e => {
+  if (NEED_RENDER && !NP && !CONF){ NEED_RENDER = false; }
+  const el = e.target.closest('[data-a]');
+  if (!el) return;
+  if (el.classList.contains('ov') && e.target !== el) return; // tap inside a sheet, not on a button
+  e.preventDefault(); if (el.disabled) return;
+  const f = A[el.dataset.a]; if (f) f(el.dataset);
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.in === 'date' && el.value){
+    const v = el.value > TODAY ? TODAY : el.value;
+    if (R.s === 'cash' && R.dirty) return askSave(() => { saveCash(); R.date = v; render(); }, () => { R.dirty = false; R.cd = null; R.date = v; render(); });
+    R.date = v; render();
+  }
+});
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.in === 'q'){
+    const was = !!(R.q||'').trim(); R.q = el.value; const box = document.getElementById('plist');
+    if (was !== !!R.q.trim()) render();
+    else if (box){ const tmp = document.createElement('div'); tmp.innerHTML = V[R.s](); const nb = tmp.querySelector('#plist'); if (nb) box.innerHTML = nb.innerHTML; else render(); }
+    else render();
+  } else if (el.dataset.in === 'inv'){
+    const dr = S.drafts.cig, p = ordered('cig')[dr.idx], i = +el.dataset.i;
+    el.value = el.value.replace(/\D/g,'');
+    dr.rows[p.id][i] = el.value === '' ? null : +el.value;
+    if (i === 4 && dr.sugs && dr.sugs[p.id]){ delete dr.sugs[p.id]; const h = document.getElementById('bhint'); if (h) h.textContent = ''; }
+    save(); const lv = document.getElementById('live'); if (lv) lv.innerHTML = liveHtml(p.id);
+  }
+});
+/* hide floating buttons while the phone keyboard is open */
+const isText = el => el && (el.tagName === 'INPUT' && !['date','button','checkbox'].includes(el.type) || el.tagName === 'TEXTAREA');
+document.addEventListener('focusin', e => { if (isText(e.target)) document.body.classList.add('kb'); });
+document.addEventListener('focusout', e => { setTimeout(() => {
+  if (!isText(document.activeElement)) document.body.classList.remove('kb');
+  const q = document.getElementById('q');
+  if (q && document.activeElement !== q && !q.value && R.sOpen){ R.sOpen = false; const bar = q.closest('.sbar'); if (bar) bar.remove(); }
+}, 60); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.in === 'inv'){
+    e.preventDefault(); const nx = document.getElementById('f' + (+e.target.dataset.i + 1));
+    if (nx) nx.focus(); else e.target.blur();
+  }
+  if (e.key === 'Enter' && e.target.id === 'q') e.target.blur();
+});
+
+V.connect = () => `<div class="hdr wrap"><div class="hrow"><h1>Магазин Чорсу</h1></div></div><div class="wrap stack">
+  <div class="card"><b style="font-size:20px">Подключение к базе</b><p class="muted" style="margin:8px 0 0">Откройте на этом телефоне ссылку подключения, которую прислал Саидало. Или вставьте её сюда:</p></div>
+  <div class="field txt"><label for="cfg_link">Ссылка подключения</label><input id="cfg_link" autocomplete="off" placeholder="https://…#connect=…"></div>
+  <button class="btn pri" data-a="connectgo">Подключить</button></div>`;
+V.loading = () => `<div class="hdr wrap"><div class="hrow"><h1>Магазин Чорсу</h1></div></div><div class="wrap stack">
+  ${LOADERR ? `<div class="note warn">Не удалось загрузить базу: ${esc(LOADERR)}. Проверьте интернет.</div><button class="btn pri" data-a="retryload">Попробовать снова</button>`
+  : `<div class="card" style="text-align:center"><b style="font-size:20px">Загружаю базу…</b><p class="muted">Первый раз это занимает до минуты. Потом приложение открывается сразу, даже без интернета.</p></div>`}</div>`;
+let LOADERR = '';
+function tryConnect(s){
+  const m = String(s).match(/connect=([A-Za-z0-9_\-=]+)/); if (!m) return false;
+  try {
+    const j = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/')))));
+    if (!j.u || !j.k) return false;
+    CFG = {u:j.u, k:j.k}; ls.set(CFG_KEY, CFG);
+    try { history.replaceState(null, '', location.pathname + location.search); } catch(e){}
+    DB = null; ls.del(DB_KEY); OUT = []; ls.set(OUT_KEY, OUT);
+    firstLoad(); return true;
+  } catch(e){ return false; }
+}
+async function firstLoad(){
+  LOADERR = ''; render();
+  try { await pull(true); S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); SYNC.state = 'ok'; SYNC.last = Date.now(); ls.set('chorsu_last', SYNC.last); HIST.length = 0; R = {s:'home'}; render(); }
+  catch(e){ LOADERR = e.message === 'key' ? 'ключ не подходит — нужна новая ссылка подключения' : (navigator.onLine ? 'база не отвечает' : 'нет интернета'); render(); }
+}
+function loadXLSX(){
+  return window.XLSX ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+}
+async function exportWeek(){
+  const ps = periods('cig'); if (!ps.length) return toast('Нет данных за неделю');
+  const per = ps[R.pi == null ? ps.length - 1 : R.pi];
+  toast('Готовлю файл…');
+  try { await loadXLSX(); } catch(e){ return toast('Нет интернета — файл сделать нельзя'); }
+  const from = per.from, to = per.to, sold = [['№','Товар','Было ККМ','Было Омбор','Было чёрный','Приход ККМ','Приход Омбор','Приход свои','Стало ККМ','Стало Омбор','Стало чёрный','Баланс с офисом','Продано чёрного','Продано всего','Себестоимость','Продажная','Сумма по себест.','Сумма продаж','Прибыль']];
+  repProducts('cig').forEach(p => { const c = calc(p.id, from.rows[p.id], to.rows[p.id], from.date, to.date); if (!(c.was || c.inc || c.now)) return; const pr = priceAt(p.id, to.date);
+    sold.push([numOf(p.id) || '', p.name, c.a[0]+c.a[1], c.a[2]+c.a[3], c.wasBl, c.pr.kkm, c.pr.om, c.pr.own, c.b[0]+c.b[1], c.b[2]+c.b[3], c.nowBl, c.soldOff, c.soldBl, c.sold, pr.cost, pr.sale, c.sold*pr.cost, c.sold*pr.sale, c.sold*(pr.sale-pr.cost)]); });
+  const days = [['Дата','День','Приход ККМ','Приход Омбор','Приход свои (чёрный)','Приход товаров','Терминал','Сдано в офис','Корректировка','Долг перед офисом вечером']];
+  for (let d = from.date; d < to.date; d = addD(d, 1)){ const x = dayPrihod(d), c = cashOf(d); days.push([dShort(d), WD[pd(d).getDay()], x.kkm, x.om, x.own, x.g, c.t, c.k, adjOn(d), balanceEnd(d)]); }
+  const stock = [['№','Товар','ККМ','Омбор','Чёрный','Себестоимость','Сумма ККМ+Омбор','Сумма чёрного']];
+  repProducts('cig').forEach(p => { const r = to.rows[p.id] || Z, c = priceAt(p.id, to.date).cost; const k = r[0]+r[1], o = r[2]+r[3], b = r[4]||0; if (k || o || b) stock.push([numOf(p.id) || '', p.name, k, o, b, c, (k+o)*c, b*c]); });
+  const debts = [['Имя','Группа','Долг']]; S.debtors.slice().sort((a,b) => a.ts - b.ts).forEach(d => { const v = debtOf(d.id); if (v) debts.push([d.name, d.grp === 'n' ? 'Несгор' : 'Должник', v]); });
+  const wb = XLSX.utils.book_new();
+  [['Продажи', sold], ['По дням', days], ['Остатки', stock], ['Долги', debts]].forEach(([n, a]) => { const ws = XLSX.utils.aoa_to_sheet(a); ws['!cols'] = a[0].map((h, i) => ({wch: i === 1 || h === 'Имя' ? 30 : 13})); XLSX.utils.book_append_sheet(wb, ws, n); });
+  const blob = new Blob([XLSX.write(wb, {bookType:'xlsx', type:'array'})], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Chorsu ${invShort(from)}-${invShort(to)}.xlsx`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  toast('Файл Excel скачан');
+}
+
+function render(){
+  const app = document.getElementById('app');
+  NEED_RENDER = false;
+  if (!CFG){ app.innerHTML = V.connect(); return; }
+  if (!DB){ app.innerHTML = V.loading(); return; }
+  let h = (V[R.s] || V.home)();
+  if (NP) h += npHtml();
+  if (CONF) h += confHtml();
+  if (TSHEET) h += typeSheetHtml();
+  if (TOAST && !NP && !CONF) h += `<div class="toast" role="status">${esc(TOAST)}</div>`;
+  const q = document.activeElement && document.activeElement.id === 'q';
+  app.innerHTML = h; ANIM = false;
+  if (!isText(document.activeElement)) document.body.classList.remove('kb');
+  if (q){ const el = document.getElementById('q'); if (el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
+}
+// boot
+if (location.hash.includes('connect=')) tryConnect(location.hash);
+else if (CFG && !DB) firstLoad();
+else { render(); if (CFG) sync(); }
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+window.addEventListener('hashchange', () => { if (location.hash.includes('connect=')) tryConnect(location.hash); });
+</script>
+
+</body>
+</html>
