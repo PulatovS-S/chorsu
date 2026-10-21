@@ -141,6 +141,22 @@ table.wide td.z{color:var(--faint)}
 .chart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 8px 6px}
 .chart svg{display:block;width:100%;height:auto}
 .chart .tip{font-size:15px;font-weight:600;min-height:22px;padding:0 6px 6px}
+.ibal{display:flex;gap:8px;margin-left:auto}
+.ibal .b{min-width:84px;border-radius:12px;padding:5px 10px 4px;text-align:center;line-height:1.05}
+.ibal .b b{display:block;font-size:26px;font-weight:800}
+.ibal .b span{font-size:13px;font-weight:700;letter-spacing:.02em}
+.ibal .b.off{background:var(--accent-soft);color:var(--accent)}
+.ibal .b.own2{background:var(--kkm-soft);color:var(--kkm)}
+.ibal .b.neg{background:var(--bad-soft);color:var(--bad)}
+.pmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:-6px}
+.pmeta .no{background:var(--sunk);border-radius:99px;padding:4px 12px;font-weight:700;font-size:16px;color:var(--muted)}
+.sortbar{display:flex;flex-direction:column;gap:6px}
+.sortbar .chips{flex-wrap:wrap;overflow:visible}.sortbar .chip{min-height:42px;font-size:15px;padding:0 13px}
+th.sth{cursor:pointer}th.sorted,td.sorted{color:var(--accent)!important;font-weight:700}
+.eye{margin-left:auto;width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.eye.on{color:var(--own);background:var(--own-soft)}
+.eye svg{width:24px;height:24px}
+.homehead{display:flex;align-items:center;gap:8px}
 .range{display:grid;grid-template-columns:1fr 1fr;gap:10px}.range .field{min-width:0}.range input{width:100%;min-width:0;font-size:17px;padding-left:10px;padding-right:6px}
 th{font-size:15px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;background:var(--sunk)}
 td.l,th.l{text-align:left}
@@ -400,9 +416,14 @@ body.kb .fabs{display:none}
 <div id="app"></div>
 
 <script>
-const TYPES = {kkm:{n:'ККМ',full:'Склад ККМ',c:'kkm'}, om:{n:'Омбор',full:'Склад Омбор',c:'om'}, own:{n:'Свои',full:'За свои деньги',c:'own'}, g:{n:'Товары',full:'Прочие товары',c:'g'},
-  rkkm:{n:'ККМ',full:'Возврат ККМ',c:'kkm',ret:1}, rom:{n:'Омбор',full:'Возврат Омбор',c:'om',ret:1}, rown:{n:'Свои',full:'Возврат (свои)',c:'own',ret:1}, rg:{n:'Товары',full:'Возврат товаров',c:'g',ret:1}};
+const TYPES = {kkm:{n:'ККМ',full:'Склад ККМ',c:'kkm'}, om:{n:'Омбор',full:'Склад Омбор',c:'om'}, own:{n:'Запас',full:'Запас',c:'own'}, g:{n:'Товары',full:'Прочие товары',c:'g'},
+  rkkm:{n:'ККМ',full:'Возврат ККМ',c:'kkm',ret:1}, rom:{n:'Омбор',full:'Возврат Омбор',c:'om',ret:1}, rown:{n:'Запас',full:'Возврат запаса',c:'own',ret:1}, rg:{n:'Товары',full:'Возврат товаров',c:'g',ret:1}};
 const isRet = type => type && type[0] === 'r';
+const WORD = 'Запас';
+let SHOW = (() => { try { return localStorage.getItem('chorsu_show_keep') === '1'; } catch(e){ return false; } })();
+const isOwn = type => type === 'own' || type === 'rown';
+const vis = type => SHOW || !isOwn(type);
+const sv = c => (c.soldOff == null || SHOW) ? c.sold : c.soldOff;   // продано: со скрытым запасом — только ККМ + Омбор
 const KIND = {in:{one:'Приход', many:'Приходы', keys:['kkm','om','own','g'], q:'Какой приход?', no:'приходов'}, ret:{one:'Возврат', many:'Возвраты', keys:['rkkm','rom','rown','rg'], q:'Какой возврат?', no:'возвратов'}};
 const WD = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
 const MON = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
@@ -413,6 +434,8 @@ const ICON = {
   ppl:SV('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.8c1.8.8 3 2.6 3.5 5.2"/>'),
   list:SV('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'),
   chart:SV('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
+  eye:SV('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+  eyeoff:SV('<path d="M3 3l18 18"/><path d="M10.6 5.1A10 10 0 0112 5c6.5 0 10 7 10 7a17 17 0 01-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7c1.8 0 3.4-.5 4.8-1.3"/><path d="M9.9 9.9a3 3 0 004.2 4.2"/>'),
   ret:SV('<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 010 10h-3"/>'),
   trend:SV('<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>'),
   gear:SV('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/>'),
@@ -459,8 +482,8 @@ const LOC = ls.get(LOC_KEY, {drafts:{}, wip:null});
 let SEQ = OUT.reduce((m, o) => Math.max(m, o.s||0), 0);
 const TABLES = ['products','prices','docs','prihod','inv','invlines','extra','cash','adj','debtors','moves','settings'];
 const CATn = {cig:'сигареты', goods:'товары'}, CATr = {'сигареты':'cig', 'товары':'goods'};
-const TYPn = {kkm:'ККМ', om:'Омбор', own:'Свои', g:'Товары', rkkm:'Возврат ККМ', rom:'Возврат Омбор', rown:'Возврат свои', rg:'Возврат товары'};
-const TYPr = Object.fromEntries(Object.entries(TYPn).map(([k, v]) => [v, k]));
+const TYPn = {kkm:'ККМ', om:'Омбор', own:'Запас', g:'Товары', rkkm:'Возврат ККМ', rom:'Возврат Омбор', rown:'Возврат запаса', rg:'Возврат товары'};
+const TYPr = Object.assign(Object.fromEntries(Object.entries(TYPn).map(([k, v]) => [v, k])), {'Свои':'own', 'Возврат свои':'rown'});   // старые записи «Свои» читаются и при сохранении переписываются в «Запас»
 const GRPn = {a:'должник', n:'несгор'}, GRPr = {'должник':'a', 'несгор':'n'};
 const Nn = v => { const n = Number(v); return isFinite(n) ? n : 0; };
 const Sx = v => v == null ? '' : String(v);
@@ -698,14 +721,14 @@ const V = {};
 V.home = () => {
   const dp = dayPrihod(TODAY), c = cashOf(TODAY), debts = debtTotals();
   const draft = S.drafts.cig || S.drafts.goods, li = invList('cig').slice(-1)[0];
-  const ndoc = S.docs.filter(d => d.date === TODAY && !isRet(d.type)).length, nret = S.docs.filter(d => d.date === TODAY && isRet(d.type)).length;
+  const ndoc = S.docs.filter(d => d.date === TODAY && !isRet(d.type) && vis(d.type)).length, nret = S.docs.filter(d => d.date === TODAY && isRet(d.type) && vis(d.type)).length;
   const [sc, st] = statusText();
   return `<button id="sync" class="syncbar ${sc} wrap" data-a="syncnow"><span>${st}</span><b>Обновить</b></button>
   <div class="wrap stack">
-    <p class="home-date">${dLong(TODAY)}</p>
-    ${S.wip && S.wip.items.length ? `<button class="banner" data-a="wipopen">Есть несохранённый ${isRet(S.wip.type) ? 'возврат' : 'приход'}: ${TYPES[S.wip.type].full}, ${S.wip.items.length} поз. <b>Открыть ›</b></button>` : ''}
-    ${tile('plist','box','--accent','Приход', ndoc ? `Сегодня ${ndoc} шт · ${fmt(dp.kkm+dp.om+dp.own+dp.g)}` : 'Сегодня приходов нет')}
-    ${tile('rlist','ret','--coral','Возврат', nret ? `Сегодня ${nret} шт · ${fmt(dp.rkkm+dp.rom+dp.rown+dp.rg)}` : 'Сегодня возвратов нет')}
+    <div class="homehead"><p class="home-date">${dLong(TODAY)}</p><button class="eye ${SHOW ? 'on' : ''}" data-a="eye" aria-label="${SHOW ? 'Скрыть' : 'Показать всё'}">${ICON[SHOW ? 'eye' : 'eyeoff']}</button></div>
+    ${S.wip && S.wip.items.length && vis(S.wip.type) ? `<button class="banner" data-a="wipopen">Есть несохранённый ${isRet(S.wip.type) ? 'возврат' : 'приход'}: ${TYPES[S.wip.type].full}, ${S.wip.items.length} поз. <b>Открыть ›</b></button>` : ''}
+    ${tile('plist','box','--accent','Приход', ndoc ? `Сегодня ${ndoc} шт · ${fmt(dp.kkm+dp.om+(SHOW ? dp.own : 0)+dp.g)}` : 'Сегодня приходов нет')}
+    ${tile('rlist','ret','--coral','Возврат', nret ? `Сегодня ${nret} шт · ${fmt(dp.rkkm+dp.rom+(SHOW ? dp.rown : 0)+dp.rg)}` : 'Сегодня возвратов нет')}
     ${tile('cash','card','--kkm','Терминал и касса', c.t||c.k ? 'Терминал ' + fmt(c.t) + ' · касса ' + fmt(c.k) : 'Сегодня ещё не записано')}
     ${tile('debts','ppl','--om','Долги клиентов', 'Должны нам: ' + fmt(debts.a + debts.n))}
     ${tile('inv','list','--own','Инвентаризация', draft ? 'Есть незаконченная — продолжить' : 'Последняя: ' + (li ? invLong(li) : '—'))}
@@ -718,7 +741,7 @@ const tile = (to, ic, col, title, sub) => `<button class="tile" data-a="go" data
 /* Приходы за день */
 V.plist = () => {
   R.date = R.date || TODAY; R.kind = R.kind || 'in'; const K = KIND[R.kind];
-  const docs = S.docs.filter(d => d.date === R.date && (R.kind === 'ret') === isRet(d.type)).sort((a,b) => a.ts - b.ts);
+  const docs = S.docs.filter(d => d.date === R.date && (R.kind === 'ret') === isRet(d.type) && vis(d.type)).sort((a,b) => a.ts - b.ts);
   const total = docs.reduce((s, d) => s + docSum(S.prihod.filter(x => x.doc === d.id), d.date), 0);
   return hdr(K.many, {right: dateBtn(R.date, 'pdate')}) + `<div class="wrap stack">
     <div class="sumrow" style="padding:0"><span class="muted">${dLong(R.date)}</span>${docs.length ? `<b>${fmt(total)}</b>` : ''}</div>
@@ -824,16 +847,16 @@ V.inv = () => {
   return hdr('Инвентаризация') + `<div class="wrap stack">
     <div class="seg"><button class="${R.cat==='cig'?'on':''}" data-a="icat" data-v="cig">Сигареты</button><button class="${R.cat==='goods'?'on':''}" data-a="icat" data-v="goods">Товары</button></div>
     <div class="card"><div class="lbl">Последняя инвентаризация</div><div style="font-size:22px;font-weight:700;margin-top:4px">${last ? invLong(last) : 'ещё не было'}</div></div>
-    ${dr ? `<div class="note warn">Незаконченная инвентаризация ${dr.lbl || dShort(dr.date)}: ${prog}</div>
+    ${dr ? `<div class="note warn">${dr.edit ? 'Изменение инвентаризации' : 'Незаконченная инвентаризация'} ${dr.edit ? dShort(dr.disp) : (dr.lbl || dShort(dr.date))}: ${prog}</div>
       <button class="btn pri" data-a="icont">Продолжить</button>
       <button class="btn sec" data-a="ifinish">Завершить сейчас</button>
-      <button class="btn dang" data-a="idrop">Удалить незаконченную</button>`
+      <button class="btn dang" data-a="idrop">${dr.edit ? 'Отменить изменения' : 'Удалить незаконченную'}</button>`
     : `<div class="field"><label for="idate">Дата инвентаризации</label><input type="date" id="idate" value="${TODAY}" max="${TODAY}"></div>
       <button class="btn pri" data-a="istart">Начать</button>
       <p class="small muted">Инвентаризация вечером: приход этого дня остаётся в старой неделе.</p>
       <p class="small muted">${R.cat === 'cig' ? 'Сигареты идут в вашем порядке, по одному на экране. Все количества — в пачках.' : 'Товары ищете по названию. Один товар можно добавлять сколько угодно раз — с разных полок, количество сложится.'}</p>`}
     <div class="sec-h">Прошлые</div>
-    <div class="list">${list.slice().reverse().map(i => `<div class="row"><span class="nm">${invLong(i)}</span><span class="small muted">${Object.keys(i.rows).length} поз.</span></div>`).join('') || '<div class="empty-st">Нет</div>'}</div>
+    <div class="list">${list.slice().reverse().map(i => `<button class="row" data-a="rweek" data-v="${i.id}"><span class="nm">${invLong(i)}</span><span class="small muted">${Object.keys(i.rows).length} поз.</span><span class="chev">›</span></button>`).join('') || '<div class="empty-st">Нет</div>'}</div>
   </div>`;
 };
 V.icard = () => {
@@ -847,12 +870,12 @@ V.icard = () => {
   const isLast = dr.idx === items.length - 1;
   const pct = Math.round(Object.keys(dr.rows).length / items.length * 100);
   const cell = (i, cls, label) => `<div class="cell ${cls}"><label for="f${i}">${label}</label><div class="box"><input id="f${i}" data-in="inv" data-i="${i}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="next" value="${row[i]==null?'':row[i]}" placeholder="0" autocomplete="off"><span class="was">было ${a[i]||0}</span></div></div>`;
-  return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Выйти</button><h1>№ ${dr.idx+1} из ${items.length}</h1><span class="small muted">${dr.lbl||''}</span></div><div class="prog" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>
+  return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Выйти</button><div class="ibal" id="live">${liveHtml(p.id)}</div></div><div class="prog" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>
   <div class="wrap stack">
+    <div class="pmeta"><span class="no">№ ${dr.idx+1} из ${items.length}</span><span class="small muted">${dr.edit ? 'изменение ' + dShort(dr.disp) : (dr.lbl||'')}</span></div>
     <p class="pname">${esc(p.name)}</p>
-    <div class="grid2">${cell(0,'kkm','ККМ блок')}${cell(1,'kkm','ККМ дона')}${cell(2,'om','Омбор блок')}${cell(3,'om','Омбор дона')}${cell(4,'own','Чёрный')}${cell(5,'ret','Возврат')}</div>
-    <div class="hint" id="bhint">${dr.sugs && dr.sugs[p.id] ? `Чёрный подставлен: было ${a[4]||0} + куплено ${pr.own}. Исправьте, если не так.` : (sug>0 && row[4]!==sug ? `Ожидается чёрный: ${sug} <button data-a="isug" data-v="${sug}">Подставить</button>` : '')}</div>
-    <div id="live">${liveHtml(p.id)}</div>
+    <div class="grid2">${cell(0,'kkm','ККМ блок')}${cell(1,'kkm','ККМ дона')}${cell(2,'om','Омбор блок')}${cell(3,'om','Омбор дона')}${cell(4,'own',WORD)}${cell(5,'ret','Возврат')}</div>
+    <div class="hint" id="bhint">${dr.sugs && dr.sugs[p.id] ? `${WORD} подставлен: было ${a[4]||0} + приход ${pr.own}. Исправьте, если не так.` : (sug>0 && row[4]!==sug ? `Ожидается: ${sug} <button data-a="isug" data-v="${sug}">Подставить</button>` : '')}</div>
   </div>
   <div class="botbar wrap"><div class="in"><button class="btn sec" data-a="inav" data-v="-1" ${dr.idx===0?'disabled':''}>‹ Назад</button><button class="sbtn" data-a="ilist" aria-label="Список товаров">${ICON.list}<span style="font-size:15px;font-weight:700">Список</span></button><button class="btn pri" data-a="${isLast?'ifinish':'inav'}" data-v="1">${isLast?'Завершить':'Дальше ›'}</button></div></div>`;
 };
@@ -860,12 +883,8 @@ function liveHtml(pid){
   const dr = S.drafts.cig, prev = prevInvFor('cig', dr.date);
   const row = (dr.rows[pid] || []).map(x => x||0);
   const c = calc(pid, prev && prev.rows[pid], row, prev ? prev.date : '0000', dr.date);
-  if (!prev) return `<div class="bal"><span>Сейчас всего</span><b>${c.now}</b></div>`;
-  const b = (v, title, sub) => `<div class="bal ${v<0?'badlive':''}"><span>${title}<div class="small">${sub}</div></span><b>${v}</b></div>`;
-  return `<div class="stack" style="padding:0;gap:8px">
-    ${b(c.soldOff, 'Баланс с офисом', `без чёрного и прихода за свои · приход ККМ ${c.pr.kkm}, Омбор ${c.pr.om}`)}
-    ${b(c.sold, 'Общий баланс', `с чёрным и приходом за свои (${c.pr.own})`)}
-  </div>`;
+  const b = (v, cls, lbl) => `<div class="b ${cls} ${prev && v < 0 ? 'neg' : ''}"><b>${prev ? v : '—'}</b><span>${lbl}</span></div>`;
+  return b(c.soldOff, 'off', 'офис') + b(c.sold, 'own2', 'свой');
 }
 V.ifinish = () => {
   const cat = R.cat, dr = S.drafts[cat];
@@ -879,7 +898,7 @@ V.ifinish = () => {
   const items = ordered(cat), filled = items.filter(p => dr.rows[p.id] && dr.rows[p.id].some(x => x!=null)).length;
   return hdr('Завершить') + `<div class="wrap stack">
     <div class="card"><div class="lbl">Сигареты · ${dLong(dr.date)}</div><div class="big">${filled} из ${items.length}</div><div class="muted">товаров заполнено</div></div>
-    ${filled < items.length ? `<div class="note warn">Незаполненные товары (${items.length-filled}): ККМ и Омбор запишутся как 0, чёрный — как было (прошлый чёрный + купленный за свои).</div><button class="btn sec" data-a="ifirst">Перейти к первому незаполненному</button>` : ''}
+    ${filled < items.length ? `<div class="note warn">Незаполненные товары (${items.length-filled}): ККМ и Омбор запишутся как 0, ${WORD.toLowerCase()} — как было (прошлый + приход в ${WORD.toLowerCase()}).</div><button class="btn sec" data-a="ifirst">Перейти к первому незаполненному</button>` : ''}
     <button class="btn pri" data-a="isave">Сохранить инвентаризацию</button>
     <button class="btn sec" data-a="back">Вернуться</button></div>`;
 };
@@ -887,7 +906,7 @@ V.ijump = () => {
   const dr = S.drafts.cig; R.q = R.q || '';
   return hdr('Список сигарет') + sbar('Название или номер') + `<div class="wrap stack">
     ${!R.q ? `<div class="grid2"><button class="btn sec" data-a="ifirst">Первый незаполненный</button><button class="btn sec" data-a="ifinish">Завершить</button></div>
-    <div class="small muted">Цифры справа: <b style="color:var(--kkm)">ККМ</b> · <b style="color:var(--om)">Омбор</b> · <b style="color:var(--own)">Чёрный</b>. Нажмите на товар, чтобы перейти к нему.</div>` : ''}
+    <div class="small muted">Цифры справа: <b style="color:var(--kkm)">ККМ</b> · <b style="color:var(--om)">Омбор</b> · <b style="color:var(--own)">${WORD}</b>. Нажмите на товар, чтобы перейти к нему.</div>` : ''}
     <div class="list" id="plist">${prodRows('cig', R.q, pid => { const r = dr.rows[pid]; if (!r || !r.some(x=>x!=null)) return '<span class="small muted">не заполнен</span>'; const k=(r[0]||0)+(r[1]||0), o=(r[2]||0)+(r[3]||0), b=r[4]||0; return `<span class="small" style="text-align:right;white-space:nowrap"><b style="color:var(--kkm)">${k}</b> · <b style="color:var(--om)">${o}</b> · <b style="color:var(--own)">${b}</b></span>`; }, 'ijumpto')}</div></div>`
     + fabs([{a:'search', i:'search', l:'Поиск', s:1}]);
 };
@@ -948,13 +967,14 @@ V.rsales = () => {
     const per = ps[R.pi];
     const rows = repProducts(R.cat).map(p => ({p, n:repNum(p.id), c:calc(p.id, per.from.rows[p.id], per.to.rows[p.id], per.from.date, per.to.date), pr:priceAt(p.id, per.to.date)}));
     let qty=0, cost=0, sale=0, neg=0; const T = {o:{q:0,c:0,s:0}, b:{q:0,c:0,s:0}};
-    rows.forEach(r => { qty += r.c.sold; cost += r.c.sold * r.pr.cost; sale += r.c.sold * r.pr.sale; if (r.c.sold < 0) neg++;
+    rows.forEach(r => { const q = sv(r.c); qty += q; cost += q * r.pr.cost; sale += q * r.pr.sale; if (q < 0) neg++;
       if (r.p.cat === 'cig'){ T.o.q += r.c.soldOff; T.o.c += r.c.soldOff*r.pr.cost; T.o.s += r.c.soldOff*r.pr.sale; T.b.q += r.c.soldBl; T.b.c += r.c.soldBl*r.pr.cost; T.b.s += r.c.soldBl*r.pr.sale; } });
     const grp = (title, g, col) => `<div class="card" style="padding:12px 14px"><div class="lbl" style="${col?'color:var(--own)':''}">${title}</div><div class="g4">
       <div><span>Продано, пачек</span><b>${fmt(g.q)}</b></div><div><span>Прибыль</span><b style="color:var(--good)">${fmt(g.s-g.c)}</b></div>
       <div><span>По себестоимости</span><b>${fmt(g.c)}</b></div><div><span>По продажной</span><b>${fmt(g.s)}</b></div></div></div>`;
-    const split = R.cat === 'cig' ? grp('Без чёрного (ККМ + Омбор)', T.o) + grp('Чёрный (за свои деньги)', T.b, 1) + grp('Всего', {q:qty, c:cost, s:sale}) : '';
-    const shown = rows.filter(r => (r.c.was || r.c.inc || r.c.now) && (!R.onlyNeg || r.c.sold < 0) && (!R.q || match(r.p.name, R.q)));
+    const split = R.cat === 'cig' ? (SHOW ? grp('ККМ + Омбор', T.o) + grp(WORD, T.b, 1) + grp('Всего', {q:qty, c:cost, s:sale}) : grp('ККМ + Омбор', T.o)) : '';
+    const act = r => r.p.cat === 'cig' && !SHOW ? (r.c.wasOff || r.c.pr.kkm || r.c.pr.om || r.c.nowOff) : (r.c.was || r.c.inc || r.c.now);
+    const shown = rows.filter(r => act(r) && (!R.onlyNeg || sv(r.c) < 0) && (!R.q || match(r.p.name, R.q)));
     const ex = R.cat === 'goods' ? `<div class="card"><div class="sumrow"><span>Вне списка: было ${fmt(extraSum(per.from.extra))}, стало ${fmt(extraSum(per.to.extra))}</span><b>${fmt(extraSum(per.from.extra) - extraSum(per.to.extra))}</b></div></div>` : '';
     body = `<div class="chips">${ps.map((x,i) => `<button class="chip ${i===R.pi?'on':''}" data-a="rper" data-v="${i}">${invShort(x.from)} – ${invShort(x.to)}</button>`).join('')}</div>
       ${R.cat === 'cig' ? split + `<button class="stat ${neg?'badst':''}" data-a="rneg" style="text-align:left"><span class="lbl">Ошибки (минус) · нажмите, чтобы ${R.onlyNeg?'показать все':'показать только их'}</span><b>${neg}</b></button>` : `
@@ -971,23 +991,25 @@ V.rsales = () => {
   return hdr('Продажи') + sbar('Название товара') + `<div class="wrap stack">${R.q ? '' : catSeg()}${body}</div>` + fabs([{a:'search', i:'search', l:'Поиск', c:'Найти', s:1}]);
 };
 function salesRow(r, per){
-  const c = r.c, open = R.open === r.p.id;
+  const c = r.c, open = R.open === r.p.id, q = sv(c), bl = SHOW && (c.wasBl || c.pr.own || c.nowBl);
   const det = !open ? '' : (r.p.cat === 'goods'
     ? `<div class="detail"><div class="sumrow"><span>Было (${invShort(per.from)})</span><b>${c.was}</b></div><div class="sumrow"><span>+ Приход</span><b>${c.inc}</b></div><div class="sumrow"><span>− Стало (${invShort(per.to)})</span><b>${c.now}</b></div><div class="sumrow"><span>Сумма продаж</span><b>${fmt(c.sold*r.pr.sale)}</b></div></div>`
     : `<div class="detail">
       <div class="sumrow"><span><span class="pill p-kkm">ККМ</span> было</span><b>${c.a[0]+c.a[1]}</b></div>
       <div class="sumrow"><span><span class="pill p-om">Омбор</span> было</span><b>${c.a[2]+c.a[3]}</b></div>
       <div class="sumrow"><span>+ Приход ККМ / Омбор</span><b>${c.pr.kkm} / ${c.pr.om}</b></div>
+      ${c.pr.rkkm || c.pr.rom ? `<div class="sumrow"><span>− Возврат ККМ / Омбор</span><b>${c.pr.rkkm} / ${c.pr.rom}</b></div>` : ''}
       <div class="sumrow"><span>− Стало ККМ / Омбор</span><b>${c.b[0]+c.b[1]} / ${c.b[2]+c.b[3]}</b></div>
       <div class="sumrow"><span>Баланс с офисом</span><b class="${c.soldOff<0?'neg':''}">${c.soldOff}</b></div>
-      <div class="sumrow"><span><span class="pill p-own">Чёрный</span> было ${c.wasBl} + куплено ${c.pr.own} − стало ${c.nowBl}</span><b class="${c.soldBl<0?'neg':''}">${c.soldBl}</b></div>
-      <div class="sumrow"><span>Цена ${fmt(r.pr.cost)} / ${fmt(r.pr.sale)}</span><b>${fmt(c.sold*r.pr.sale)}</b></div>
+      ${SHOW ? `<div class="sumrow"><span><span class="pill p-own">${WORD}</span> было ${c.wasBl} + приход ${c.pr.own - c.pr.rown} − стало ${c.nowBl}</span><b class="${c.soldBl<0?'neg':''}">${c.soldBl}</b></div>` : ''}
+      <div class="sumrow"><span>Цена ${fmt(r.pr.cost)} / ${fmt(r.pr.sale)}</span><b>${fmt(q*r.pr.sale)}</b></div>
       ${c.b[5] ? `<div class="sumrow"><span>Возврат</span><b>${c.b[5]}</b></div>`:''}
     </div>`);
+  const inOff = c.pr.kkm + c.pr.om - (c.pr.rkkm||0) - (c.pr.rom||0);
   const sub = r.p.cat === 'goods' ? `<div class="sub">было ${c.was} + приход ${c.inc} − стало ${c.now}</div>`
-    : ((c.wasBl || c.pr.own || c.nowBl) ? `<div class="sub">было ${c.wasOff} + приход ${c.pr.kkm + c.pr.om} − стало ${c.nowOff} = <b class="${c.soldOff<0?'neg':''}" style="color:var(--ink)">${c.soldOff}</b></div>` : `<div class="sub">было ${c.wasOff} + приход ${c.pr.kkm + c.pr.om} − стало ${c.nowOff}</div>`)
-      + ((c.wasBl || c.pr.own || c.nowBl) ? `<div class="sub" style="color:var(--own)">чёрный: было ${c.wasBl} + куплено ${c.pr.own} − стало ${c.nowBl} = <b class="${c.soldBl<0?'neg':''}">${c.soldBl}</b></div>` : '');
-  return `<button class="srow ${c.sold<0?'negrow':''}" data-a="ropen" data-v="${r.p.id}"><span class="num">${r.n}</span><span style="min-width:0">${esc(r.p.name)}${sub}</span><span class="sold ${c.sold<0?'neg':''}">${c.sold}</span>${det}</button>`;
+    : (bl ? `<div class="sub">было ${c.wasOff} + приход ${inOff} − стало ${c.nowOff} = <b class="${c.soldOff<0?'neg':''}" style="color:var(--ink)">${c.soldOff}</b></div>` : `<div class="sub">было ${c.wasOff} + приход ${inOff} − стало ${c.nowOff}</div>`)
+      + (bl ? `<div class="sub" style="color:var(--own)">${WORD.toLowerCase()}: было ${c.wasBl} + приход ${c.pr.own - c.pr.rown} − стало ${c.nowBl} = <b class="${c.soldBl<0?'neg':''}">${c.soldBl}</b></div>` : '');
+  return `<button class="srow ${q<0?'negrow':''}" data-a="ropen" data-v="${r.p.id}"><span class="num">${r.n}</span><span style="min-width:0">${esc(r.p.name)}${sub}</span><span class="sold ${q<0?'neg':''}">${q}</span>${det}</button>`;
 }
 function dayPeriods(){
   const l = invList('cig'), last = l.slice(-1)[0];
@@ -1000,11 +1022,12 @@ V.rdays = () => {
   if (R.di == null || R.di >= opts.length) R.di = opts.length - 1;
   const o = opts[R.di]; const days = []; for (let d=o.from; d<=o.to; d=addD(d,1)) days.push(d);
   const T = {kkm:0, om:0, own:0, g:0, r:0, t:0, k:0};
-  const rows = days.map(d => { const p = dayPrihod(d), c = cashOf(d), r = p.rkkm + p.rom + p.rown + p.rg; T.kkm+=p.kkm; T.om+=p.om; T.own+=p.own; T.g+=p.g; T.r+=r; T.t+=c.t; T.k+=c.k; return `<tr><td class="l">${wdShort(d)} ${dShort(d)}</td><td>${fmt(p.kkm)}</td><td>${fmt(p.om)}</td><td style="color:var(--own)">${fmt(p.own)}</td><td>${fmt(p.g)}</td><td>${fmt(r)}</td><td>${fmt(c.t)}</td><td>${fmt(c.k)}</td></tr>`; }).join('');
+  const ow = v => SHOW ? `<td style="color:var(--own)">${fmt(v)}</td>` : '';
+  const rows = days.map(d => { const p = dayPrihod(d), c = cashOf(d), r = p.rkkm + p.rom + (SHOW ? p.rown : 0) + p.rg; T.kkm+=p.kkm; T.om+=p.om; T.own+=p.own; T.g+=p.g; T.r+=r; T.t+=c.t; T.k+=c.k; return `<tr><td class="l">${wdShort(d)} ${dShort(d)}</td><td>${fmt(p.kkm)}</td><td>${fmt(p.om)}</td>${ow(p.own)}<td>${fmt(p.g)}</td><td>${fmt(r)}</td><td>${fmt(c.t)}</td><td>${fmt(c.k)}</td></tr>`; }).join('');
   return hdr('По дням') + `<div class="wrap stack">
     <div class="chips">${opts.map((x,i) => `<button class="chip ${i===R.di?'on':''}" data-a="rday" data-v="${i}">${x.cur ? 'Эта неделя' : x.lbl}</button>`).join('')}</div>
-    <div class="tbl-wrap"><table><tr><th class="l">День</th><th>ККМ</th><th>Омбор</th><th style="color:var(--own)">Чёрный (свои)</th><th>Товары</th><th>Возврат</th><th>Терминал</th><th>Касса</th></tr>${rows}
-    <tr class="tot"><td class="l">Итого</td><td>${fmt(T.kkm)}</td><td>${fmt(T.om)}</td><td style="color:var(--own)">${fmt(T.own)}</td><td>${fmt(T.g)}</td><td>${fmt(T.r)}</td><td>${fmt(T.t)}</td><td>${fmt(T.k)}</td></tr></table></div>
+    <div class="tbl-wrap"><table><tr><th class="l">День</th><th>ККМ</th><th>Омбор</th>${SHOW ? `<th style="color:var(--own)">${WORD}</th>` : ''}<th>Товары</th><th>Возврат</th><th>Терминал</th><th>Касса</th></tr>${rows}
+    <tr class="tot"><td class="l">Итого</td><td>${fmt(T.kkm)}</td><td>${fmt(T.om)}</td>${ow(T.own)}<td>${fmt(T.g)}</td><td>${fmt(T.r)}</td><td>${fmt(T.t)}</td><td>${fmt(T.k)}</td></tr></table></div>
     <p class="small muted">Таблицу можно листать вбок. Приход — по себестоимости на день прихода.</p></div>`;
 };
 function invSums(i){
@@ -1019,9 +1042,9 @@ V.rstock = () => {
   const list = invList(R.cat).slice().reverse();
   const rows = list.map((i, idx) => { const s = invSums(i), prev = list[idx + 1] ? invSums(list[idx + 1]) : null;
     const main = R.cat === 'goods' ? s.q : s.k + s.o, pm = prev ? (R.cat === 'goods' ? prev.q : prev.k + prev.o) : null, d = pm == null ? null : main - pm;
-    return `<button class="row" data-a="rweek" data-v="${i.id}"><span class="nm"><b>${dMid(evDate(i))}</b><div class="small muted">${WDF[pd(evDate(i)).getDay()]} · ${s.n} товаров${R.cat === 'cig' && s.b ? ' · чёрный ' + fmt(s.b) : ''}${d != null ? ` · ${d >= 0 ? '+' : ''}${fmt(d)} к прошлой` : ''}</div></span><span class="rt">${fmt(main)}</span><span class="chev">›</span></button>`; }).join('');
+    return `<button class="row" data-a="rweek" data-v="${i.id}"><span class="nm"><b>${dMid(evDate(i))}</b><div class="small muted">${WDF[pd(evDate(i)).getDay()]} · ${s.n} товаров${R.cat === 'cig' && s.b && SHOW ? ' · ' + WORD.toLowerCase() + ' ' + fmt(s.b) : ''}${d != null ? ` · ${d >= 0 ? '+' : ''}${fmt(d)} к прошлой` : ''}</div></span><span class="rt">${fmt(main)}</span><span class="chev">›</span></button>`; }).join('');
   return hdr('Остатки по неделям') + `<div class="wrap stack">${catSeg()}
-    ${list.length ? `<div class="small muted">Сумма ${R.cat === 'cig' ? 'по ККМ и Омбор (без чёрного), по себестоимости' : 'по цене'}. Нажмите на неделю, чтобы открыть остатки.</div><div class="list">${rows}</div>` : '<div class="note info">Инвентаризаций ещё не было.</div>'}</div>`;
+    ${list.length ? `<div class="small muted">Сумма ${R.cat === 'cig' ? 'по ККМ и Омбор, по себестоимости' : 'по цене'}. Нажмите на неделю, чтобы открыть остатки.</div><div class="list">${rows}</div>` : '<div class="note info">Инвентаризаций ещё не было.</div>'}</div>`;
 };
 V.rweek = () => {
   const inv = S.inv.find(i => i.id === R.id); if (!inv) return V.rstock();
@@ -1030,20 +1053,22 @@ V.rweek = () => {
   if (inv.cat === 'goods'){
     const rows = items.map(p => { const q = (inv.rows[p.id]||[0])[0]||0, pr = priceAt(p.id, inv.date).sale; return q ? `<tr><td class="nmc"><span class="n">${repNum(p.id)}.</span>${esc(p.name)}</td><td>${q}</td><td>${fmt(pr)}</td><td>${fmt(q*pr)}</td></tr>` : ''; }).join('');
     body = `<div class="card"><div class="lbl">Всего на сумму</div><div class="big">${fmt(s.q)}</div>${extraSum(inv.extra) ? `<div class="sumrow"><span>в т.ч. вне списка</span><b>${fmt(extraSum(inv.extra))}</b></div>` : ''}</div>
+      ${R.q ? '' : `<button class="btn sec" data-a="iedit" data-v="${inv.id}">✏️ Изменить эту инвентаризацию</button>`}
       <div class="tbl-wrap"><table class="tight"><tr><th class="l">Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr>${rows}${(inv.extra||[]).map(x => `<tr><td class="nmc">${esc(x.name||'Вне списка')}</td><td>—</td><td>—</td><td>${fmt(x.amt)}</td></tr>`).join('')}</table></div>`;
   } else {
     let tk = 0, to = 0, tb = 0;
-    const rows = items.map(p => { const r = inv.rows[p.id] || Z, c = priceAt(p.id, inv.date).cost; const qk = r[0]+r[1], qo = r[2]+r[3], qb = r[4]||0; if (!(qk||qo||qb)) return ''; tk += qk; to += qo; tb += qb;
-      return `<tr><td class="nmc"><span class="n">${repNum(p.id)}.</span>${esc(p.name)}<div class="sm">${fmt((qk+qo)*c)}</div></td><td>${qk||''}</td><td>${qo||''}</td><td style="color:var(--own)">${qb||''}</td></tr>`; }).join('');
+    const rows = items.map(p => { const r = inv.rows[p.id] || Z, c = priceAt(p.id, inv.date).cost; const qk = r[0]+r[1], qo = r[2]+r[3], qb = SHOW ? r[4]||0 : 0; if (!(qk||qo||qb)) return ''; tk += qk; to += qo; tb += qb;
+      return `<tr><td class="nmc"><span class="n">${repNum(p.id)}.</span>${esc(p.name)}<div class="sm">${fmt((qk+qo)*c)}</div></td><td>${qk||''}</td><td>${qo||''}</td>${SHOW ? `<td style="color:var(--own)">${qb||''}</td>` : ''}</tr>`; }).join('');
     const pk = s.k + s.o ? Math.round(s.k / (s.k + s.o) * 100) : 0;
-    body = `${R.q ? '' : `<div class="card"><div class="lbl">Без чёрного (ККМ + Омбор)</div><div class="big">${fmt(s.k + s.o)}</div>
+    body = `${R.q ? '' : `<div class="card"><div class="lbl">ККМ + Омбор</div><div class="big">${fmt(s.k + s.o)}</div>
       <div class="sumrow"><span><span class="pill p-kkm">ККМ</span> ${pk}%</span><b>${fmt(s.k)}</b></div>
       <div class="sumrow"><span><span class="pill p-om">Омбор</span> ${100-pk}%</span><b>${fmt(s.o)}</b></div>
-      <div class="sumrow"><span><span class="pill p-own">Чёрный</span></span><b>${fmt(s.b)}</b></div>
-      <div class="sumrow"><span><b>Всего с чёрным</b></span><b>${fmt(s.k + s.o + s.b)}</b></div></div>
-      <button class="btn sec" data-a="office" data-v="${inv.id}">📤 Отчёт для офиса → Google Таблица</button>`}
-      <div class="tbl-wrap"><table class="tight"><tr><th class="l">Товар · сумма</th><th>ККМ</th><th>Омбор</th><th style="color:var(--own)">Чёрн.</th></tr>${rows}
-      <tr class="tot"><td class="l">Итого, пачек</td><td>${tk}</td><td>${to}</td><td style="color:var(--own)">${tb}</td></tr></table></div>
+      ${SHOW ? `<div class="sumrow"><span><span class="pill p-own">${WORD}</span></span><b>${fmt(s.b)}</b></div>
+      <div class="sumrow"><span><b>Всего с запасом</b></span><b>${fmt(s.k + s.o + s.b)}</b></div>` : ''}</div>`}
+      ${R.q ? '' : `<div class="grid2"><button class="btn sec" data-a="office" data-v="${inv.id}">📤 Отчёт для офиса</button><button class="btn sec" data-a="iedit" data-v="${inv.id}">✏️ Изменить</button></div>
+`}
+      <div class="tbl-wrap"><table class="tight"><tr><th class="l">Товар · сумма</th><th>ККМ</th><th>Омбор</th>${SHOW ? `<th style="color:var(--own)">${WORD}</th>` : ''}</tr>${rows}
+      <tr class="tot"><td class="l">Итого, пачек</td><td>${tk}</td><td>${to}</td>${SHOW ? `<td style="color:var(--own)">${tb}</td>` : ''}</tr></table></div>
       <p class="small muted">Количество в пачках. Под названием — сумма по ККМ и Омбор по себестоимости.</p>`;
   }
   return hdr(invShort(inv)) + sbar('Название товара') + `<div class="wrap stack"><div class="lbl">Инвентаризация ${invLong(inv)}</div>${body}</div>` + fabs([{a:'search', i:'search', l:'Поиск', c:'Найти', s:1}]);
@@ -1072,7 +1097,7 @@ V.rbal = () => {
     <div class="grid2"><button class="btn sec" data-a="aadd" data-v="-1">Уменьшить долг</button><button class="btn sec" data-a="aadd" data-v="1">Увеличить долг</button></div>
     <p class="small muted">Если офис прислал сверку и долг отличается — запишите разницу на выбранную выше дату.</p>
     <button class="money" data-a="sbal"><span class="lbl">Начальный долг на ${dShort(S.bal0.date)}</span><b>${fmt(S.bal0.amount)}</b></button>
-    <p class="small muted">Приход за свои деньги в долг перед офисом не входит.</p>
+    ${SHOW ? `<p class="small muted">Приход в запас в долг перед офисом не входит.</p>` : ''}
   </div>`;
 };
 V.rprice = () => {
@@ -1110,62 +1135,83 @@ function barChart(points, opts = {}){ // points: [{lbl, v, title}] — один 
     if (i % labEvery === 0 || i === n - 1) g += `<text x="${Math.min(W - 30, Math.max(padL + 24, x + w/2))}" y="${H - 10}" text-anchor="middle" font-size="21" fill="var(--muted)">${esc(p.lbl)}</text>`; });
   return `<div class="chart"><div class="tip" id="ctip">${esc(opts.hint || 'Нажмите на столбик, чтобы увидеть цифру')}</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.aria||'График')}">${g}</svg></div>`;
 }
-function weekSeries(pid){ // по каждой неделе: продано (с офисом, чёрный, всего), приход
+function weekSeries(pid){ // по каждой неделе: продано и приход
   return periods(P(pid).cat).map(per => { const c = calc(pid, per.from.rows[pid], per.to.rows[pid], per.from.date, per.to.date); return {per, c}; });
 }
+const SORT_NAME = {num:'По порядку', name:'По названию'};
+function sortBar(opts){
+  return `<div class="sortbar"><span class="lbl">Сортировка</span><div class="chips">${opts.map(([k, l]) => { const on = R.sort === k;
+    const arrow = on ? (k === 'name' ? (R.dir > 0 ? ' А→Я' : ' Я→А') : k === 'num' ? (R.dir > 0 ? ' ↑' : ' ↓') : (R.dir < 0 ? ' ↓' : ' ↑')) : '';
+    return `<button class="chip ${on ? 'on' : ''}" data-a="rsort" data-v="${k}">${l}${arrow}</button>`; }).join('')}</div>
+    ${R.sort && R.sort[0] === 'c' ? '' : `<div class="small muted">${R.sort === 'name' || R.sort === 'num' ? 'Нажмите ещё раз, чтобы перевернуть' : (R.dir < 0 ? '↓ сначала больше' : '↑ сначала меньше') + ' · нажмите ещё раз, чтобы перевернуть'}</div>`}</div>`;
+}
+function sortRows(rows, kv){
+  const d = R.dir || -1;
+  return rows.slice().sort((a, b) => R.sort === 'name' ? d * a.p.name.localeCompare(b.p.name, 'ru') : (d * (kv(a) - kv(b)) || a.i - b.i));
+}
+const thS = (k, label, cls = '') => `<th class="${cls} sth ${R.sort === k ? 'sorted' : ''}" data-a="rsort" data-v="${k}">${label}${R.sort === k ? (R.dir < 0 ? ' ↓' : ' ↑') : ''}</th>`;
 V.rsw = () => {
-  R.cat = R.cat || 'cig';
+  R.cat = R.cat || 'cig'; if (!R.sort){ R.sort = 'total'; R.dir = -1; }
   const ps = periods(R.cat).slice().reverse();
   if (!ps.length) return hdr('Аналитика продаж') + `<div class="wrap stack">${catSeg()}<div class="note info">Нужно хотя бы две инвентаризации.</div></div>`;
-  const prods = repProducts(R.cat).filter(p => !R.q || match(p.name, R.q));
   const tot = ps.map(() => 0);
-  const rows = prods.map(p => { const vals = ps.map(per => calc(p.id, per.from.rows[p.id], per.to.rows[p.id], per.from.date, per.to.date).sold);
-    if (!vals.some(v => v)) return ''; vals.forEach((v, i) => tot[i] += v); const sum = vals.reduce((a, b) => a + b, 0);
-    return `<tr class="rowtap" data-a="rprod" data-v="${p.id}"><td class="stick nmc">${esc(p.name)}</td><td><b>${fmt(sum)}</b></td>${vals.map(v => `<td class="${v === 0 ? 'z' : v < 0 ? 'neg' : ''}">${fmt(v)}</td>`).join('')}</tr>`; }).join('');
-  return hdr('Аналитика продаж') + sbar('Название товара') + `<div class="wrap stack">${R.q ? '' : catSeg()}
-    <div class="small muted">Продано ${R.cat === 'cig' ? 'пачек' : 'шт'} по неделям (свежие слева). Нажмите на товар — откроется график. Таблицу можно листать вбок.</div>
-    <div class="tbl-wrap"><table class="tight wide"><tr><th class="stick l">Товар</th><th>Всего</th>${ps.map(per => `<th>${invShort(per.to)}</th>`).join('')}</tr>
-    ${R.q ? '' : `<tr class="tot"><td class="stick l">Все товары</td><td>${fmt(tot.reduce((a, b) => a + b, 0))}</td>${tot.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`}${rows}</table></div></div>`
+  let rows = repProducts(R.cat).map((p, i) => { const vals = ps.map(per => sv(calc(p.id, per.from.rows[p.id], per.to.rows[p.id], per.from.date, per.to.date)));
+    return {p, i, vals, sum: vals.reduce((a, b) => a + b, 0)}; }).filter(r => r.vals.some(v => v));
+  rows.forEach(r => r.vals.forEach((v, i) => tot[i] += v));
+  rows = rows.filter(r => !R.q || match(r.p.name, R.q));
+  const kv = {total: r => r.sum, last: r => r.vals[0], trend: r => r.vals[0] - (r.vals[1] || 0), num: r => r.i, name: () => 0}[R.sort] || (r => r.vals[+R.sort.slice(1)] || 0);
+  const html = sortRows(rows, kv).map(r => `<tr class="rowtap" data-a="rprod" data-v="${r.p.id}"><td class="stick nmc">${esc(r.p.name)}</td><td><b>${fmt(r.sum)}</b></td>${r.vals.map((v, i) => `<td class="${v === 0 ? 'z' : v < 0 ? 'neg' : ''} ${R.sort === 'c' + i ? 'sorted' : ''}">${fmt(v)}</td>`).join('')}</tr>`).join('');
+  return hdr('Аналитика продаж') + sbar('Название товара') + `<div class="wrap stack">${R.q ? '' : catSeg() + sortBar([['total','Всего'], ['last','Последняя неделя'], ['trend','Рост'], ['num','По порядку'], ['name','По названию']])}
+    <div class="small muted">Продано ${R.cat === 'cig' ? 'пачек' : 'шт'} по неделям (свежие слева). Нажмите на товар — откроется график, на заголовок недели — сортировка по ней.</div>
+    <div class="tbl-wrap"><table class="tight wide"><tr><th class="stick l">Товар</th>${thS('total', 'Всего')}${ps.map((per, i) => thS('c' + i, invShort(per.to))).join('')}</tr>
+    ${R.q ? '' : `<tr class="tot"><td class="stick l">Все товары</td><td>${fmt(tot.reduce((a, b) => a + b, 0))}</td>${tot.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`}${html}</table></div></div>`
     + fabs([{a:'search', i:'search', l:'Найти товар для анализа', c:'Найти'}]);
 };
 V.rprod = () => {
   const p = P(R.id); if (!p) return V.rsw();
-  const ser = weekSeries(p.id), vals = ser.map(x => x.c.sold);
-  const total = vals.reduce((a, b) => a + b, 0), avg = vals.length ? total / vals.length : 0, best = ser.reduce((m, x) => !m || x.c.sold > m.c.sold ? x : m, null);
+  const ser = weekSeries(p.id), vals = ser.map(x => sv(x.c));
+  const total = vals.reduce((a, b) => a + b, 0), avg = vals.length ? total / vals.length : 0;
+  let bi = -1; vals.forEach((v, i) => { if (bi < 0 || v > vals[bi]) bi = i; });
   const last = vals[vals.length - 1] || 0, prev = vals[vals.length - 2] || 0, ch = prev ? Math.round((last - prev) / Math.abs(prev) * 100) : null;
-  const pts = ser.map(x => ({lbl: invShort(x.per.to).slice(0, 5), title: 'Неделя ' + invShort(x.per.from) + ' – ' + invShort(x.per.to), v: x.c.sold}));
-  const cig = p.cat === 'cig', u = cig ? ' пач.' : ' шт';
-  const rows = ser.slice().reverse().map(x => `<tr><td class="l">${invShort(x.per.to)}</td>${cig ? `<td>${fmt(x.c.soldOff)}</td><td style="color:var(--own)">${fmt(x.c.soldBl)}</td>` : ''}<td class="${x.c.sold < 0 ? 'neg' : ''}"><b>${fmt(x.c.sold)}</b></td><td>${fmt(x.c.inc)}</td></tr>`).join('');
+  const pts = ser.map((x, i) => ({lbl: invShort(x.per.to).slice(0, 5), title: 'Неделя ' + invShort(x.per.from) + ' – ' + invShort(x.per.to), v: vals[i]}));
+  const cig = p.cat === 'cig', u = cig ? ' пач.' : ' шт', both = cig && SHOW;
+  const inc = c => cig && !SHOW ? c.pr.kkm + c.pr.om - c.pr.rkkm - c.pr.rom : c.inc;
+  const rows = ser.map((x, i) => [x, vals[i]]).reverse().map(([x, v]) => `<tr><td class="l">${invShort(x.per.to)}</td>${both ? `<td>${fmt(x.c.soldOff)}</td><td style="color:var(--own)">${fmt(x.c.soldBl)}</td>` : ''}<td class="${v < 0 ? 'neg' : ''}"><b>${fmt(v)}</b></td><td>${fmt(inc(x.c))}</td></tr>`).join('');
   return hdr(esc(p.name)) + `<div class="wrap stack">
     <div class="tiles"><div class="stat"><span class="lbl">Всего продано</span><b>${fmt(total)}${u}</b></div><div class="stat"><span class="lbl">В среднем за неделю</span><b>${fmt(avg)}${u}</b></div>
-      <div class="stat"><span class="lbl">Лучшая неделя</span><b>${best ? fmt(best.c.sold) : 0}${u}</b><span class="small muted">${best ? invShort(best.per.to) : ''}</span></div>
+      <div class="stat"><span class="lbl">Лучшая неделя</span><b>${bi >= 0 ? fmt(vals[bi]) : 0}${u}</b><span class="small muted">${bi >= 0 ? invShort(ser[bi].per.to) : ''}</span></div>
       <div class="stat"><span class="lbl">Последняя неделя</span><b>${fmt(last)}${u}</b><span class="small" style="color:var(${ch == null ? '--muted' : ch >= 0 ? '--good' : '--bad'})">${ch == null ? '' : (ch >= 0 ? '▲ +' : '▼ ') + ch + '% к прошлой'}</span></div></div>
     ${barChart(pts, {unit: u, aria: 'Продажи по неделям: ' + p.name})}
-    <div class="tbl-wrap"><table class="tight"><tr><th class="l">Неделя до</th>${cig ? '<th>Офис</th><th style="color:var(--own)">Чёрн.</th>' : ''}<th>Всего</th><th>Приход</th></tr>${rows}</table></div>
-    <p class="small muted">«Неделя до» — дата инвентаризации, которой закончилась неделя. «Офис» — продано из ККМ и Омбор, «Чёрн.» — из купленного за свои.</p>
+    <div class="tbl-wrap"><table class="tight"><tr><th class="l">Неделя до</th>${both ? '<th>Офис</th><th style="color:var(--own)">Запас</th>' : ''}<th>Всего</th><th>Приход</th></tr>${rows}</table></div>
+    <p class="small muted">«Неделя до» — дата инвентаризации, которой закончилась неделя.</p>
   </div>`;
 };
 V.rpd = () => {
-  R.to = R.to || TODAY; R.from = R.from || addD(R.to, -13); R.pt = R.pt || 'all'; R.cat = R.cat || 'cig';
+  R.to = R.to || TODAY; R.from = R.from || addD(R.to, -13); R.pt = R.pt || 'all'; R.cat = R.cat || 'cig'; if (!R.sort){ R.sort = 'total'; R.dir = -1; }
+  if (R.pt === 'own' && !SHOW) R.pt = 'all';
   const days = []; for (let d = R.to; d >= R.from && days.length < 120; d = addD(d, -1)) days.push(d);
-  const okType = x => !isRet(x.type) && (R.pt === 'all' ? (R.cat === 'goods' ? x.type === 'g' : x.type !== 'g') : x.type === R.pt);
+  const okType = x => !isRet(x.type) && vis(x.type) && (R.pt === 'all' ? (R.cat === 'goods' ? x.type === 'g' : x.type !== 'g') : x.type === R.pt);
   const by = {}; S.prihod.forEach(x => { if (x.date >= R.from && x.date <= R.to && okType(x)){ (by[x.pid] = by[x.pid] || {})[x.date] = ((by[x.pid] || {})[x.date] || 0) + x.qty; } });
-  const prods = repProducts(R.cat).filter(p => by[p.id] && (!R.q || match(p.name, R.q)));
-  const tot = days.map(d => prods.reduce((s, p) => s + (by[p.id][d] || 0), 0));
-  const rows = prods.map(p => { const vals = days.map(d => by[p.id][d] || 0), sum = vals.reduce((a, b) => a + b, 0);
-    return `<tr class="rowtap" data-a="rpprod" data-v="${p.id}"><td class="stick nmc">${esc(p.name)}</td><td><b>${fmt(sum)}</b></td>${vals.map(v => `<td class="${v ? '' : 'z'}">${v ? fmt(v) : '·'}</td>`).join('')}</tr>`; }).join('');
-  const chips = R.cat === 'goods' ? '' : `<div class="chips">${[['all','Все'],['kkm','ККМ'],['om','Омбор'],['own','Свои']].map(([k, l]) => `<button class="chip ${R.pt === k ? 'on' : ''}" data-a="rpt" data-v="${k}">${l}</button>`).join('')}</div>`;
+  let rows = repProducts(R.cat).map((p, i) => ({p, i})).filter(r => by[r.p.id]).map(r => { const vals = days.map(d => by[r.p.id][d] || 0); const f = vals.findIndex(v => v);
+    return Object.assign(r, {vals, sum: vals.reduce((a, b) => a + b, 0), cnt: vals.filter(v => v).length, recent: f < 0 ? 1e9 : f}); });
+  const tot = days.map((d, k) => rows.reduce((s, r) => s + r.vals[k], 0));
+  rows = rows.filter(r => !R.q || match(r.p.name, R.q));
+  const kv = {total: r => r.sum, days: r => r.cnt, last: r => -r.recent, num: r => r.i, name: () => 0}[R.sort] || (r => r.vals[+R.sort.slice(1)] || 0);
+  const html = sortRows(rows, kv).map(r => `<tr class="rowtap" data-a="rpprod" data-v="${r.p.id}"><td class="stick nmc">${esc(r.p.name)}</td><td><b>${fmt(r.sum)}</b></td>${r.vals.map((v, i) => `<td class="${v ? '' : 'z'} ${R.sort === 'c' + i ? 'sorted' : ''}">${v ? fmt(v) : '·'}</td>`).join('')}</tr>`).join('');
+  const kinds = [['all','Все'], ['kkm','ККМ'], ['om','Омбор']].concat(SHOW ? [['own', WORD]] : []);
+  const chips = R.cat === 'goods' ? '' : `<div class="chips">${kinds.map(([k, l]) => `<button class="chip ${R.pt === k ? 'on' : ''}" data-a="rpt" data-v="${k}">${l}</button>`).join('')}</div>`;
   return hdr('Аналитика прихода') + sbar('Название товара') + `<div class="wrap stack">
-    ${R.q ? '' : `${catSeg()}<div class="range"><div class="field"><label for="pd_from">С какого дня</label><input type="date" id="pd_from" data-in="pdr" data-k="from" value="${R.from}" max="${TODAY}"></div><div class="field"><label for="pd_to">По какой</label><input type="date" id="pd_to" data-in="pdr" data-k="to" value="${R.to}" max="${TODAY}"></div></div>${chips}`}
-    <div class="small muted">Сколько заказывали (пачек/шт) по дням, свежие слева. Нажмите на товар — откроется график. ${days.length >= 120 ? 'Показаны последние 120 дней периода.' : ''}</div>
-    ${prods.length ? `<div class="tbl-wrap"><table class="tight wide"><tr><th class="stick l">Товар</th><th>Всего</th>${days.map(d => `<th>${wdShort(d)} ${dShort(d)}</th>`).join('')}</tr>
-    ${R.q ? '' : `<tr class="tot"><td class="stick l">Все товары</td><td>${fmt(tot.reduce((a, b) => a + b, 0))}</td>${tot.map(v => `<td>${v ? fmt(v) : '·'}</td>`).join('')}</tr>`}${rows}</table></div>` : '<div class="card empty-st">За этот период приходов нет</div>'}
+    ${R.q ? '' : `${catSeg()}<div class="range"><div class="field"><label for="pd_from">С какого дня</label><input type="date" id="pd_from" data-in="pdr" data-k="from" value="${R.from}" max="${TODAY}"></div><div class="field"><label for="pd_to">По какой</label><input type="date" id="pd_to" data-in="pdr" data-k="to" value="${R.to}" max="${TODAY}"></div></div>${chips}
+      ${sortBar([['total','Больше всего'], ['days','Чаще всего'], ['last','Недавние'], ['num','По порядку'], ['name','По названию']])}`}
+    <div class="small muted">Сколько заказывали (пачек/шт) по дням, свежие слева. Нажмите на товар — откроется график, на заголовок дня — сортировка по нему. ${days.length >= 120 ? 'Показаны последние 120 дней периода.' : ''}</div>
+    ${rows.length ? `<div class="tbl-wrap"><table class="tight wide"><tr><th class="stick l">Товар</th>${thS('total', 'Всего')}${days.map((d, i) => thS('c' + i, wdShort(d) + ' ' + dShort(d))).join('')}</tr>
+    ${R.q ? '' : `<tr class="tot"><td class="stick l">Все товары</td><td>${fmt(tot.reduce((a, b) => a + b, 0))}</td>${tot.map(v => `<td>${v ? fmt(v) : '·'}</td>`).join('')}</tr>`}${html}</table></div>` : '<div class="card empty-st">За этот период приходов нет</div>'}
   </div>` + fabs([{a:'search', i:'search', l:'Найти товар для анализа', c:'Найти'}]);
 };
 V.rpprod = () => {
   const p = P(R.id); if (!p) return V.rpd();
   const days = []; for (let d = R.from; d <= R.to && days.length < 120; d = addD(d, 1)) days.push(d);
-  const q = {}, m = {}; S.prihod.forEach(x => { if (x.pid === p.id && !isRet(x.type) && x.date >= R.from && x.date <= R.to){ q[x.date] = (q[x.date] || 0) + x.qty; (m[x.date] = m[x.date] || []).push(TYPES[x.type].n); } });
+  const q = {}, m = {}; S.prihod.forEach(x => { if (x.pid === p.id && !isRet(x.type) && vis(x.type) && x.date >= R.from && x.date <= R.to){ q[x.date] = (q[x.date] || 0) + x.qty; (m[x.date] = m[x.date] || []).push(TYPES[x.type].n); } });
   const vals = days.map(d => q[d] || 0), total = vals.reduce((a, b) => a + b, 0), cnt = vals.filter(v => v).length;
   const pts = days.map(d => ({lbl: dShort(d), title: wdShort(d) + ' ' + dShort(d), v: q[d] || 0}));
   const pr = curPrice(p.id).cost;
@@ -1176,7 +1222,6 @@ V.rpprod = () => {
     ${barChart(pts, {aria: 'Приход по дням: ' + p.name})}
     <div class="tbl-wrap"><table class="tight"><tr><th class="l">День</th><th class="l">Откуда</th><th>Кол-во</th><th>Сумма</th></tr>${rows || '<tr><td class="l" colspan="4">Нет приходов</td></tr>'}</table></div></div>`;
 };
-
 /* ---------- отчёты в Google Таблицу ---------- */
 const evDate = i => i.disp || addD(i.date, -1);
 const gdate = s => `=DATE(${+s.slice(0,4)},${+s.slice(5,7)},${+s.slice(8,10)})`;
@@ -1217,12 +1262,12 @@ function buildReports(inv){
     return [gdate(evDate(per.from)), gdate(evDate(per.to)), s.k, s.o, s.k + s.o, s.b, qo, qb, qo + qb, rev, prof, T.kkm, T.om, T.own, T.g, ret(T), ct, ck, M.bal[addD(per.to.date, -1)] ?? '', g ? invSums(g).q : ''];
   });
   out.push({name:'📊 Сводка по неделям', head:1, freezeRows:1, freezeCols:2, dates:[0, 1], num:[2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19], widths:[96, 96], wrapHead:true,
-    rows:[['Неделя с', 'по (инвентаризация)', 'Остаток ККМ, сум', 'Остаток Омбор, сум', 'Остаток без чёрного', 'Чёрный остаток, сум', 'Продано с офисом, пач.', 'Продано чёрный, пач.', 'Продано всего, пач.', 'Выручка (по продажной)', 'Прибыль', 'Приход ККМ', 'Приход Омбор', 'Приход за свои', 'Приход товаров', 'Возвраты', 'Терминал', 'Сдано в офис', 'Долг перед офисом на конец', 'Остаток прочих товаров'], ...wk]});
+    rows:[['Неделя с', 'по (инвентаризация)', 'Остаток ККМ, сум', 'Остаток Омбор, сум', 'Остаток ККМ + Омбор', 'Запас, сум', 'Продано ККМ + Омбор, пач.', 'Продано из запаса, пач.', 'Продано всего, пач.', 'Выручка (по продажной)', 'Прибыль', 'Приход ККМ', 'Приход Омбор', 'Приход в запас', 'Приход товаров', 'Возвраты', 'Терминал', 'Сдано в офис', 'Долг перед офисом на конец', 'Остаток прочих товаров'], ...wk]});
   // 2. По дням
   const first = [S.bal0 && S.bal0.date, ...Object.keys(M.pr), ...Object.keys(S.cash)].filter(Boolean).sort()[0] || TODAY;
   const days = []; for (let d = TODAY; d >= first; d = addD(d, -1)) days.push(d);
   out.push({name:'📊 По дням', head:1, freezeRows:1, freezeCols:2, dates:[0], num:[2,3,4,5,6,7,8,9,10], widths:[96, 50], wrapHead:true,
-    rows:[['Дата', 'День', 'Приход ККМ', 'Приход Омбор', 'Приход за свои', 'Приход товаров', 'Возвраты', 'Терминал', 'Сдано в офис', 'Корректировка', 'Долг перед офисом вечером'],
+    rows:[['Дата', 'День', 'Приход ККМ', 'Приход Омбор', 'Приход в запас', 'Приход товаров', 'Возвраты', 'Терминал', 'Сдано в офис', 'Корректировка', 'Долг перед офисом вечером'],
       ...days.map(d => { const p = M.pr[d] || ZT(), c = cashOf(d); return [gdate(d), wdShort(d), p.kkm, p.om, p.own, p.g, ret(p), c.t, c.k, M.adj[d] || 0, M.bal[d] ?? '']; })]});
   // 3. Продажи по неделям (сигареты), свежие слева
   const wl = ps.map(per => invShort(per.from) + '–' + invShort(per.to));
@@ -1246,7 +1291,7 @@ function buildReports(inv){
     (i.extra || []).forEach(x => st.push([gdate(evDate(i)), 'Товары', '', x.name || 'Вне списка', '', '', '', '', '', x.amt, '']));
   });
   out.push({name:'📊 Остатки по неделям', head:1, freezeRows:1, freezeCols:0, dates:[0], num:[4,5,6,7,8,9,10], text:[3], widths:[96, 86, 44, 260], filter:true, wrapHead:true,
-    rows:[['Инвентаризация', 'Категория', '№', 'Товар', 'ККМ, пач.', 'Омбор, пач.', 'Чёрный, пач.', 'Всего', 'Цена', 'Сумма без чёрного', 'Сумма чёрный'], ...st]});
+    rows:[['Инвентаризация', 'Категория', '№', 'Товар', 'ККМ, пач.', 'Омбор, пач.', 'Запас, пач.', 'Всего', 'Цена', 'Сумма ККМ + Омбор', 'Сумма запас'], ...st]});
   // 5. Приход — все строки
   const docN = {}; S.docs.slice().sort((a, b) => a.ts - b.ts).forEach(d => { const k = d.date + (isRet(d.type) ? 'r' : 'p'); docN[k] = (docN[k] || 0) + 1; d._n = docN[k]; });
   const dmap = {}; S.docs.forEach(d => dmap[d.id] = d);
@@ -1345,7 +1390,7 @@ function npUpdate(){
 }
 function confHtml(){ return `<div class="ov ${ANIM?'anim':''}"><div class="sheet" role="alertdialog"><h2>${CONF.text}</h2><div class="sheet-btns"><button class="btn sec" data-a="cfno">${CONF.no.l}</button><button class="btn ${CONF.yes.c}" data-a="cfyes">${CONF.yes.l}</button></div></div></div>`; }
 function typeSheetHtml(){ const K = KIND[R.kind || 'in']; return `<div class="ov ${ANIM?'anim':''}" data-a="tsclose"><div class="sheet" data-stop="1"><h2>${K.q}</h2>
-  ${K.keys.map(k => `<button class="typebtn p-${TYPES[k].c}" data-a="pnewt" data-v="${k}">${TYPES[k].full}</button>`).join('')}
+  ${K.keys.filter(vis).map(k => `<button class="typebtn p-${TYPES[k].c}" data-a="pnewt" data-v="${k}">${TYPES[k].full}</button>`).join('')}
   <button class="btn sec" data-a="tsclose">Отмена</button></div></div>`; }
 
 /* ---------- actions ---------- */
@@ -1421,9 +1466,11 @@ const A = {
     else { const prev = prevInvFor('cig', dr.date);
       ordered(cat).forEach(p => { let r = dr.rows[p.id];
         if (!r){ const a = (prev && prev.rows[p.id]) || Z, own = prihodSum(p.id, prev ? prev.date : '0000', dr.date).own, bl = (a[4]||0) + own; if (bl) r = [0,0,0,0,bl,0]; }
-        if (r && r.some(x => x)) rows[p.id] = r.map(x => x||0); }); }
+        if (r && r.some(x => x)) rows[p.id] = r.map(x => x||0); });
+      const orig = dr.edit && S.inv.find(i => i.id === dr.edit), on = new Set(ordered(cat).map(p => p.id));
+      if (orig) Object.keys(orig.rows).forEach(pid => { if (!on.has(pid)) rows[pid] = orig.rows[pid].slice(); }); }
     S.inv = S.inv.filter(i => !(i.cat === cat && i.date === dr.date)); S.inv.push(Object.assign({date:dr.date, disp:dr.disp || dr.date, eve:!!dr.eve, cat, rows}, extra ? {extra} : {})); delete S.drafts[cat]; save();
-    HIST.length = 0; R = {s:'home'}; HIST.push(R); R = {s:'reports'}; go('rstock', {cat}); toast('Инвентаризация сохранена');
+    HIST.length = 0; R = {s:'home'}; HIST.push(R); R = {s:'reports'}; go('rstock', {cat}); toast(dr.edit ? 'Изменения сохранены' : 'Инвентаризация сохранена');
     const ni = S.inv.find(i => i.cat === cat && i.date === dr.date); setTimeout(() => sendReports(cat === 'cig' ? ni : null, true), 2500); },
   gadd: d => { const pid = d.v, dr = S.drafts.goods, have = dr.adds.filter(x => x.pid===pid).reduce((a,x)=>a+x.qty,0), prev = prevInvFor('goods', dr.date), pq = prev && prev.rows[pid] ? prev.rows[pid][0] : 0;
     openNP({title:P(pid).name, sub:`Уже посчитано: <b>${have}</b> · в прошлый раз было ${pq}`, extra:n => (n ? 'Станет: ' + (have + n) : '') + qtyWarn(n), ok:'Добавить',
@@ -1438,6 +1485,15 @@ const A = {
   rprod: d => { const q = R.q; go('rprod', {id:d.v}); },
   rpprod: d => go('rpprod', {id:d.v, from:R.from, to:R.to}),
   rpt: d => { R.pt = d.v; render(); },
+  rsort: d => { if (R.sort === d.v) R.dir = -(R.dir || -1); else { R.sort = d.v; R.dir = (d.v === 'num' || d.v === 'name') ? 1 : -1; } render(); },
+  eye: () => { if (SHOW){ SHOW = false; try { localStorage.removeItem('chorsu_show_keep'); } catch(e){} render(); return; }
+    openNP({title:'ПИН-код', sub:'Введите 4 цифры', mask:true, allowZero:true, ok:'Показать', onOk:() => { if (NP.val === S.pin){ SHOW = true; UNLOCK = true; NP = null; render(); } else { NP.val = ''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Неверный ПИН, попробуйте ещё</span>'; } }}); },
+  iedit: d => { const inv = S.inv.find(i => i.id === d.v); if (!inv) return;
+    const start = () => { const disp = evDate(inv), base = {date:inv.date, disp, eve:true, lbl:'', edit:inv.id};
+      if (inv.cat === 'goods') S.drafts.goods = Object.assign(base, {adds:Object.keys(inv.rows).filter(pid => inv.rows[pid][0]).map(pid => ({id:uid(), pid, qty:inv.rows[pid][0], ts:Date.now()})), extra:(inv.extra||[]).map(x => Object.assign({}, x))});
+      else { const rows = {}; ordered('cig').forEach(p => { rows[p.id] = (inv.rows[p.id] || [0,0,0,0,0,0]).slice(); }); S.drafts.cig = Object.assign(base, {idx:0, rows}); }
+      save(); HIST.length = 0; HIST.push({s:'home'}, {s:'inv', cat:inv.cat}); R = {s: inv.cat === 'goods' ? 'ginv' : 'icard', cat:inv.cat}; render(); window.scrollTo(0,0); };
+    if (S.drafts[inv.cat]) confirmBox('Есть незаконченная инвентаризация. Заменить её изменением ' + dShort(evDate(inv)) + '?', 'Заменить', start); else start(); },
   office: d => sendOffice(d.v),
   rptnow: () => { const l = invList('cig').slice(-1)[0]; sendReports(l); render(); },
   rper: d => { R.pi = +d.v; R.open = null; render(); }, rday: d => { R.di = +d.v; render(); },
@@ -1555,14 +1611,16 @@ async function exportWeek(){
   const per = ps[R.pi == null ? ps.length - 1 : R.pi];
   toast('Готовлю файл…');
   try { await loadXLSX(); } catch(e){ return toast('Нет интернета — файл сделать нельзя'); }
-  const from = per.from, to = per.to, sold = [['№','Товар','Было ККМ','Было Омбор','Было чёрный','Приход ККМ','Приход Омбор','Приход свои','Возврат','Стало ККМ','Стало Омбор','Стало чёрный','Баланс с офисом','Продано чёрного','Продано всего','Себестоимость','Продажная','Сумма по себест.','Сумма продаж','Прибыль']];
+  const from = per.from, to = per.to, sold = [['№','Товар','Было ККМ','Было Омбор','Было запас','Приход ККМ','Приход Омбор','Приход в запас','Возврат','Стало ККМ','Стало Омбор','Стало запас','Баланс с офисом','Продано из запаса','Продано всего','Себестоимость','Продажная','Сумма по себест.','Сумма продаж','Прибыль']];
   repProducts('cig').forEach(p => { const c = calc(p.id, from.rows[p.id], to.rows[p.id], from.date, to.date); if (!(c.was || c.inc || c.now)) return; const pr = priceAt(p.id, to.date);
-    sold.push([numOf(p.id) || '', p.name, c.a[0]+c.a[1], c.a[2]+c.a[3], c.wasBl, c.pr.kkm, c.pr.om, c.pr.own, c.pr.rkkm + c.pr.rom + c.pr.rown, c.b[0]+c.b[1], c.b[2]+c.b[3], c.nowBl, c.soldOff, c.soldBl, c.sold, pr.cost, pr.sale, c.sold*pr.cost, c.sold*pr.sale, c.sold*(pr.sale-pr.cost)]); });
-  const days = [['Дата','День','Приход ККМ','Приход Омбор','Приход свои (чёрный)','Приход товаров','Возвраты','Терминал','Сдано в офис','Корректировка','Долг перед офисом вечером']];
-  for (let d = from.date; d < to.date; d = addD(d, 1)){ const x = dayPrihod(d), c = cashOf(d); days.push([dShort(d), WD[pd(d).getDay()], x.kkm, x.om, x.own, x.g, x.rkkm + x.rom + x.rown + x.rg, c.t, c.k, adjOn(d), balanceEnd(d)]); }
-  const stock = [['№','Товар','ККМ','Омбор','Чёрный','Себестоимость','Сумма ККМ+Омбор','Сумма чёрного']];
+    sold.push([numOf(p.id) || '', p.name, c.a[0]+c.a[1], c.a[2]+c.a[3], c.wasBl, c.pr.kkm, c.pr.om, c.pr.own, c.pr.rkkm + c.pr.rom + (SHOW ? c.pr.rown : 0), c.b[0]+c.b[1], c.b[2]+c.b[3], c.nowBl, c.soldOff, c.soldBl, c.sold, pr.cost, pr.sale, sv(c)*pr.cost, sv(c)*pr.sale, sv(c)*(pr.sale-pr.cost)]); });
+  const days = [['Дата','День','Приход ККМ','Приход Омбор','Приход в запас','Приход товаров','Возвраты','Терминал','Сдано в офис','Корректировка','Долг перед офисом вечером']];
+  for (let d = from.date; d < to.date; d = addD(d, 1)){ const x = dayPrihod(d), c = cashOf(d); days.push([dShort(d), WD[pd(d).getDay()], x.kkm, x.om, x.own, x.g, x.rkkm + x.rom + (SHOW ? x.rown : 0) + x.rg, c.t, c.k, adjOn(d), balanceEnd(d)]); }
+  const stock = [['№','Товар','ККМ','Омбор','Запас','Себестоимость','Сумма ККМ+Омбор','Сумма запаса']];
   repProducts('cig').forEach(p => { const r = to.rows[p.id] || Z, c = priceAt(p.id, to.date).cost; const k = r[0]+r[1], o = r[2]+r[3], b = r[4]||0; if (k || o || b) stock.push([numOf(p.id) || '', p.name, k, o, b, c, (k+o)*c, b*c]); });
   const debts = [['Имя','Группа','Долг']]; S.debtors.slice().sort((a,b) => a.ts - b.ts).forEach(d => { const v = debtOf(d.id); if (v) debts.push([d.name, d.grp === 'n' ? 'Несгор' : 'Должник', v]); });
+  if (!SHOW) [sold, days, stock].forEach(a => { const drop = a[0].map((h, i) => /запас|Запас|Продано всего/.test(h) ? i : -1).filter(i => i >= 0);
+    a.forEach((row, ri) => { for (let k = drop.length - 1; k >= 0; k--) row.splice(drop[k], 1); }); });
   const wb = XLSX.utils.book_new();
   [['Продажи', sold], ['По дням', days], ['Остатки', stock], ['Долги', debts]].forEach(([n, a]) => { const ws = XLSX.utils.aoa_to_sheet(a); ws['!cols'] = a[0].map((h, i) => ({wch: i === 1 || h === 'Имя' ? 30 : 13})); XLSX.utils.book_append_sheet(wb, ws, n); });
   const blob = new Blob([XLSX.write(wb, {bookType:'xlsx', type:'array'})], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
@@ -1585,7 +1643,28 @@ function render(){
   app.innerHTML = h; ANIM = false;
   if (!isText(document.activeElement)) document.body.classList.remove('kb');
   if (q){ const el = document.getElementById('q'); if (el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
+  syncHist();
 }
+/* Кнопка и жест «Назад» телефона: каждый экран и окно — шаг в истории браузера, чтобы «назад» не закрывало приложение */
+let HSKIP = 0;
+function syncHist(){
+  if (HSKIP || !CFG || !DB) return;
+  const want = HIST.length + (NP || CONF || TSHEET ? 1 : 0) + (R.sOpen || R.q ? 1 : 0);
+  const have = (history.state && history.state.chorsu) || 0;
+  try {
+    if (want > have){ for (let i = have + 1; i <= want; i++) history.pushState({chorsu:i}, ''); }
+    else if (want < have){ HSKIP++; history.go(want - have); }
+  } catch(e){}
+}
+window.addEventListener('popstate', () => {
+  if (HSKIP){ HSKIP--; syncHist(); return; }
+  if (NP){ NP = null; render(); }
+  else if (CONF){ CONF = null; render(); }
+  else if (TSHEET){ TSHEET = false; render(); }
+  else if (R.sOpen || R.q || HIST.length) back();
+  syncHist();
+});
+try { if (!history.state || history.state.chorsu == null) history.replaceState({chorsu:0}, ''); } catch(e){}
 // boot: the splash waits for this first update of the base
 window.splashResult = () => {
   if (!CFG) return '';
