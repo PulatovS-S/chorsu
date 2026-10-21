@@ -95,14 +95,90 @@ function handle_(p) {
   const key = props_().getProperty('KEY');
   if (!key || p.key !== key) return out_({ok: false, error: 'key'});
   try {
-    if (p.action === 'pull') return out_(pull_(Number(p.since == null ? -1 : p.since)));
-    if (p.action === 'push') return out_(push_(p.ops || []));
-    if (p.action === 'ping') return out_({ok: true, rev: Number(props_().getProperty('REV') || 0)});
+    const U = users_(), has = Object.keys(U).length > 0;
+    let me = null;
+    if (p.token) { const l = props_().getProperty('T.' + p.token); if (l && U[l] && U[l].active) me = U[l]; }
+    if (p.action === 'login') return out_(login_(p, U));
+    if (p.action === 'ping') return out_({ok: true, rev: Number(props_().getProperty('REV') || 0), users: has, user: me && pub_(me)});
+    if (has && !me) return out_({ok: false, error: 'login'});
+    const role = me ? me.role : 'админ';            // пока пользователей нет — всё как раньше
+    if (p.action === 'pull') return out_(pull_(Number(p.since == null ? -1 : p.since), role));
+    if (p.action === 'push') return out_(push_(p.ops || [], role));
     if (p.action === 'report') return out_(report_(p.sheets || []));
+    if (p.action === 'logout') { props_().deleteProperty('T.' + p.token); return out_({ok: true}); }
+    if (p.action === 'passwd') return out_(passwd_(me, p));
+    if (p.action === 'users') { if (role !== 'админ') return out_({ok: false, error: 'role'}); return out_({ok: true, users: Object.keys(U).map(l => pub_(U[l]))}); }
+    if (p.action === 'usersave') { if (role !== 'админ') return out_({ok: false, error: 'role'}); return out_(userSave_(p.user || {}, U, !has)); }
     return out_({ok: false, error: 'action'});
   } catch (err) {
     return out_({ok: false, error: String(err && err.message || err)});
   }
+}
+
+/* ===================== Пользователи =====================
+ * Лист «Пользователи»: логин, имя, роль (админ / управляющий / продавец), соль, хэш пароля, активен.
+ * Пароли не хранятся — только хэш. Вход выдаёт личный токен телефона; «Активен: нет» — вход и токены перестают работать.
+ */
+const USERS_SHEET = 'Пользователи', ROLES = ['админ', 'управляющий', 'продавец'];
+const SELLER_TABLES = {docs: 1, prihod: 1, inv: 1, invlines: 1, extra: 1, cash: 1, debtors: 1, moves: 1};
+function usersSheet_() {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(USERS_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(USERS_SHEET, ss.getNumSheets());
+    sh.getRange(1, 1, 1, 6).setValues([['Логин', 'Имя', 'Роль', 'соль', 'хэш пароля', 'Активен']]).setFontWeight('bold');
+    sh.setFrozenRows(1); sh.getRange(2, 1, sh.getMaxRows() - 1, 6).setNumberFormat('@');
+  }
+  return sh;
+}
+function users_() {
+  const c = CacheService.getScriptCache(), v = c.get('USERS');
+  if (v) return JSON.parse(v);
+  const sh = SpreadsheetApp.getActive().getSheetByName(USERS_SHEET), map = {};
+  if (sh && sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().forEach(r => {
+    const l = String(r[0]).trim().toLowerCase();
+    if (l) map[l] = {login: l, name: String(r[1]), role: ROLES.indexOf(String(r[2])) >= 0 ? String(r[2]) : 'продавец', salt: String(r[3]), hash: String(r[4]), active: String(r[5]).trim().toLowerCase() !== 'нет'};
+  });
+  c.put('USERS', JSON.stringify(map), 300);
+  return map;
+}
+const pub_ = u => ({login: u.login, name: u.name, role: u.role, active: u.active});
+function hash_(salt, pw) { return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + '|' + pw, Utilities.Charset.UTF_8)); }
+function login_(p, U) {
+  const u = U[String(p.login || '').trim().toLowerCase()];
+  if (!u || !u.active || hash_(u.salt, String(p.password || '')) !== u.hash) { Utilities.sleep(1200); return {ok: false, error: 'badlogin'}; }
+  const token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '').slice(0, 8);
+  props_().setProperty('T.' + token, u.login);
+  return {ok: true, token, user: pub_(u)};
+}
+function writeUser_(u) {
+  const sh = usersSheet_(), n = Math.max(sh.getLastRow() - 1, 0);
+  const vals = n ? sh.getRange(2, 1, n, 1).getValues() : [];
+  let row = vals.findIndex(r => String(r[0]).trim().toLowerCase() === u.login) + 2;
+  if (row < 2) row = n + 2;
+  sh.getRange(row, 1, 1, 6).setNumberFormat('@').setValues([[u.login, u.name, u.role, u.salt, u.hash, u.active ? 'да' : 'нет']]);
+  CacheService.getScriptCache().remove('USERS');
+}
+function userSave_(x, U, first) {
+  const login = String(x.login || '').trim().toLowerCase();
+  if (!/^[a-zа-яё0-9._-]{2,30}$/.test(login)) return {ok: false, error: 'Логин: 2–30 букв или цифр, без пробелов'};
+  const old = U[login], pw = String(x.password || '');
+  if (!old && pw.length < 4) return {ok: false, error: 'Пароль — не короче 4 знаков'};
+  if (pw && pw.length < 4) return {ok: false, error: 'Пароль — не короче 4 знаков'};
+  const role = first ? 'админ' : (ROLES.indexOf(x.role) >= 0 ? x.role : 'продавец');
+  const u = {login, name: String(x.name || login).trim(), role, salt: old ? old.salt : Utilities.getUuid(), hash: old ? old.hash : '', active: x.active !== false};
+  if (pw) { u.salt = Utilities.getUuid(); u.hash = hash_(u.salt, pw); }
+  writeUser_(u);
+  const res = {ok: true, user: pub_(u)};
+  if (first) { const t = login_({login, password: pw}, users_()); res.token = t.token; }
+  return res;
+}
+function passwd_(me, p) {
+  if (!me) return {ok: false, error: 'login'};
+  if (hash_(me.salt, String(p.old || '')) !== me.hash) { Utilities.sleep(800); return {ok: false, error: 'Старый пароль неверный'}; }
+  const pw = String(p.password || ''); if (pw.length < 4) return {ok: false, error: 'Пароль — не короче 4 знаков'};
+  me.salt = Utilities.getUuid(); me.hash = hash_(me.salt, pw); writeUser_(me);
+  return {ok: true};
 }
 
 function out_(obj) {
@@ -114,7 +190,7 @@ function norm_(v) {
   return v;
 }
 
-function pull_(since) {
+function pull_(since, role) {
   const ss = SpreadsheetApp.getActive(), res = {};
   Object.keys(TABLES).forEach(t => {
     const sh = ss.getSheetByName(TABLES[t]);
@@ -126,14 +202,14 @@ function pull_(since) {
       const r = vals[i];
       if (r[0] === '' || r[0] === null) continue;
       const rev = Number(r[w - 2]) || 0;
-      if (rev > since) rows.push(r.map(norm_));
+      if (rev > since && !(role === 'продавец' && t === 'settings' && String(r[0]) === 'pin')) rows.push(r.map(norm_));
     }
     res[t] = rows;
   });
   return {ok: true, rev: Number(props_().getProperty('REV') || 0), tables: res};
 }
 
-function push_(ops) {
+function push_(ops, role) {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -143,7 +219,7 @@ function push_(ops) {
     const last = {};
     ops.forEach((o, i) => { last[o.t + '\u0001' + o.id] = i; });
     const byTable = {};
-    ops.forEach((o, i) => { if (last[o.t + '\u0001' + o.id] === i) (byTable[o.t] = byTable[o.t] || []).push(o); });
+    ops.forEach((o, i) => { if (last[o.t + '\u0001' + o.id] === i && (role !== 'продавец' || SELLER_TABLES[o.t])) (byTable[o.t] = byTable[o.t] || []).push(o); });
     Object.keys(byTable).forEach(t => {
       if (!TABLES[t]) return;
       const sh = ss.getSheetByName(TABLES[t]);
@@ -211,6 +287,9 @@ function report_(sheets) {
     lock.releaseLock();
   }
 }
+
+/** 'yyyy-mm-dd' → номер дня Google Таблицы (не зависит от языка и часового пояса таблицы) */
+function serial_(iso) { return (Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) - Date.UTC(1899, 11, 30)) / 86400000; }
 
 function writeSheet_(ss, s, pos) {
   let sh = ss.getSheetByName(s.name);
@@ -296,7 +375,7 @@ function officeSheet_(ss, s) {
       rg.setValues(col).setBackgrounds(col.map(c => [/^похоже/.test(c[0]) ? '#FFF1D2' : /^нет|^B:/.test(c[0]) ? '#F1F1F1' : null]));
     }
   }
-  const rows = [['', "Do'kon nomi:", 'Sana:'], ['', shop, s.date ? '=DATE(' + s.date.slice(0, 4) + ',' + Number(s.date.slice(5, 7)) + ',' + Number(s.date.slice(8, 10)) + ')' : ''], ['Номи', 'ККМ', 'Омбор']];
+  const rows = [['', "Do'kon nomi:", 'Sana:'], ['', shop, s.date ? serial_(s.date) : ''], ['Номи', 'ККМ', 'Омбор']];
   const usedItem = {};
   if (order) order.forEach((t, i) => { const j = map[i].j; if (j >= 0) usedItem[j] = 1; const it = j >= 0 ? items[j] : null; rows.push([String(t[0]).trim(), it && it[1] ? it[1] : '', it && it[2] ? it[2] : '']); });
   else items.forEach((it, j) => { usedItem[j] = 1; rows.push([it[0], it[1] || '', it[2] || '']); });
