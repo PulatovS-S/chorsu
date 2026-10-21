@@ -98,6 +98,7 @@ function handle_(p) {
     if (p.action === 'pull') return out_(pull_(Number(p.since == null ? -1 : p.since)));
     if (p.action === 'push') return out_(push_(p.ops || []));
     if (p.action === 'ping') return out_({ok: true, rev: Number(props_().getProperty('REV') || 0)});
+    if (p.action === 'report') return out_(report_(p.sheets || []));
     return out_({ok: false, error: 'action'});
   } catch (err) {
     return out_({ok: false, error: String(err && err.message || err)});
@@ -180,4 +181,138 @@ function push_(ops) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ===================== Отчёты =====================
+ * Приложение считает отчёты само и присылает готовые таблицы.
+ * Здесь они записываются на листы и красиво оформляются.
+ * Листы «📊 …» каждый раз перезаписываются; листы для офиса («Qarz18.07», «18.07»)
+ * создаются по одному на неделю, как в отчёте офиса.
+ */
+const TPL_SHEET = 'Шаблон офиса';
+const GREEN = '#1D5C45', LINE = '#D3DCD5', TOT_BG = '#EEF3EF';
+
+function report_(sheets) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.getActive();
+    const done = [];
+    // сначала листы «📊» (впереди, по порядку), потом недельные для офиса — сразу за ними, новые первыми
+    sheets.filter(s => s.pos !== 'week').forEach((s, i) => { writeSheet_(ss, s, i); done.push(s.name); });
+    const dash = ss.getSheets().filter(x => x.getName().indexOf('📊') === 0).length;
+    sheets.filter(s => s.pos === 'week').reverse().forEach(s => {
+      if (s.kind === 'office') s = officeSheet_(ss, s);
+      writeSheet_(ss, s, dash); done.push(s.name);
+    });
+    SpreadsheetApp.flush();
+    return {ok: true, sheets: done};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function writeSheet_(ss, s, pos) {
+  let sh = ss.getSheetByName(s.name);
+  if (!sh) sh = ss.insertSheet(s.name, Math.min(Number(pos) || 0, ss.getNumSheets()));
+  else {
+    const f = sh.getFilter(); if (f) f.remove();
+    sh.setFrozenRows(0); sh.setFrozenColumns(0);
+    sh.clear(); sh.clearNotes();
+  }
+  const rows = s.rows || [[]];
+  const w = Math.max(1, ...rows.map(r => r.length));
+  const data = rows.map(r => { const x = r.map(v => v == null ? '' : v); while (x.length < w) x.push(''); return x; });
+  const n = data.length;
+  if (sh.getMaxRows() < n + 1) sh.insertRowsAfter(sh.getMaxRows(), n + 1 - sh.getMaxRows());
+  if (sh.getMaxColumns() < w) sh.insertColumnsAfter(sh.getMaxColumns(), w - sh.getMaxColumns());
+  (s.text || []).forEach(c => sh.getRange(1, c + 1, n, 1).setNumberFormat('@'));
+  sh.getRange(1, 1, n, w).setValues(data).setFontFamily('Arial').setFontSize(10).setVerticalAlignment('middle');
+  const head = s.head || 0, body = n - head;
+  if (body > 0) {
+    (s.num || []).forEach(c => sh.getRange(head + 1, c + 1, body, 1).setNumberFormat('#,##0;[Red]-#,##0;""'));
+    (s.dates || []).forEach(c => sh.getRange(head + 1, c + 1, body, 1).setNumberFormat('dd.MM.yyyy').setHorizontalAlignment('left'));
+    sh.getRange(head + 1, 1, body, w).setBorder(true, true, true, true, true, true, LINE, SpreadsheetApp.BorderStyle.SOLID);
+  }
+  if (head) {
+    const hr = sh.getRange(head, 1, 1, w);
+    hr.setFontWeight('bold').setBackground(s.headBg || GREEN).setFontColor(s.headBg ? '#000000' : '#FFFFFF')
+      .setVerticalAlignment('middle').setWrap(!!s.wrapHead).setBorder(true, true, true, true, true, true, s.headBg ? '#999999' : GREEN, SpreadsheetApp.BorderStyle.SOLID);
+    if (s.wrapHead) sh.setRowHeight(head, 46);
+    if (head > 1) sh.getRange(1, 1, head - 1, w).setFontWeight('bold');
+  }
+  (s.tot || []).forEach(r => sh.getRange(r, 1, 1, w).setFontWeight('bold').setBackground(TOT_BG));
+  (s.marks || []).forEach(m => { const rg = sh.getRange(m.r, m.c || 1, 1, m.w || w); if (m.bold) rg.setFontWeight('bold'); if (m.bg) rg.setBackground(m.bg); if (m.color) rg.setFontColor(m.color); });
+  if (s.freezeRows) sh.setFrozenRows(s.freezeRows);
+  if (s.freezeCols) sh.setFrozenColumns(s.freezeCols);
+  for (let c = 0; c < w; c++) sh.setColumnWidth(c + 1, (s.widths && s.widths[c]) || 104);
+  if (s.filter && head && body > 0) sh.getRange(head, 1, body + 1, w).createFilter();
+  (s.cells || []).forEach(c => { const rg = sh.getRange(c.a1); if (c.f) rg.setNumberFormat(c.f); if (c.note) rg.setNote(c.note); if (c.bold) rg.setFontWeight('bold'); });
+  if (s.name.indexOf('📊') === 0) sh.setTabColor(GREEN);
+  return sh;
+}
+
+/* «Отчёт для офиса»: строки в порядке и с названиями из листа «Шаблон офиса». */
+const TRL_ = {'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'j','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'x','ц':'c','ч':'ch','ш':'sh','щ':'sh','ъ':'','ы':'i','ь':'','э':'e','ю':'yu','я':'ya'};
+function key_(s) {
+  s = String(s || '').toLowerCase().replace(/[а-яё]/g, ch => TRL_[ch]).replace(/[^0-9a-z]/g, '');
+  s = s.replace(/(\d)(o+)/g, (m, d, o) => d + '0'.repeat(o.length));
+  return s.replace(/superslims?/g, 'ss').replace(/dona/g, 'sht').replace(/^sigar/, 'cigar').replace(/compact/g, 'com').replace(/navi/g, 'navy');
+}
+function lev_(a, b) {
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let p = []; for (let j = 0; j <= n; j++) p[j] = j;
+  for (let i = 1; i <= m; i++) { const c = [i]; for (let j = 1; j <= n; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = c; }
+  return p[n];
+}
+/** tpl: [[офис, название в приложении]], names: названия в приложении → [{j, how}] */
+function matchOffice_(tpl, names) {
+  const keys = names.map(key_), used = {}, res = tpl.map(() => ({j: -1, how: ''}));
+  const take = (k) => { for (let j = 0; j < keys.length; j++) if (!used[j] && keys[j] === k) { used[j] = 1; return j; } return -1; };
+  tpl.forEach((t, i) => { const b = String(t[1] || '').trim(); if (b) { const j = take(key_(b)); res[i] = {j, how: j >= 0 ? 'по столбцу B' : 'B: нет в приложении'}; } });
+  tpl.forEach((t, i) => { if (res[i].how) return; const j = take(key_(t[0])); if (j >= 0) res[i] = {j, how: 'точно'}; });
+  tpl.forEach((t, i) => {
+    if (res[i].how) return;
+    const k = key_(t[0]); let best = -1, bd = 1e9, second = 1e9;
+    keys.forEach((x, j) => { if (used[j]) return; const d = lev_(k, x); if (d < bd) { second = bd; bd = d; best = j; } else if (d < second) second = d; });
+    if (best >= 0 && bd <= Math.max(1, Math.floor(Math.min(k.length, keys[best].length) * 0.15)) && second > bd) { used[best] = 1; res[i] = {j: best, how: 'похоже — проверьте'}; }
+    else res[i] = {j: -1, how: 'нет в приложении'};
+  });
+  return res;
+}
+function officeSheet_(ss, s) {
+  const items = s.items || [], names = items.map(x => x[0]);
+  const tsh = ss.getSheetByName(TPL_SHEET);
+  let shop = '', order = null, map = null;
+  if (tsh && tsh.getLastRow() > 1) {
+    shop = String(tsh.getRange('F1').getValue() || '');
+    const v = tsh.getRange(2, 1, tsh.getLastRow() - 1, 2).getValues();
+    const last = v.map(r => String(r[0]).trim() !== '').lastIndexOf(true);
+    order = v.slice(0, last + 1);
+    map = matchOffice_(order, names);
+    const col = map.map((m, i) => [String(order[i][0]).trim() === '' ? '' : (m.j >= 0 && m.how !== 'точно' && m.how !== 'по столбцу B' ? m.how + ': ' + names[m.j] : m.how)]);
+    if (col.length) {
+      const rg = tsh.getRange(2, 3, col.length, 1);
+      rg.setValues(col).setBackgrounds(col.map(c => [/^похоже/.test(c[0]) ? '#FFF1D2' : /^нет|^B:/.test(c[0]) ? '#F1F1F1' : null]));
+    }
+  }
+  const rows = [['', "Do'kon nomi:", 'Sana:'], ['', shop, s.date ? '=DATE(' + s.date.slice(0, 4) + ',' + Number(s.date.slice(5, 7)) + ',' + Number(s.date.slice(8, 10)) + ')' : ''], ['Номи', 'ККМ', 'Омбор']];
+  const usedItem = {};
+  if (order) order.forEach((t, i) => { const j = map[i].j; if (j >= 0) usedItem[j] = 1; const it = j >= 0 ? items[j] : null; rows.push([String(t[0]).trim(), it && it[1] ? it[1] : '', it && it[2] ? it[2] : '']); });
+  else items.forEach((it, j) => { usedItem[j] = 1; rows.push([it[0], it[1] || '', it[2] || '']); });
+  const lastTpl = rows.length;
+  const extra = items.filter((it, j) => !usedItem[j] && (it[1] || it[2]));
+  const marks = [];
+  if (extra.length) {
+    rows.push(['', '', '']);
+    rows.push(['Есть остаток, но нет в шаблоне офиса — допишите вручную:', '', '']);
+    marks.push({r: rows.length, bold: true, bg: '#FFF1D2'});
+    extra.forEach(it => rows.push([it[0], it[1] || '', it[2] || '']));
+  }
+  let tk = 0, to = 0; items.forEach(it => { tk += it[1] || 0; to += it[2] || 0; });
+  rows.push(['', '', '']);
+  rows.push(['Всего пачек (для проверки, не копировать)', tk, to]);
+  marks.push({r: rows.length, bold: true, bg: TOT_BG});
+  return {name: s.name, pos: 'week', rows, head: 3, freezeRows: 3, num: [1, 2], dates: [], text: [0], widths: [290, 80, 110], headBg: '#D8D8D8', marks,
+    cells: [{a1: 'C2', f: 'dd.MM.yyyy'}, {a1: 'B2', bold: true}, {a1: 'A3', note: 'Для отчёта офиса скопируйте B4:C' + lastTpl + ' и вставьте в B4 листа «' + s.name + '» офиса (Правка → Специальная вставка → Только значения).'}]};
 }

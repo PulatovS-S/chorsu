@@ -3,7 +3,7 @@
    Используется и для экспорта видео, и как заставка в приложении. */
 (function (root) {
   const C = { bg: '#1D5C45', dark: '#12382B', light: '#F2F5F0', amber: '#E8B05A', coral: '#D9573B' };
-  const DUR = 3.6;
+  const DUR = 2.7;
   const NS = 'http://www.w3.org/2000/svg';
   // --- easing ---
   const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -65,20 +65,7 @@
     // фестоны навеса: 6 полукругов чередующихся цветов
     const scal = [0, 1, 2, 3, 4, 5].map(k => el('path', { fill: k % 2 ? C.amber : C.light }, cam));
     // буква «Ч»: финальные планки и скругление угла
-    const letter = el('path', { fill: 'none', stroke: C.light, 'stroke-width': 46, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt', opacity: 0 }, cam);
-    // надпись
-    const wordG = el('g', { 'clip-path': 'url(#csWordClip)' }, svg);
-    const letters = [...WORD].map(ch => el('text', { y: WORD_Y, fill: C.light, 'font-family': font, 'font-weight': 700, 'font-size': 72, 'text-anchor': 'start' }, wordG));
-    letters.forEach((t, i) => { t.textContent = WORD[i]; });
-    let adv = null;
-    function measure() {
-      const probe = el('text', { 'font-family': font, 'font-weight': 700, 'font-size': 72, x: 0, y: -100 }, svg); probe.textContent = WORD;
-      let total = 0; const xs = [];
-      try { for (let i = 0; i < WORD.length; i++){ xs.push(probe.getSubStringLength(0, i)); } total = probe.getComputedTextLength(); } catch (e) { for (let i = 0; i < WORD.length; i++) xs.push(i * 38); total = WORD.length * 38; }
-      probe.remove(); adv = { xs, total };
-      letters.forEach((t, i) => t.setAttribute('x', CX - total / 2 + xs[i]));
-    }
-    measure();
+    function measure(){}               // надписи больше нет — оставлено для совместимости
 
     function scallops(x, y, w, n, drop) { // drop[k] 0..1 — насколько опущен каждый фестон
       const sw = w / n;
@@ -93,16 +80,16 @@
     function render(t) {
       t = clamp(t, 0, DUR);
       // камера: наезд 1.12→1.00, откат на сборке, посадка
-      const push = io(seg(t, 0, 1.9)), pull = Math.sin(Math.PI * seg(t, 1.75, 2.75));
-      const s = lerp(1.12, 1.0, push) - 0.03 * pull;
-      const cy = lerp(520, 540, io(seg(t, 1.6, 2.6)));
+      const push = io(seg(t, 0, 2.1));
+      const s = lerp(1.14, 1.0, push);
+      const cy = lerp(540, 486, io(seg(t, 0.2, 2.1)));
       set(cam, { transform: `translate(${CX} 500) scale(${s}) translate(${-CX} ${-cy})` });
 
       // 1) прилавок рисуется из центра
       const draw = io(seg(t, 0.0, 0.38));
-      const collapse = io5(seg(t, 1.78, 2.3));                    // общая сборка
+      const collapse = 0;                                         // магазин остаётся до конца
       const halfW = lerp(0, (RIGHT - LEFT) / 2, draw) * (1 - collapse);
-      set(counter, { x1: CX - halfW, x2: CX + halfW, opacity: 1 - seg(t, 1.84, 2.02) });
+      set(counter, { x1: CX - halfW, x2: CX + halfW, opacity: 1 });
 
       // ставня вырастает из линии (морф: линия → прямоугольник), затем сворачивается вверх
       const grow = io(seg(t, 0.28, 0.72)), roll = io(seg(t, 0.78, 1.12));
@@ -113,7 +100,7 @@
       slats.forEach((sl, k) => { const y = shTop + 36 + k * 52; set(sl, { y, opacity: (y < shBottom - 12 && grow > .6) ? .16 : 0 }); });
 
       // рулон → планка навеса → навес над буквой
-      const toFinal = io5(seg(t, 1.86, 2.42));
+      const toFinal = 0;
       const barShow = roll > 0.92 || t > 1.1;
       const bx = lerp(LEFT - 10, FINAL_AWN.x, toFinal), bw = lerp(RIGHT - LEFT + 20, FINAL_AWN.w, toFinal);
       const by = lerp(TOP - 6, FINAL_AWN.y, toFinal), bh = lerp(26, 22, toFinal);
@@ -122,12 +109,12 @@
       scallops(bx, by + bh - 1, bw, 6, drops);
 
       // полки и стойки появляются, когда ставня уходит, и тают при сборке
-      const shelfIn = io(seg(t, 0.82, 1.1)), shelfOut = io(seg(t, 1.8, 2.12));
+      const shelfIn = io(seg(t, 0.82, 1.1)), shelfOut = 0;
       shelves.forEach((sh, k) => { const w = (RIGHT - LEFT - 28) * shelfIn * (1 - shelfOut * .6); set(sh, { x: CX - w / 2, width: w, opacity: 1 - shelfOut }); });
       posts.forEach(p => set(p, { opacity: shelfIn * (1 - shelfOut) }));
 
       // 2) пачки: падают по очереди с приседанием, 3) сливаются в «Ч»
-      const merge = io5(seg(t, 1.84, 2.42));
+      const merge = 0;
       packs.forEach((p, k) => {
         const e = packEls[k];
         const fall = seg(t, p.drop, p.drop + 0.26);
@@ -140,25 +127,14 @@
         const tg = target[k], m = merge;
         const fx = lerp(x, tg[0], m), fy = lerp(y, tg[1], m), fw = lerp(w, tg[2], m), fh = lerp(h, tg[3], m);
         const vis = t >= p.drop ? 1 : 0;
-        set(e.body, { x: fx, y: fy, width: fw, height: fh, rx: lerp(7, 4, m), fill: mix(p.body, C.light, io(seg(t, 2.02, 2.3))) });
+        set(e.body, { x: fx, y: fy, width: fw, height: fh, rx: lerp(7, 4, m), fill: p.body });
         const bandH = fh * 0.24 * (1 - m);
         set(e.band, { x: fx, y: fy + fh * 0.16 * (1 - m), width: fw, height: bandH, opacity: 1 - m });
         set(e.shade, { x: fx + fw * 0.68, y: fy, width: fw * 0.32 * (1 - m), height: fh, opacity: .14 * (1 - m) });
         set(e.g, { opacity: vis });
       });
       // скругление внутреннего угла «Ч» проявляется после слияния
-      // финальная буква с мягким скруглением нижнего левого угла (морф: три планки → одна форма)
-      const cf = io(seg(t, 2.3, 2.46));
-      const lxc = CH.L[0] + 23, rxc = CH.R[0] + 23, myc = CH.M[1] + 23, top = CH.L[1], bot = CH.R[1] + CH.R[3], rr = 40 * cf;
-      set(letter, { d: `M${lxc} ${top} V${myc - rr} A${rr} ${rr} 0 0 0 ${lxc + rr} ${myc} H${rxc} M${rxc} ${top} V${bot}`, opacity: cf > 0 ? 1 : 0 });
-      set(packG, { 'clip-path': t < 1.8 ? 'url(#csKiosk)' : '', opacity: 1 - cf });
-
-      // 4) надпись поднимается по буквам
-      letters.forEach((tx, i) => {
-        const a = seg(t, 2.42 + i * 0.034, 2.42 + i * 0.034 + 0.42);
-        const k = back(a, 1.15);
-        set(tx, { transform: `translate(0 ${lerp(92, 0, k)})`, opacity: a > 0 ? 1 : 0 });
-      });
+      set(packG, { 'clip-path': 'url(#csKiosk)' });
     }
     render(0);
     return { render, measure, DUR };

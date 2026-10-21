@@ -3,7 +3,7 @@ whoosh (−12 dB) на движение с пиком на самом быстр
 нарастание + удар (−5 dB) на сборку знака, музыки-подложки под анимацией нет.
 Каждый звук синтезируется отдельно (библиотека UE в проект не подключена)."""
 import numpy as np, wave
-SR = 48000; DUR = 3.6
+SR = 48000; DUR = 2.7
 N = int(SR * DUR)
 rng = np.random.default_rng(7)
 db = lambda d: 10 ** (d / 20)
@@ -77,15 +77,12 @@ for i in range(8):
     place('TEXTURES', pluck(pent[i], 0.5, .55), land, -13)
 for k in range(6):                                                             # фестоны навеса раскрываются (лёгкий хлопок ткани)
     place('TEXTURES', click(0.06, 900, decay=55), 1.12 + k * 0.07 + 0.18, -15)
-for i in range(13):                                                            # буквы — тихие механические тики
-    if i == 7: continue                                                        # пробел
-    place('TEXTURES', click(0.025, 4200, tone=.3, decay=160), 2.42 + i * 0.034 + 0.2, -19)
-# --- PASS 3: RISER + HIT (сборка знака — главный акцент)
-riser = whoosh(0.6, .97, 400, 1500, 1500, 6500)
-place('RISERS', riser, 2.42, -5, peak_at=.97)                                  # нарастание заканчивается на кадре сборки
-place('HITS', mx((thump(0.35, 160, 48, 9), .8), (click(0.05, 2600, decay=70), .35)), 2.42, -6)
-place('TEXTURES', chord([587.3, 740.0, 880.0, 1174.7], 1.2, 2.2), 2.42, -12)   # «success reward» на финальный знак
-
+# --- PASS 3: финальный акцент — магазин готов (последняя пачка встала на полку)
+last = 0.98 + 7 * 0.07 + 0.26
+place('TEXTURES', chord([587.3, 740.0, 880.0, 1174.7], 1.0, 2.6), last + 0.02, -12)   # «success reward»
+place('HITS', mx((thump(0.25, 150, 55, 12), .7), (click(0.04, 2600, decay=80), .3)), last + 0.02, -9)
+riser = whoosh(0.5, .96, 500, 1600, 1500, 5200)
+place('RISERS', riser, last, -10, peak_at=.96)                                       # мягкий подъём к финалу (тише: финал небольшой)
 mix = sum(tracks.values())
 fade = np.ones(N); fl = int(SR * 0.25); fade[-fl:] = np.linspace(1, 0, fl) ** 2
 mix *= fade
