@@ -173,7 +173,7 @@ th.sth{cursor:pointer}th.sorted,td.sorted{color:var(--accent)!important;font-wei
 .wcard .wh{display:flex;flex-direction:column;text-align:left;width:100%}.wcard .wh b{font-size:19px}.wcard .wh .muted{font-size:14px}
 .bars{display:flex;align-items:flex-end;gap:6px;height:104px;margin-top:6px}
 .bar{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;height:100%}
-.bar i{display:block;width:100%;max-width:34px;border-radius:6px 6px 2px 2px;background:color-mix(in srgb, var(--accent) 55%, var(--surface))}
+.bar i{display:block;width:100%;max-width:34px;height:calc(var(--bh,0) * (100% - 34px));border-radius:6px 6px 2px 2px;background:color-mix(in srgb, var(--accent) 55%, var(--surface))}
 .bar.today i{background:var(--accent)}
 .bar .bv{font-size:10px;color:var(--muted);white-space:nowrap}.bar .bd{font-size:13px;font-weight:700;color:var(--muted)}.bar.today .bd{color:var(--accent)}
 .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -280,6 +280,49 @@ body.kb .fabs{display:none}
 .botbar ~ .toast{bottom:calc(104px + env(safe-area-inset-bottom,0px))}
 .ov.anim .sheet{animation:up .18s ease-out}
 @media (prefers-reduced-motion:reduce){.ov.anim .sheet{animation:none}}
+/* ---------- компьютер: боковое меню + широкие экраны ---------- */
+#side{display:none}
+@media (min-width:1024px){
+  body{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100vh}
+  body.noside{display:block}
+  #side{display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow:auto;background:var(--surface);border-right:1px solid var(--line);padding:18px 12px}
+  body.noside #side{display:none}
+  #side .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 14px}
+  #side .brand img{width:40px;height:40px;border-radius:10px}
+  #side .brand b{font-size:19px;line-height:1.1}#side .brand span{display:block;font-size:13px;color:var(--muted);font-weight:500}
+  #side .it{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 10px;border-radius:12px;font-size:16px;font-weight:600;color:var(--ink)}
+  #side .it i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none}#side .it svg{width:20px;height:20px}
+  #side .it:hover{background:var(--sunk)}#side .it.on{background:var(--accent-soft);color:var(--accent)}
+  #side .sep{height:1px;background:var(--line);margin:8px 6px}
+  #side .sync{font-size:13px;padding:8px 10px;border-radius:10px;text-align:left;background:var(--good-soft);color:var(--good)}
+  #side .sync.warn{background:var(--warn-soft);color:var(--warn)}#side .sync.bad{background:var(--bad-soft);color:var(--bad)}#side .sync.busy{background:var(--sunk);color:var(--muted)}
+  #side .foot{margin-top:auto;display:flex;flex-direction:column;gap:6px}
+  #side .who{font-size:14px;color:var(--muted);padding:4px 10px}#side .who b{color:var(--ink)}
+  #app{max-width:860px;width:100%;margin:0 auto;padding-bottom:140px}
+  #app.wide{max-width:1240px}
+  .wrap{padding-left:28px;padding-right:28px}
+  .hdr{padding-block:12px}
+  .dash .syncbar,#app>.syncbar{display:none}
+  .dash .homehead{padding-top:18px}
+  .kpis{grid-template-columns:repeat(4,1fr);gap:14px}
+  .kpi.wide{grid-column:span 2}.kpi{padding:16px 16px 14px;min-height:118px}.kpi .kv{font-size:26px}.kpi.wide .kv{font-size:30px}
+  .bars{height:150px;gap:14px}.bar i{max-width:70px}.bar .bv{font-size:12px}
+  .dash .fabs,.fabs.home{display:none}
+  .chart{max-width:960px}
+  table.wide td.stick,table.wide th.stick{min-width:230px}
+  table.doc{font-size:16px}table.doc td,table.doc th{padding:10px 10px}
+  .npkb{display:block!important}
+  .ov{align-items:center;padding:24px}
+  .sheet{border-radius:20px;max-width:520px;padding:22px}
+  .botbar{left:260px}.noside .botbar{left:0}
+  .toast{left:auto;right:120px}
+  .tiles{grid-template-columns:repeat(4,1fr)}
+  .mgrid{grid-template-columns:repeat(3,1fr)}
+  .row:hover,.kpi:hover,.tile:hover,.wcard:hover,tr.rowtap:hover td{background:var(--sunk)}
+  .pname{font-size:42px}
+  .grid3{grid-template-columns:1fr 1fr 90px}
+}
+
 @keyframes up{from{transform:translateY(30px);opacity:.6}}
 </style>
 
@@ -452,6 +495,7 @@ body.kb .fabs{display:none}
   requestAnimationFrame(tick);
 })();
 </script>
+<nav id="side" aria-label="Меню"></nav>
 <div id="app"></div>
 
 <script>
@@ -676,7 +720,7 @@ function statusText(){
   if (SYNC.state === 'err') return ['warn', 'База недоступна, повторю позже' + (t ? ` · обновлена в ${t}` : '')];
   return ['ok', t ? `Всё сохранено в базе · ${t}` : 'Всё сохранено в базе'];
 }
-function paintStatus(){ const el = document.getElementById('sync'); if (el){ const [c, txt] = statusText(); el.className = 'syncbar ' + c; el.querySelector('span').textContent = txt; } }
+function paintStatus(){ const sd = document.querySelector('#side .sync'); if (sd){ const [c, txt] = statusText(); sd.className = 'sync ' + c; sd.textContent = txt; } const el = document.getElementById('sync'); if (el){ const [c, txt] = statusText(); el.className = 'syncbar ' + c; el.querySelector('span').textContent = txt; } }
 setInterval(() => { if (document.visibilityState === 'visible') sync(); }, 60000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible'){ const t = iso(new Date()); if (t !== TODAY){ TODAY = t; softRender(); } sync(); } });
 window.addEventListener('online', () => sync());
@@ -782,7 +826,7 @@ V.home = () => {
   const days = []; for (let d = o.from; d <= o.to; d = addD(d, 1)) days.push(d);
   const vals = days.map(d => W.pin(W.by[d])), mx = Math.max(1, ...vals);
   const bars = days.map((d, i) => { const h = Math.round(vals[i] / mx * 58);
-    return `<button class="bar ${d === TODAY ? 'today' : ''}" data-a="dayp" data-v="${d}" aria-label="${wdShort(d)} ${dShort(d)}: ${fmt(vals[i])}"><span class="bv">${vals[i] ? (vals[i] >= 1e6 ? (vals[i] / 1e6).toFixed(1).replace('.', ',') + ' млн' : Math.round(vals[i] / 1e3) + ' тыс') : ''}</span><i style="height:${Math.max(h, vals[i] ? 4 : 2)}px"></i><span class="bd">${wdShort(d)}</span></button>`; }).join('');
+    return `<button class="bar ${d === TODAY ? 'today' : ''}" style="--bh:${(vals[i] / mx).toFixed(3)}" data-a="dayp" data-v="${d}" aria-label="${wdShort(d)} ${dShort(d)}: ${fmt(vals[i])}"><span class="bv">${vals[i] ? (vals[i] >= 1e6 ? (vals[i] / 1e6).toFixed(1).replace('.', ',') + ' млн' : Math.round(vals[i] / 1e3) + ' тыс') : ''}</span><i style="min-height:${vals[i] ? 4 : 2}px"></i><span class="bd">${wdShort(d)}</span></button>`; }).join('');
   const kpi = (a, v, col, ic, lbl, val, sub, wide) => `<button class="kpi ${wide ? 'wide' : ''}" data-a="${a}" data-v="${v}"><span class="kl"><i style="color:var(${col});background:color-mix(in srgb, var(${col}) 14%, transparent)">${ICON[ic]}</i>${lbl}</span><b class="kv">${val}</b><span class="ks">${sub}</span></button>`;
   const today = (n, plus) => n ? `сегодня ${plus || ''}${fmt(n)}` : 'сегодня —';
   const ps = periods('cig'), lastP = ps[ps.length - 1];
@@ -807,7 +851,7 @@ V.home = () => {
       bal != null ? kpi('go', 'rbal', '--accent', 'lock', 'Долг перед офисом', fmt(bal), 'на сегодня') : '',
       sold != null ? kpi('go', 'rsales', '--goods', 'chart', 'Продано за прошлую неделю', fmt(sold) + ' пач.', 'инвентаризация ' + invShort(lastP.to)) : ''
     ].filter(Boolean).map((h, i, a) => i === a.length - 1 && a.length % 2 === 0 ? h.replace('class="kpi ', 'class="kpi wide ') : h).join('')}</div>
-  </div>` + fabs([{a:'menu', i:'grid', l:'Меню', c:'Меню'}]);
+  </div>` + fabs([{a:'menu', i:'grid', l:'Меню', c:'Меню'}]).replace('class="fabs ', 'class="fabs home ');
 };
 const MENU = () => [['plist','box','--accent','Приход'], ['rlist','ret','--coral','Возврат'], ['cash','card','--kkm','Терминал и касса'], ['debts','ppl','--om','Долги'], ['inv','list','--own','Инвентаризация']]
   .concat(isSeller() ? [] : [['reports','chart','--goods','Отчёты'], ['settings','gear','--muted','Настройки']]).concat(CFG.user ? [['me','ppl','--muted', CFG.user.name]] : []);
@@ -1592,6 +1636,7 @@ function npHtml(){
     <h2>${esc(NP.title)}</h2>${NP.sub ? `<div class="muted small" id="npsub">${NP.sub}</div>` : ''}
     <div class="disp ${NP.val?'':'empty'}" id="npdisp">${npDisp()}</div>
     <div class="npx" id="npx">${NP.extra ? NP.extra(n) : ''}</div>
+    <div class="npkb small muted" style="display:none">Можно печатать цифрами на клавиатуре · Enter — готово · Esc — отмена</div>
     <div class="keys">${['1','2','3','4','5','6','7','8','9', NP.money?'000':'00','0','⌫'].map(k => `<button data-a="npk" data-v="${k}">${k}</button>`).join('')}</div>
     <div class="sheet-btns"><button class="btn sec" data-a="npclose">Отмена</button><button class="btn pri" id="npok" data-a="npok" ${NP.allowZero || n>0 ? '' : 'disabled'}>${NP.ok || 'Записать'}</button></div>
     ${NP.onDel ? `<button class="btn dang" data-a="npdel">${NP.delL || 'Удалить строку'}</button>` : ''}
@@ -1705,6 +1750,7 @@ const A = {
   rprod: d => go('rprod', {id:d.v, from:R.from, to:R.to}),
   rpprod: d => go('rpprod', {id:d.v, from:R.from, to:R.to}),
   rpt: d => { R.pt = d.v; render(); },
+  sgo: d => { MSHEET = false; HIST.length = 0; if (d.v === 'home'){ R = {s:'home'}; } else { HIST.push({s:'home'}); R = {s:d.v}; if (d.v === 'rlist'){ R.kind = 'ret'; } } NP = null; render(); window.scrollTo(0,0); },
   menu: () => { MSHEET = true; ANIM = true; render(); },
   mclose: () => { MSHEET = false; render(); },
   mgo: d => { MSHEET = false; go(d.v); },
@@ -1800,6 +1846,21 @@ document.addEventListener('click', e => {
   e.preventDefault(); if (el.disabled) return;
   const f = A[el.dataset.a]; if (f) f(el.dataset);
 });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape'){ if (NP || CONF || TSHEET || DSHEET || MSHEET){ e.preventDefault(); if (NP) NP = null; else if (CONF) CONF = null; else if (TSHEET) TSHEET = false; else if (DSHEET) DSHEET = null; else MSHEET = false; render(); } return; }
+  if (e.key === 'Enter' && document.activeElement && (document.activeElement.id === 'lg_pw' || document.activeElement.id === 'lg_login')){ e.preventDefault(); return A.dologin(); }
+  const ae = document.activeElement;
+  if (e.key === 'Enter' && ae && ae.dataset && ae.dataset.in === 'inv'){ e.preventDefault();   // инвентаризация с клавиатуры: Enter — следующая ячейка, после последней — следующий товар
+    const cells = [...document.querySelectorAll('input[data-in="inv"]')], i = cells.indexOf(ae);
+    if (i < cells.length - 1){ cells[i + 1].focus(); cells[i + 1].select(); }
+    else { const dr = S.drafts.cig, last = dr.idx >= ordered('cig').length - 1; if (last) A.ifinish(); else { A.inav({v:1}); const f = document.getElementById('f0'); if (f) f.focus(); } }
+    return; }
+  if (!NP || isText(document.activeElement)) return;
+  const k = e.key;
+  if (/^[0-9]$/.test(k)){ e.preventDefault(); A.npk({v:k}); }
+  else if (k === 'Backspace'){ e.preventDefault(); A.npk({v:'⌫'}); }
+  else if (k === 'Enter'){ e.preventDefault(); const b = document.getElementById('npok'); if (b && !b.disabled) A.npok(); }
+});
 document.addEventListener('change', e => {
   const el = e.target;
   if (el.dataset.in === 'pdr' && el.value){ R[el.dataset.k] = el.value > TODAY ? TODAY : el.value; if (R.from > R.to){ const x = R.from; R.from = R.to; R.to = x; } return render(); }
@@ -1892,8 +1953,25 @@ async function exportWeek(){
   toast('Файл Excel скачан');
 }
 
+const WIDE = {home:1, rsw:1, rpd:1, rprod:1, rpprod:1};
+const SIDE_ON = {home:'home', plist:'plist', pdoc:'plist', rlist:'rlist', cash:'cash', debts:'debts', debtor:'debts', dnew:'debts', inv:'inv', icard:'inv', ijump:'inv', ifinish:'inv', ginv:'inv', gitem:'inv', reports:'reports', settings:'settings', sprod:'settings', sedit:'settings', users:'settings', uedit:'settings', me:'me', passwd:'me', week:'home'};
+function renderSide(){
+  const el = document.getElementById('side'); if (!el) return;
+  const on = CFG && DB && !NEEDLOGIN; document.body.classList.toggle('noside', !on);
+  if (!on){ el.innerHTML = ''; return; }
+  const cur = SIDE_ON[R.s] || (R.s[0] === 'r' ? 'reports' : '');
+  const it = (to, ic, col, l) => `<button class="it ${cur === to ? 'on' : ''}" data-a="sgo" data-v="${to}"><i style="color:var(${col});background:color-mix(in srgb, var(${col}) 14%, transparent)">${ICON[ic]}</i>${esc(l)}</button>`;
+  const [sc, st] = statusText();
+  el.innerHTML = `<div class="brand"><img src="icon-192.png?v=2" alt=""><div><b>Магазин Чорсу</b><span>${dLong(TODAY)}</span></div></div>
+    ${it('home', 'chart', '--accent', 'Сегодня')}<div class="sep"></div>
+    ${MENU().filter(m => m[0] !== 'me').map(m => it(...m)).join('')}
+    <div class="foot">${isSeller() ? '' : `<button class="it" data-a="eye"><i style="color:var(--own);background:var(--own-soft)">${ICON[SHOW ? 'eye' : 'eyeoff']}</i>${SHOW ? 'Скрыть' : 'Показать всё'}</button>`}
+      <button class="sync ${sc}" data-a="syncnow">${esc(st)}</button>
+      ${CFG.user ? `<button class="it" data-a="sgo" data-v="me"><i style="color:var(--muted);background:var(--sunk)">${ICON.ppl}</i><span><b>${esc(CFG.user.name)}</b><br><span class="small muted">${esc(CFG.user.role)}</span></span></button>` : ''}</div>`;
+}
 function render(){
   const app = document.getElementById('app');
+  renderSide(); app.classList.toggle('wide', !!WIDE[R.s]);
   NEED_RENDER = false;
   if (!CFG){ app.innerHTML = V.connect(); return; }
   if (NEEDLOGIN){ app.innerHTML = V.login() + (TOAST ? `<div class="toast" role="status">${esc(TOAST)}</div>` : ''); return; }
