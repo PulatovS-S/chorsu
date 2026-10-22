@@ -18,14 +18,29 @@ const WEB_APP_URL = '';
 const TABLES = {
   products: 'Товары', prices: 'Цены', docs: 'Приходы', prihod: 'Приход_строки',
   inv: 'Инвентаризации', invlines: 'Инвент_строки', extra: 'Вне_списка', cash: 'Касса',
-  adj: 'Корректировки', debtors: 'Должники', moves: 'Долги', settings: 'Настройки'
+  adj: 'Корректировки', debtors: 'Должники', moves: 'Долги', settings: 'Настройки', dinfo: 'Карточки_должников'
+};
+// Заголовки листов, которые создаются сами, если их нет (новые таблицы приложения)
+const HEADERS = {
+  dinfo: ['id', 'Имя', 'Телефон', 'Телефон близкого', 'Паспорт', 'Адрес', 'Лимит долга', 'Лимит включён', 'rev', 'del']
 };
 // Колонки, которые всегда хранятся как текст (id, даты, названия) — чтобы Таблица не превращала их в даты/числа
 const TEXT_COLS = {
   products: [0, 2, 3, 4], prices: [0, 1, 2, 3], docs: [0, 1, 2], prihod: [0, 1, 2, 3, 4, 5],
   inv: [0, 1, 2, 3], invlines: [0, 1, 2, 3, 4], extra: [0, 1, 2], cash: [0, 1], adj: [0, 1, 3],
-  debtors: [0, 1, 2], moves: [0, 1, 2, 3, 5], settings: [0, 1]
+  debtors: [0, 1, 2], moves: [0, 1, 2, 3, 5], settings: [0, 1], dinfo: [0, 1, 2, 3, 4, 5, 7]
 };
+/** Лист таблицы; новые листы (например, «Карточки_должников») создаются сами */
+function sheet_(ss, t) {
+  let sh = ss.getSheetByName(TABLES[t]);
+  if (!sh && HEADERS[t]) {
+    sh = ss.insertSheet(TABLES[t], ss.getNumSheets());
+    sh.getRange(1, 1, 1, HEADERS[t].length).setValues([HEADERS[t]]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    TEXT_COLS[t].concat([HEADERS[t].length - 1]).forEach(c => sh.getRange(2, c + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@'));
+  }
+  return sh;
+}
 
 function props_() { return PropertiesService.getScriptProperties(); }
 
@@ -37,7 +52,7 @@ function setup() {
   if (!p.getProperty('REV')) p.setProperty('REV', '0');
   const ss = SpreadsheetApp.getActive();
   Object.keys(TABLES).forEach(t => {
-    const sh = ss.getSheetByName(TABLES[t]);
+    const sh = sheet_(ss, t);
     if (!sh) throw new Error('Нет листа «' + TABLES[t] + '». Таблица должна быть создана из файла «Chorsu база.xlsx».');
     const width = sh.getLastColumn();
     if (sh.getMaxRows() < 2) sh.insertRowsAfter(1, 200);
@@ -120,7 +135,7 @@ function handle_(p) {
  * Пароли не хранятся — только хэш. Вход выдаёт личный токен телефона; «Активен: нет» — вход и токены перестают работать.
  */
 const USERS_SHEET = 'Пользователи', ROLES = ['админ', 'управляющий', 'продавец'];
-const SELLER_TABLES = {docs: 1, prihod: 1, inv: 1, invlines: 1, extra: 1, cash: 1, debtors: 1, moves: 1};
+const SELLER_TABLES = {docs: 1, prihod: 1, inv: 1, invlines: 1, extra: 1, cash: 1, debtors: 1, moves: 1, dinfo: 1};
 function usersSheet_() {
   const ss = SpreadsheetApp.getActive();
   let sh = ss.getSheetByName(USERS_SHEET);
@@ -193,7 +208,9 @@ function norm_(v) {
 function pull_(since, role) {
   const ss = SpreadsheetApp.getActive(), res = {};
   Object.keys(TABLES).forEach(t => {
-    const sh = ss.getSheetByName(TABLES[t]);
+    const sh = sheet_(ss, t);
+    if (!sh) { res[t] = []; return; }
+    if (t === 'cash' && sh.getRange(1, 4).getValue() === 'Сдано в офис') sh.getRange(1, 4).setValue('Касса');
     const n = sh.getLastRow() - 1;
     if (n < 1) { res[t] = []; return; }
     const w = sh.getLastColumn(), vals = sh.getRange(2, 1, n, w).getValues();
@@ -222,7 +239,7 @@ function push_(ops, role) {
     ops.forEach((o, i) => { if (last[o.t + '\u0001' + o.id] === i && (role !== 'продавец' || SELLER_TABLES[o.t])) (byTable[o.t] = byTable[o.t] || []).push(o); });
     Object.keys(byTable).forEach(t => {
       if (!TABLES[t]) return;
-      const sh = ss.getSheetByName(TABLES[t]);
+      const sh = sheet_(ss, t); if (!sh) return;
       const w = sh.getLastColumn(), n = Math.max(sh.getLastRow() - 1, 0);
       const vals = n ? sh.getRange(2, 1, n, w).getValues() : [];
       const idx = {};
