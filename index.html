@@ -195,7 +195,8 @@ th.sth{cursor:pointer}th.sorted,td.sorted{color:var(--accent)!important;font-wei
 .chips.two{display:grid;grid-template-columns:1fr 1fr;overflow:visible}.chips.two .chip{padding:0 8px;font-size:15px;white-space:normal;line-height:1.15}
 .dash{padding-bottom:120px}
 .brands{display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.brands::-webkit-scrollbar{display:none}
-@media (max-width:899px){.brands{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent);padding-right:24px}}
+.hdel{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--bad);background:var(--bad-soft)}.hdel svg{width:22px;height:22px}
+.hdr .fab.s.del{color:var(--bad)}
 .btn.dang.ghost{background:transparent;color:var(--bad);border:1px solid color-mix(in srgb, var(--bad) 45%, transparent)}
 .sheet h2 b{display:inline-block;margin-top:6px;font-size:16px;font-weight:700;color:var(--muted)}
 .bchip.more{color:var(--accent);border-style:dashed}
@@ -205,6 +206,7 @@ th.sth{cursor:pointer}th.sorted,td.sorted{color:var(--accent)!important;font-wei
 .bchip{flex:none;min-height:40px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .bchip span{font-size:12px;font-weight:700;color:var(--muted);background:var(--sunk);border-radius:99px;padding:1px 7px}
 .bchip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.bchip.on span{background:color-mix(in srgb, var(--accent-ink) 22%, transparent);color:var(--accent-ink)}
+@media (max-width:899px){.brands{gap:5px}.bchip{min-height:38px;padding:0 10px;font-size:14px;gap:5px}.bchip span{padding:1px 6px;font-size:12px}.bsort button{padding:0 10px}}
 /* цвета колонок: ККМ · Омбор · Запас · Возврат · Офис · Свой (светлая и тёмная тема) */
 .ck{background:color-mix(in srgb, var(--kkm) 9%, transparent)!important}.co{background:color-mix(in srgb, var(--om) 10%, transparent)!important}.cz{background:color-mix(in srgb, var(--own) 10%, transparent)!important}
 .cr{background:color-mix(in srgb, var(--coral) 8%, transparent)!important}.cof{background:color-mix(in srgb, var(--accent) 12%, transparent)!important;color:var(--accent);font-weight:700}.csv{background:color-mix(in srgb, var(--sv) 12%, transparent)!important;color:var(--sv);font-weight:700}
@@ -647,6 +649,7 @@ const ICON = {
   scale:SV('<path d="M12 3v18M5 21h14M6 7h12M6 7l-3 7a3 3 0 006 0zM18 7l-3 7a3 3 0 006 0z"/>'),
   stack:SV('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'),
   cal:SV('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'),
+  trash:SV('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'),
   plus:SV('<path d="M12 5v14M5 12h14"/>', 2.6),
   check:SV('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 2.8),
   search:SV('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>', 2.6),
@@ -1138,6 +1141,7 @@ V.pdoc = () => {
         ${w.items.map(e => { const pr = priceAt(e.pid, w.date).cost; return `<tr><td class="nmc">${esc(P(e.pid).name)}</td><td>${fmt(pr)}</td><td><b>${e.qty}</b></td><td>${fmt(pr*e.qty)}</td></tr>`; }).join('')}
         <tr class="tot"><td class="l">Итого · ${w.items.length} поз.</td><td></td><td>${qty}</td><td>${fmt(sum)}</td></tr></table></div>
       <button class="btn sec" data-a="pedit">✏️ Изменить этот ${one.toLowerCase()}</button>
+      <button class="btn dang ghost" data-a="pdocdel">Удалить весь документ</button>
     </div>`;
   }
   const showAll = !R.q && (R.addOpen || !w.items.length);
@@ -1150,7 +1154,7 @@ V.pdoc = () => {
     <div class="sec-h">${R.q ? 'Найдено' : 'Товары · нажмите, чтобы добавить'}</div>
     ${R.q ? '' : brandChips(cat, ordered(cat).map(p => p.id))}
     <div class="list" id="plist">${prodRows(cat, R.q||'', pid => counts[pid] ? `<span class="badge">+${counts[pid]}</span>` : '', 'padd')}</div>
-    ${w.docId && !R.q ? `<button class="btn dang ghost" data-a="pdocdel">Удалить этот ${one.toLowerCase()}</button>` : ''}
+    ${!R.q && (w.docId || w.items.length) ? `<button class="btn dang ghost" data-a="pdocdel">Удалить весь документ</button>` : ''}
   </div>` + fabs([{a:'search', i:'search', l:'Поиск', s:1}, {a:'psave', i:'check', l:'Сохранить ' + one.toLowerCase(), c:'Сохранить', dirty:w.dirty}]);
 };
 /* ---------- бренды: группировка товаров («Milano», «Kent», …) ---------- */
@@ -1189,15 +1193,16 @@ function brandChips(cat, ids, opts = {}){
   const list = all.filter(b => cnt[b.key]), sc = useScore(), use = b => b.ids.reduce((s, id) => s + (sc[id] || 0), 0);
   if (R.brand && R.brand !== '*' && !cnt[R.brand]) R.brand = '';
   const chip = (k, l, n) => `<button class="bchip ${(R.brand || '') === k ? 'on' : ''}" data-a="brand" data-v="${k}">${esc(l)}${n != null ? `<span>${n}</span>` : ''}</button>`;
-  const srt = opts.sort === false ? '' : `<span class="bsort" role="group" aria-label="Порядок"><button class="${FSORT ? 'on' : ''}" data-a="fsort" data-v="1" title="Сначала товары, которые приходят чаще">★ Частые</button><button class="${FSORT ? '' : 'on'}" data-a="fsort" data-v="0" title="По номеру в таблице">№ По номеру</button></span>`;
-  if (list.length < 3) return `<div class="brands">${chip('', 'Все товары', ids.length)}${srt}</div>`;
+  const srt = opts.sort === false ? '' : `<span class="bsort" role="group" aria-label="Порядок"><button class="${FSORT ? 'on' : ''}" data-a="fsort" data-v="1" title="Сначала товары, которые приходят чаще">★ Частые</button><button class="${FSORT ? '' : 'on'}" data-a="fsort" data-v="0" title="По номеру в таблице">${DESK ? '№ По номеру' : '№'}</button></span>`;
+  const allL = DESK ? 'Все товары' : 'Все';
+  if (list.length < 3) return `<div class="brands">${chip('', allL, ids.length)}${srt}</div>`;
   const N = DESK ? 12 : 5, need = list.length > N + 1;
   let shown = list;
   if (need && !BRALL){ const top = new Set(list.filter(b => b.key !== '~').slice().sort((a, b) => use(b) - use(a) || cnt[b.key] - cnt[a.key]).slice(0, N).map(b => b.key));
     shown = list.filter(b => top.has(b.key) || b.key === R.brand); if (FSORT) shown = shown.slice().sort((a, b) => (b.key === R.brand) - (a.key === R.brand) || use(b) - use(a)); }
   else if (FSORT) shown = list.slice().sort((a, b) => (a.key === '~') - (b.key === '~') || use(b) - use(a));
-  const more = need ? `<button class="bchip more" data-a="ballt">${BRALL ? 'Свернуть ▴' : `Все бренды · ${list.length} ▾`}</button>` : '';
-  return `<div class="brands ${BRALL && need ? 'all' : ''}" role="tablist" aria-label="Бренды">${chip('', 'Все товары', ids.length)}${srt}${more}${shown.map(b => chip(b.key, b.name, cnt[b.key])).join('')}</div>`;
+  const more = need ? `<button class="bchip more" data-a="ballt">${BRALL ? 'Свернуть ▴' : DESK ? `Все бренды · ${list.length} ▾` : 'Бренды ▾'}</button>` : '';
+  return `<div class="brands ${BRALL && need ? 'all' : ''}" role="tablist" aria-label="Бренды">${chip('', allL, ids.length)}${srt}${more}${shown.map(b => chip(b.key, b.name, cnt[b.key])).join('')}</div>`;
 }
 function prodRows(cat, q, right, act, sub){
   const ql = q.trim().toLowerCase();
@@ -1304,6 +1309,7 @@ V.debtor = () => {
     ${mv.length ? '<div class="small muted">Ошиблись? Нажмите на запись. Сегодняшнюю можно удалить сразу, более старую — только по ПИН-коду.</div>' : ''}
     <button class="btn sec" data-a="dgrp">${d.grp==='n' ? 'Вернуть в должники' : 'Перенести в Несгор'}</button>
     <button class="btn sec" data-a="dren">Изменить имя</button>
+    <button class="btn dang ghost" data-a="ddel">Удалить должника</button>
   </div>`;
 };
 V.dnew = () => { const d = R.id && S.debtors.find(x => x.id === R.id); return hdr(d ? 'Изменить имя' : 'Новый должник') + `<div class="wrap stack">
@@ -1322,7 +1328,7 @@ V.inv = () => {
     ${dr ? `<div class="note warn">${dr.edit ? 'Изменение инвентаризации' : 'Незаконченная инвентаризация'} ${dr.edit ? dShort(dr.disp) : (dr.lbl || dShort(dr.date))}: ${prog}</div>
       <button class="btn pri" data-a="icont">Продолжить</button>
       <button class="btn sec" data-a="ifinish">Завершить сейчас</button>
-      <button class="btn dang" data-a="idrop">${dr.edit ? 'Отменить изменения' : 'Удалить незаконченную'}</button>`
+      <button class="btn dang ghost" data-a="idocdel">${dr.edit ? 'Отменить изменения или удалить' : 'Удалить весь документ'}</button>`
     : `<div class="field"><label for="idate">Дата инвентаризации</label><input type="date" id="idate" value="${TODAY}" max="${TODAY}"></div>
       <button class="btn pri" data-a="istart">Начать</button>
       <p class="small muted">Инвентаризация вечером: приход этого дня остаётся в старой неделе.</p>
@@ -1345,7 +1351,7 @@ V.icard = () => {
   const cell = (i, cls, label) => `<div class="cell ${cls}"><label for="f${i}">${label}</label><div class="box"><input id="f${i}" data-in="inv" data-i="${i}" inputmode="numeric" pattern="[0-9]*" enterkeyhint="next" value="${row[i]==null?'':row[i]}" placeholder="0" autocomplete="off"><span class="was">было ${a[i]||0}</span></div></div>`;
   const inc = (v, cls) => `<div class="inc ${cls} ${v ? 'has' : ''}"><span>приход</span><b>${v > 0 ? '+' + v : v || '—'}</b></div>`;
   const seller = isSeller();
-  return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Выйти</button><div class="ibal" id="live">${liveHtml(p.id)}</div></div><div class="prog" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>
+  return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Выйти</button><button class="hdel" data-a="idocdel" aria-label="Удалить документ" title="Удалить документ">${ICON.trash}</button><div class="ibal" id="live">${liveHtml(p.id)}</div></div><div class="prog" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>
   <div class="wrap stack">
     <div class="pmeta"><span class="no">№ ${dr.idx+1} из ${items.length}</span><span class="small muted">${dr.edit ? 'изменение ' + dShort(dr.disp) : (dr.lbl||'')}</span></div>
     <p class="pname">${esc(p.name)}</p>
@@ -1375,7 +1381,7 @@ V.igrid = () => {
     const inc = (pr.kkm - pr.rkkm) || (pr.om - pr.rom) || (!seller && (pr.own - pr.rown)) ? `<span class="gi">${[pr.kkm - pr.rkkm ? 'К+' + (pr.kkm - pr.rkkm) : '', pr.om - pr.rom ? 'О+' + (pr.om - pr.rom) : '', !seller && pr.own - pr.rown ? 'З+' + (pr.own - pr.rown) : ''].filter(Boolean).join(' ')}</span>` : '';
     return `<tr data-pid="${p.id}"><td class="num muted">${n}</td><td class="l g">${esc(p.name)}${inc}</td><td class="muted">${a[0]+a[1]} / ${a[2]+a[3]}${seller ? '' : ' / ' + (a[4]||0)}</td>${cols.map(([i, , c]) => ` <td class="gc ${c} ${({kkm:'ck', om:'co', own:'cz', ret:'cr'})[c]}"><input class="gin" data-in="ginv" data-pid="${p.id}" data-i="${i}" inputmode="numeric" value="${r[i] == null ? '' : r[i]}" placeholder="${i === 4 && !r.length && (a[4]||0) + pr.own - pr.rown > 0 ? (a[4]||0) + pr.own - pr.rown : ''}" autocomplete="off"></td>`).join('')}${ostCells(r, seller)}<td class="bo cof">${b[0]}</td>${seller ? '' : `<td class="bs csv">${b[1]}</td>`}</tr>`; }).join('');
   return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Выйти</button><h1>Инвентаризация ${dr.edit ? '(изменение) ' : ''}${dShort(dr.disp)}</h1><span class="muted small">заполнено <b id="gfill">${filled}</b> из ${items.length}</span>
-    <div class="fabs"><div class="fabw"><button class="fab" data-a="ifinish">${ICON.check}<span class="fl">Завершить</span></button></div><div class="fabw"><button class="fab s" data-a="iempty">${ICON.list}<span class="fl">${R.onlyEmpty ? 'Все товары' : 'Только незаполненные'}</span></button></div><div class="fabw"><button class="fab s" data-a="search">${ICON.search}<span class="fl">Найти</span></button></div></div></div></div>
+    <div class="fabs"><div class="fabw"><button class="fab" data-a="ifinish">${ICON.check}<span class="fl">Завершить</span></button></div><div class="fabw"><button class="fab s del" data-a="idocdel">${ICON.trash}<span class="fl">Удалить документ</span></button></div><div class="fabw"><button class="fab s" data-a="iempty">${ICON.list}<span class="fl">${R.onlyEmpty ? 'Все товары' : 'Только незаполненные'}</span></button></div><div class="fabw"><button class="fab s" data-a="search">${ICON.search}<span class="fl">Найти</span></button></div></div></div></div>
   ${sbar('Название или номер')}
   <div class="wrap stack" style="padding-top:10px">
     <div class="small muted">Пишите количество в пачках. <b>Enter</b> — вниз, <b>Tab</b> — вправо. «Было» — ККМ / Омбор${seller ? '' : ' / ' + WORD} прошлой инвентаризации; К+ О+${seller ? '' : ' З+'} — приход за неделю. Справа баланс: <b style="color:var(--accent)">офис</b>${seller ? '' : ', <b style="color:var(--kkm)">свой</b>'}. Незаполненные при завершении: ККМ и Омбор — 0${seller ? '' : ', ' + WORD.toLowerCase() + ' — как было'}.</div>
@@ -1401,14 +1407,14 @@ V.ifinish = () => {
     return hdr('Завершить') + `<div class="wrap stack">
       <div class="card"><div class="lbl">Товары · ${dLong(dr.date)}</div><div class="big">${fmt(s)}</div><div class="muted">${Object.keys(agg).length} товаров из списка${dr.extra.length ? ' · ' + dr.extra.length + ' сумм вне списка' : ''}</div></div>
       <div class="note warn">Товары, которых нет в этой инвентаризации, будут записаны как 0.</div>
-      <button class="btn pri" data-a="isave">Сохранить инвентаризацию</button><button class="btn sec" data-a="back">Вернуться</button></div>`;
+      <button class="btn pri" data-a="isave">Сохранить инвентаризацию</button><button class="btn sec" data-a="back">Вернуться</button><button class="btn dang ghost" data-a="idocdel">Удалить весь документ</button></div>`;
   }
   const items = ordered(cat), filled = items.filter(p => dr.rows[p.id] && dr.rows[p.id].some(x => x!=null)).length;
   return hdr('Завершить') + `<div class="wrap stack">
     <div class="card"><div class="lbl">Сигареты · ${dLong(dr.date)}</div><div class="big">${filled} из ${items.length}</div><div class="muted">товаров заполнено</div></div>
     ${filled < items.length ? `<div class="note warn">Незаполненные товары (${items.length-filled}): ККМ и Омбор запишутся как 0${isSeller() ? '' : `, ${WORD.toLowerCase()} — как было (прошлый + приход в ${WORD.toLowerCase()})`}.</div><button class="btn sec" data-a="ifirst">Перейти к первому незаполненному</button>` : ''}
     <button class="btn pri" data-a="isave">Сохранить инвентаризацию</button>
-    <button class="btn sec" data-a="back">Вернуться</button></div>`;
+    <button class="btn sec" data-a="back">Вернуться</button><button class="btn dang ghost" data-a="idocdel">Удалить весь документ</button></div>`;
 };
 V.ijump = () => {
   const dr = S.drafts.cig; R.q = R.q || ''; const prev = prevInvFor('cig', dr.date), own = !isSeller();
@@ -1439,7 +1445,8 @@ V.ginv = () => {
       <button class="btn sec" data-a="gxadd">+ Добавить сумму вне списка</button>
       <button class="btn pri" data-a="ifinish">Завершить инвентаризацию</button>
       <div class="sec-h">Все товары · нажмите, чтобы добавить</div>
-      <div class="list">${goodsResults()}</div>`}
+      <div class="list">${goodsResults()}</div>
+      <button class="btn dang ghost" data-a="idocdel">Удалить весь документ</button>`}
   </div>` + fabs([{a:'search', i:'search', l:'Найти товар', c:'Найти'}]);
 };
 function goodsResults(){
@@ -2053,7 +2060,7 @@ function npUpdate(){
   if (NP.extra) document.getElementById('npx').textContent = NP.extra(n);
   document.getElementById('npok').disabled = !(NP.allowZero || n>0);
 }
-function confHtml(){ return `<div class="ov ${ANIM?'anim':''}"><div class="sheet" role="alertdialog"><h2>${CONF.text}</h2><div class="sheet-btns"><button class="btn sec" data-a="cfno">${CONF.no.l}</button><button class="btn ${CONF.yes.c}" data-a="cfyes">${CONF.yes.l}</button></div></div></div>`; }
+function confHtml(){ return `<div class="ov ${ANIM?'anim':''}"><div class="sheet" role="alertdialog"><h2>${CONF.text}</h2>${CONF.alt ? `<button class="btn ${CONF.alt.c || 'sec'}" data-a="cfalt" style="margin-bottom:10px">${CONF.alt.l}</button>` : ''}<div class="sheet-btns"><button class="btn sec" data-a="cfno">${CONF.no.l}</button><button class="btn ${CONF.yes.c}" data-a="cfyes">${CONF.yes.l}</button></div></div></div>`; }
 function typeSheetHtml(){ const K = KIND[R.kind || 'in']; return `<div class="ov ${ANIM?'anim':''}" data-a="tsclose"><div class="sheet" data-stop="1"><h2>${K.q}</h2>
   ${K.keys.filter(vis).map(k => `<button class="typebtn p-${TYPES[k].c}" data-a="pnewt" data-v="${k}">${TYPES[k].full}</button>`).join('')}
   <button class="btn sec" data-a="tsclose">Отмена</button></div></div>`; }
@@ -2080,6 +2087,8 @@ const A = {
       onDel:() => { w.items.splice(i,1); w.dirty = true; save(); NP = null; render(); toast('Строка удалена'); }}); },
   dzero: () => { R.showZero = !R.showZero; render(); },
   dren: () => go('dnew', {id:R.id}),
+  ddel: () => { const dd = S.debtors.find(x => x.id === R.id); if (!dd) return; const v = debtOf(dd.id), n = S.moves.filter(m => m.did === dd.id).length, what = `Должник «${esc(dd.name)}»: долг ${fmt(v)}, записей ${n}`;
+    confirmBox('Удалить должника вместе со всей историей?<br><b>' + what + '</b>', 'Удалить', () => setTimeout(() => pinGuard(what, () => { S.moves = S.moves.filter(m => m.did !== dd.id); S.debtors = S.debtors.filter(x => x.id !== dd.id); if (S.dinfo) delete S.dinfo[dd.id]; save(); HIST.length = 0; HIST.push({s:'home'}); R = {s:'debts'}; toast('Должник удалён'); }), 0)); },
   ifirst: () => { const dr = S.drafts.cig, items = ordered('cig'); const i = items.findIndex(p => !dr.rows[p.id]); dr.idx = i < 0 ? items.length-1 : i; save(); HIST.length = 0; HIST.push({s:'home'}, {s:'inv', cat:'cig'}); R = {s:'icard', cat:'cig'}; render(); window.scrollTo(0,0); },
   gedit: d => { const dr = S.drafts.goods, x = dr.adds.find(a => a.id === d.v);
     openNP({title:P(x.pid).name, sub:'Исправить это добавление · сейчас ' + x.qty, val:String(x.qty), ok:'Сохранить', extra:qtyWarn,
@@ -2110,7 +2119,8 @@ const A = {
       onOk:n => { w.items.push({pid, qty:n}); w.dirty = true; save(); NP = null; R.q = ''; R.sOpen = false; toast('Добавлено: +' + n); }}); },
   pidel: d => { S.wip.items.splice(+d.v, 1); S.wip.dirty = true; save(); render(); },
   psave: () => savePdoc(),
-  pdocdel: () => { const w = S.wip, one = isRet(w.type) ? 'возврат' : 'приход', doc = S.docs.find(x => x.id === w.docId); if (!doc) return;
+  pdocdel: () => { const w = S.wip, one = isRet(w.type) ? 'возврат' : 'приход', doc = S.docs.find(x => x.id === w.docId);
+    if (!doc) return confirmBox(`Удалить весь этот ${one}?<br><b>${w.items.length} поз. — он ещё не сохранён, всё пропадёт.</b>`, 'Удалить документ', () => { S.wip = null; save(); doBack(); toast('Документ удалён'); });
     const what = `${one[0].toUpperCase() + one.slice(1)} ${dShort(doc.date)}, ${TYPES[doc.type].full}: ${S.prihod.filter(x => x.doc === doc.id).length} поз. на ${fmt(docSum(S.prihod.filter(x => x.doc === doc.id), doc.date))}`;
     const del = () => { const id = doc.id; S.docs = S.docs.filter(x => x.id !== id); S.prihod = S.prihod.filter(x => x.doc !== id); S.wip = null; save(); doBack(); toast((one === 'возврат' ? 'Возврат' : 'Приход') + ' удалён'); };
     confirmBox('Удалить весь этот ' + one + '?<br><b>' + what + '</b>', 'Удалить', () => doc.date === TODAY ? del() : setTimeout(() => pinGuard(what, del), 0)); },
@@ -2143,7 +2153,15 @@ const A = {
     const lbl = dShort(disp);
     S.drafts[R.cat] = R.cat === 'goods' ? {date, disp, eve, lbl, adds:[], extra:[]} : {date, disp, eve, lbl, idx:0, rows:{}}; save(); go(R.cat === 'goods' ? 'ginv' : 'icard', {cat:R.cat}); },
   icont: () => go(R.cat === 'goods' ? 'ginv' : 'icard', {cat:R.cat}),
-  idrop: () => confirmBox('Удалить незаконченную инвентаризацию?', 'Удалить', () => { delete S.drafts[R.cat]; save(); toast('Удалено'); }),
+  idrop: () => A.idocdel(),
+  idocdel: () => { const cat = R.cat || 'cig', dr = S.drafts[cat]; if (!dr) return;
+    const n = cat === 'goods' ? Object.keys(goodsAgg(dr)).length + (dr.extra || []).length : Object.keys(dr.rows).filter(id => dr.rows[id].some(x => x != null)).length;
+    const leave = msg => { delete S.drafts[cat]; save(); HIST.length = 0; HIST.push({s:'home'}); R = {s:'inv', cat}; toast(msg); };
+    if (dr.edit){ const inv = S.inv.find(i => i.id === dr.edit), what = `Инвентаризация ${cat === 'cig' ? 'сигарет' : 'товаров'} за ${dShort(dr.disp)}`;
+      CONF = {text:'Удалить документ?<br><b>' + what + '</b>', alt:{l:'Удалить всю инвентаризацию', c:'dang', f:() => setTimeout(() => pinGuard(what, () => { S.inv = S.inv.filter(i => i.id !== dr.edit); leave('Инвентаризация удалена'); }), 0)},
+        yes:{l:'Отменить изменения', c:'pri', f:() => leave('Изменения отменены, сохранённая инвентаризация не тронута')}, no:{l:'Нет', f:() => {}}};
+      if (!inv) CONF.alt = null; ANIM = true; return render(); }
+    confirmBox(`Удалить всю незаконченную инвентаризацию?<br><b>${cat === 'cig' ? 'Заполнено товаров: ' + n : 'Записано: ' + n} — всё пропадёт.</b>`, 'Удалить документ', () => leave('Инвентаризация удалена')); },
   inav: d => { const dr = S.drafts.cig; dr.idx += +d.v; save(); render(); window.scrollTo(0,0); },
   isug: d => { const dr = S.drafts.cig, p = ordered('cig')[dr.idx]; dr.rows[p.id][4] = +d.v; save(); render(); },
   ifinish: () => go('ifinish', {cat:R.cat || 'cig'}),
@@ -2276,7 +2294,8 @@ const A = {
   npok: () => NP.onOk(Number(NP.val||0)),
   npclose: () => { NP = null; render(); },
   cfno: () => { const f = CONF.no.f; CONF = null; f(); render(); },
-  cfyes: () => { const f = CONF.yes.f; CONF = null; f(); render(); }
+  cfyes: () => { const f = CONF.yes.f; CONF = null; f(); render(); },
+  cfalt: () => { const f = CONF.alt.f; CONF = null; f(); render(); }
 };
 
 document.addEventListener('click', e => {
