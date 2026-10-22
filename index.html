@@ -1177,6 +1177,8 @@ V.rweek = () => {
       ${SHOW ? `<div class="sumrow"><span><span class="pill p-own">${WORD}</span></span><b>${fmt(s.b)}</b></div>
       <div class="sumrow"><span><b>Всего с запасом</b></span><b>${fmt(s.k + s.o + s.b)}</b></div>` : ''}</div>`}
       ${R.q ? '' : `<div class="grid2"><button class="btn sec" data-a="office" data-v="${inv.id}">📤 Отчёт для офиса</button><button class="btn sec" data-a="iedit" data-v="${inv.id}">✏️ Изменить</button></div>
+      ${SHOW && !isSeller() ? `<div class="card"><div class="lbl">Прибыль / убыток этой недели</div>${(S.adj||[]).filter(a => a.date === inv.date).map(a => `<div class="sumrow"><span>${esc(adjNote(a.note))}</span><b>${a.amt>0?'+':'−'}${fmt(Math.abs(a.amt))}</b></div>`).join('') || '<div class="muted small">Ещё не записано</div>'}
+        <button class="btn sec" style="margin-top:8px" data-a="adjnew" data-v="${inv.date}">+ Записать ручное изменение долга</button></div>` : ''}
 `}
       <div class="tbl-wrap"><table class="tight"><tr><th class="l">Товар · сумма</th><th>ККМ</th><th>Омбор</th>${SHOW ? `<th style="color:var(--own)">${WORD}</th>` : ''}</tr>${rows}
       <tr class="tot"><td class="l">Итого, пачек</td><td>${tk}</td><td>${to}</td>${SHOW ? `<td style="color:var(--own)">${tb}</td>` : ''}</tr></table></div>
@@ -1197,18 +1199,17 @@ V.rbal = () => {
       <div class="sumrow"><span>+ Приход со склада (ККМ и Омбор)</span><b>${fmt(dp.kkm+dp.om)}</b></div>
       <div class="sumrow"><span>− Терминал</span><b>${fmt(c.t)}</b></div>
       <div class="sumrow"><span>− Сдано в офис (касса)</span><b>${fmt(c.k)}</b></div>
-      ${adjOn(R.date) ? `<div class="sumrow"><span>± Корректировка</span><b>${fmt(adjOn(R.date))}</b></div>` : ''}
+      ${adjOn(R.date) ? `<div class="sumrow"><span>± Ручное изменение</span><b>${fmt(adjOn(R.date))}</b></div>` : ''}
       <div class="sumrow"><span><b>Вечером</b></span><b style="font-size:24px">${fmt(balanceEnd(R.date))}</b></div>
     </div>
     <div class="sec-h">7 дней</div>
-    <div class="tbl-wrap"><table><tr><th class="l">День</th><th>Приход</th><th>Терминал</th><th>Касса</th><th>Коррект.</th><th>Долг вечером</th></tr>
+    <div class="tbl-wrap"><table><tr><th class="l">День</th><th>Приход</th><th>Терминал</th><th>Касса</th><th>Изменение</th><th>Долг вечером</th></tr>
       ${days.map(d => { const p = dayPrihod(d), cc = cashOf(d); return `<tr><td class="l">${wdShort(d)} ${dShort(d)}</td><td>${fmt(p.kkm+p.om)}</td><td>${fmt(cc.t)}</td><td>${fmt(cc.k)}</td><td>${fmt(adjOn(d))}</td><td><b>${fmt(balanceEnd(d))}</b></td></tr>`; }).join('')}
     </table></div>
-    <div class="sec-h">Поправки долга (сверка с офисом)</div>
-    <p class="small muted" style="margin:-4px 0 0">Если офис прислал акт сверки и их долг отличается от приложения — запишите разницу здесь, на дату сверки. Записи «сверка с Excel» — это такие же поправки из старых Excel-файлов (там долг в W2 каждую неделю переписывали по офису).</p>
-    ${(S.adj||[]).length ? (!R.showAdj ? `<button class="btn sec" data-a="adjshow">Показать поправки (${S.adj.length})</button>` : '') + (R.showAdj ? `<div class="list">${S.adj.slice().sort((a,b)=>a.date<b.date?1:-1).map(a => `<div class="row"><span class="nm">${dShort(a.date)} <span class="small muted">${esc(a.note)}</span></span><span class="rt">${a.amt>0?'+':''}${fmt(a.amt)}</span><button class="x" data-a="adel" data-v="${a.id}" aria-label="Удалить">✕</button></div>`).join('')}</div>` : '') : ''}
-    <div class="grid2"><button class="btn sec" data-a="aadd" data-v="-1">Уменьшить долг</button><button class="btn sec" data-a="aadd" data-v="1">Увеличить долг</button></div>
-
+    ${SHOW ? `<div class="sec-h">Ручные изменения долга</div>
+    <p class="small muted" style="margin:-4px 0 0">Записываете сами, офис их не видит: прибыль или убыток недели после субботней инвентаризации и другие изменения. Записи «из Excel» — такие же изменения из старых файлов (там каждую неделю переписывали начальный долг W2).</p>
+    <button class="btn pri" data-a="adjnew" data-v="${R.date}">+ Записать ручное изменение</button>
+    ${(S.adj||[]).length ? (!R.showAdj ? `<button class="btn sec" data-a="adjshow">Показать все изменения (${S.adj.length})</button>` : `<div class="list">${S.adj.slice().sort((a,b)=>a.date<b.date?1:-1).map(adjRow).join('')}</div>`) : ''}` : ''}
     <button class="money" data-a="sbal"><span class="lbl">Начальный долг на ${dShort(S.bal0.date)}</span><b>${fmt(S.bal0.amount)}</b></button>
     ${SHOW ? `<p class="small muted">Приход в запас в долг перед офисом не входит.</p>` : ''}
   </div>`;
@@ -1382,7 +1383,7 @@ function buildReports(inv){
   const first = [S.bal0 && S.bal0.date, ...Object.keys(M.pr), ...Object.keys(S.cash)].filter(Boolean).sort()[0] || TODAY;
   const days = []; for (let d = TODAY; d >= first; d = addD(d, -1)) days.push(d);
   out.push({name:'📊 По дням', head:1, freezeRows:1, freezeCols:2, dates:[0], num:[2,3,4,5,6,7,8,9,10], widths:[96, 50], wrapHead:true,
-    rows:[['Дата', 'День', 'Приход ККМ', 'Приход Омбор', 'Приход в запас', 'Приход товаров', 'Возвраты', 'Терминал', 'Сдано в офис', 'Корректировка', 'Долг перед офисом вечером'],
+    rows:[['Дата', 'День', 'Приход ККМ', 'Приход Омбор', 'Приход в запас', 'Приход товаров', 'Возвраты', 'Терминал', 'Сдано в офис', 'Ручное изменение', 'Долг перед офисом вечером'],
       ...days.map(d => { const p = M.pr[d] || ZT(), c = cashOf(d); return [gdate(d), wdShort(d), p.kkm, p.om, p.own, p.g, ret(p), c.t, c.k, M.adj[d] || 0, M.bal[d] ?? '']; })]});
   // 3. Продажи по неделям (сигареты), свежие слева
   const wl = ps.map(per => invShort(per.from) + '–' + invShort(per.to));
@@ -1506,11 +1507,33 @@ function applyDate(act, v){
   if (act === 'rdnav'){ const o = dayPeriods(); R.di = Math.max(0, o.findIndex(x => x.from <= v && v <= x.to)); return render(); }
   if (act === 'rstk' || act === 'rwnav'){ const inv = invForDate(R.cat || (S.inv.find(i => i.id === R.id) || {}).cat || 'cig', v); if (!inv) return toast('Инвентаризаций ещё нет');
     if (act === 'rwnav'){ R.id = inv.id; return render(); } return go('rweek', {id:inv.id}); }
+  if (act === 'adate'){ keepNote(); R.adate = v; return render(); }
   R.date = v; render();
 }
 const perIndex = (ps, v) => { if (!ps.length) return 0; const i = ps.findIndex(p => evDate(p.from) < v && v <= evDate(p.to)); return i >= 0 ? i : (v <= evDate(ps[0].from) ? 0 : ps.length - 1); };
 const invForDate = (cat, v) => { const l = invList(cat); return l.find(i => evDate(i) >= v) || l[l.length - 1]; };   // инвентаризация, которой закончилась неделя с этим днём
 const weeknav = (label, sub, act, prevOk, nextOk, v) => `<div class="datenav"><button data-a="${act}" data-v="-1" ${prevOk ? '' : 'disabled'} aria-label="Предыдущая неделя">‹</button><button class="d" data-a="dpick" data-act="${act}" data-v="${v}" data-t="Какая неделя? Выберите любой её день"><span class="dl">${label}</span><span class="ds">${ICON.cal}${sub}</span></button><button data-a="${act}" data-v="1" ${nextOk ? '' : 'disabled'} aria-label="Следующая неделя">›</button></div>`;
+/* ---------- ручные изменения долга (прибыль/убыток недели и др.) ---------- */
+const ADJ_WHY = ['Прибыль недели', 'Убыток недели', 'Другое'];
+const adjNote = n => String(n || '').replace(/^сверка с Excel/, 'из Excel').replace(/^сверка с офисом$/, 'изменение');
+const adjRow = a => `<div class="row"><span class="nm">${dShort(a.date)} <span class="small muted">${esc(adjNote(a.note))}</span></span><span class="rt" style="color:var(${a.amt < 0 ? '--good' : '--bad'})">${a.amt>0?'+':'−'}${fmt(Math.abs(a.amt))}</span><button class="x" data-a="adel" data-v="${a.id}" aria-label="Удалить">✕</button></div>`;
+V.adjnew = () => {
+  R.adate = R.adate || TODAY; R.asign = R.asign || -1; R.awhy = R.awhy || ADJ_WHY[0]; R.aamt = R.aamt || 0;
+  const b0 = balanceEnd(R.adate), b1 = b0 == null ? null : b0 + R.asign * R.aamt;
+  return hdr('Ручное изменение') + `<div class="wrap stack">
+    ${datenav(R.adate, 'adate')}
+    <div class="lbl">Что это</div><div class="chips two" style="grid-template-columns:1fr 1fr 1fr">${ADJ_WHY.map(w => `<button class="chip ${R.awhy === w ? 'on' : ''}" data-a="awhy" data-v="${w}">${w}</button>`).join('')}</div>
+    <div class="lbl">Долг перед офисом</div><div class="seg"><button class="${R.asign < 0 ? 'on' : ''}" data-a="asign" data-v="-1">Уменьшить −</button><button class="${R.asign > 0 ? 'on' : ''}" data-a="asign" data-v="1">Увеличить +</button></div>
+    <button class="money" data-a="aamt"><span class="lbl">Сумма</span><b>${fmt(R.aamt)}</b></button>
+    ${(() => { const per = periods('cig').find(p => p.to.date === R.adate); if (!per || R.awhy === 'Другое') return '';
+      let pf = 0; repProducts('cig').forEach(p => { const c = calc(p.id, per.from.rows[p.id], per.to.rows[p.id], per.from.date, per.to.date), pp = priceAt(p.id, per.to.date); pf += c.sold * (pp.sale - pp.cost); });
+      return `<div class="note info">Прибыль по приложению за неделю ${invShort(per.from)} – ${invShort(per.to)}: <b>${fmt(pf)}</b> (продано × (продажная − себестоимость), с запасом). <button class="chip" style="margin-top:6px" data-a="apf" data-v="${Math.round(Math.abs(pf))}">Подставить ${fmt(Math.abs(pf))}</button></div>`; })()}
+    <div class="field txt"><label for="a_note">Комментарий (не обязательно)</label><input id="a_note" value="${esc(R.anote || '')}" autocomplete="off" placeholder="например: посчитали с папой"></div>
+    ${b0 != null ? `<div class="card"><div class="sumrow"><span>Долг вечером ${dShort(R.adate)} сейчас</span><b>${fmt(b0)}</b></div><div class="sumrow"><span><b>Станет</b></span><b>${fmt(b1)}</b></div></div>` : ''}
+    <button class="btn pri" data-a="asave" ${R.aamt ? '' : 'disabled'}>Записать</button>
+    <p class="small muted">Изменение входит в долг перед офисом с этого дня. Удалить можно в «Баланс с офисом» → «Показать все изменения».</p></div>`;
+};
+const keepNote = () => { const el = document.getElementById('a_note'); if (el) R.anote = el.value; };
 const lockScreen = () => `<div class="wrap stack"><div class="card" style="text-align:center"><div style="color:var(--muted);width:48px;margin:0 auto 8px">${ICON.lock}</div>Этот раздел открывается по ПИН-коду.</div><button class="btn pri" data-a="pin">Ввести ПИН</button></div>`;
 
 /* Настройки */
@@ -1615,9 +1638,14 @@ const A = {
     openNP({title:x.name, sub:'Исправить сумму', money:true, val:String(x.amt), ok:'Сохранить', onOk:n => { x.amt = n; save(); NP = null; render(); }, onDel:() => { dr.extra = dr.extra.filter(a => a.id !== x.id); save(); NP = null; render(); }, delL:'Удалить сумму'}); },
   prdate: d => { R.date = addD(R.date, +d.v); render(); },
   ronlych: () => { R.onlyCh = !R.onlyCh; render(); },
-  aadd: d => { const s = +d.v; openNP({title: s<0 ? 'Уменьшить долг' : 'Увеличить долг', sub:'Корректировка на ' + dLong(R.date) + ' · по сверке с офисом', money:true, ok:'Записать',
-      onOk:n => { S.adj = S.adj || []; S.adj.push({id:uid(), date:R.date, amt:s*n, note:'сверка с офисом'}); save(); NP = null; toast('Корректировка записана'); }}); },
-  adel: d => confirmBox('Удалить корректировку?', 'Удалить', () => { S.adj = S.adj.filter(a => a.id !== d.v); save(); }),
+  adjnew: d => go('adjnew', {adate:d.v || TODAY, asign:-1, awhy:ADJ_WHY[0], aamt:0}),
+  adate: d => { R.adate = addD(R.adate, +d.v); if (R.adate > TODAY) R.adate = TODAY; keepNote(); render(); },
+  awhy: d => { R.awhy = d.v; keepNote(); render(); },
+  asign: d => { R.asign = +d.v; keepNote(); render(); },
+  aamt: () => { keepNote(); openNP({title:'Сумма изменения', money:true, val:R.aamt ? String(R.aamt) : '', ok:'Готово', onOk:n => { R.aamt = n; NP = null; render(); }}); },
+  apf: d => { keepNote(); R.aamt = +d.v; render(); },
+  asave: () => { keepNote(); if (!R.aamt) return; S.adj = S.adj || []; S.adj.push({id:uid(), date:R.adate, amt:R.asign * R.aamt, note:R.awhy + (R.anote ? ': ' + R.anote.trim() : '')}); save(); doBack(); toast('Изменение записано'); },
+  adel: d => confirmBox('Удалить это ручное изменение?', 'Удалить', () => { S.adj = S.adj.filter(a => a.id !== d.v); save(); }),
   npdel: () => NP.onDel(),
   pnew: () => { TSHEET = true; ANIM = true; render(); },
   tsclose: () => { TSHEET = false; render(); },
@@ -1849,7 +1877,7 @@ async function exportWeek(){
   const from = per.from, to = per.to, sold = [['№','Товар','Было ККМ','Было Омбор','Было запас','Приход ККМ','Приход Омбор','Приход в запас','Возврат','Стало ККМ','Стало Омбор','Стало запас','Баланс с офисом','Продано из запаса','Продано всего','Себестоимость','Продажная','Сумма по себест.','Сумма продаж','Прибыль']];
   repProducts('cig').forEach(p => { const c = calc(p.id, from.rows[p.id], to.rows[p.id], from.date, to.date); if (!(c.was || c.inc || c.now)) return; const pr = priceAt(p.id, to.date);
     sold.push([numOf(p.id) || '', p.name, c.a[0]+c.a[1], c.a[2]+c.a[3], c.wasBl, c.pr.kkm, c.pr.om, c.pr.own, c.pr.rkkm + c.pr.rom + (SHOW ? c.pr.rown : 0), c.b[0]+c.b[1], c.b[2]+c.b[3], c.nowBl, c.soldOff, c.soldBl, c.sold, pr.cost, pr.sale, sv(c)*pr.cost, sv(c)*pr.sale, sv(c)*(pr.sale-pr.cost)]); });
-  const days = [['Дата','День','Приход ККМ','Приход Омбор','Приход в запас','Приход товаров','Возвраты','Терминал','Сдано в офис','Корректировка','Долг перед офисом вечером']];
+  const days = [['Дата','День','Приход ККМ','Приход Омбор','Приход в запас','Приход товаров','Возвраты','Терминал','Сдано в офис','Ручное изменение','Долг перед офисом вечером']];
   for (let d = from.date; d < to.date; d = addD(d, 1)){ const x = dayPrihod(d), c = cashOf(d); days.push([dShort(d), WD[pd(d).getDay()], x.kkm, x.om, x.own, x.g, x.rkkm + x.rom + (SHOW ? x.rown : 0) + x.rg, c.t, c.k, adjOn(d), balanceEnd(d)]); }
   const stock = [['№','Товар','ККМ','Омбор','Запас','Себестоимость','Сумма ККМ+Омбор','Сумма запаса']];
   repProducts('cig').forEach(p => { const r = to.rows[p.id] || Z, c = priceAt(p.id, to.date).cost; const k = r[0]+r[1], o = r[2]+r[3], b = r[4]||0; if (k || o || b) stock.push([numOf(p.id) || '', p.name, k, o, b, c, (k+o)*c, b*c]); });
