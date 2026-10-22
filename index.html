@@ -196,7 +196,12 @@ th.sth{cursor:pointer}th.sorted,td.sorted{color:var(--accent)!important;font-wei
 .dash{padding-bottom:120px}
 .brands{display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.brands::-webkit-scrollbar{display:none}
 @media (max-width:899px){.brands{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent);padding-right:24px}}
+.btn.dang.ghost{background:transparent;color:var(--bad);border:1px solid color-mix(in srgb, var(--bad) 45%, transparent)}
+.sheet h2 b{display:inline-block;margin-top:6px;font-size:16px;font-weight:700;color:var(--muted)}
 .bchip.more{color:var(--accent);border-style:dashed}
+.bsort{flex:none;display:flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;background:var(--surface)}
+.bsort button{min-height:38px;padding:0 12px;font-weight:700;font-size:14px;color:var(--muted);white-space:nowrap}.bsort button.on{background:var(--accent-soft);color:var(--accent)}
+.brands.all{flex-wrap:wrap;overflow:visible;-webkit-mask-image:none;mask-image:none;padding-right:0}
 .bchip{flex:none;min-height:40px;padding:0 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .bchip span{font-size:12px;font-weight:700;color:var(--muted);background:var(--sunk);border-radius:99px;padding:1px 7px}
 .bchip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.bchip.on span{background:color-mix(in srgb, var(--accent-ink) 22%, transparent);color:var(--accent-ink)}
@@ -253,6 +258,12 @@ table.doc{font-size:15px}table.doc td,table.doc th{padding:9px 5px}table.doc td.
 .bal b{font-size:26px}
 .bal .small{color:var(--muted)}
 .bal.badlive{background:var(--bad-soft)}.bal.badlive b,.bal.badlive span{color:var(--bad)}
+.ost{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ost.one{grid-template-columns:1fr}
+.ost>div{border-radius:14px;padding:9px 12px;display:flex;flex-direction:column;gap:1px;min-width:0}
+.ost .o1{background:var(--accent-soft);color:var(--accent)}.ost .o2{background:color-mix(in srgb, var(--sv) 14%, var(--surface));color:var(--sv)}
+.ost span{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}.ost b{font-size:30px;font-weight:800;line-height:1.1}.ost small{font-size:13px;color:var(--muted);font-weight:600}
+table.igrid td.ost1,table.igrid th.ost1{background:color-mix(in srgb, var(--accent) 9%, transparent);color:var(--accent);font-weight:800}
+table.igrid td.ost2,table.igrid th.ost2{background:color-mix(in srgb, var(--sv) 10%, transparent);color:var(--sv);font-weight:800}
 .hint{font-size:15px;color:var(--own);font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:20px}
 .hint button{background:var(--own-soft);color:var(--own);border-radius:8px;padding:0 12px;min-height:44px;font-weight:700;font-size:15px}
 .sec-h{font-size:15px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:6px 0 -4px}
@@ -349,7 +360,7 @@ html,body{overscroll-behavior-y:none}
   .hdr .fab.s{width:auto;height:34px;border:1px solid var(--line);background:var(--surface)}.hdr .fab.s svg{width:16px;height:16px}
   .fab .fl{display:none}
   .datebtn{min-height:34px;font-size:14px;border-radius:8px}
-  .brands{flex-wrap:wrap;overflow:visible}.bchip{min-height:30px;font-size:13px;padding:0 10px}
+  .brands{flex-wrap:wrap;overflow:visible}.bchip{min-height:30px;font-size:13px;padding:0 10px}.bsort button{min-height:28px;font-size:13px;padding:0 10px}
   .sbar{top:57px;padding-block:8px}.sbar input{min-height:40px;font-size:15px;border-width:1px;border-radius:8px}.sbar button{width:40px;border-radius:8px;font-size:16px}
   /* плотность */
   .card{padding:14px 16px;border-radius:10px}.list,.tbl-wrap,.stat,.tile,.kpi,.wcard,.chart{border-radius:10px}
@@ -409,11 +420,11 @@ html,body{overscroll-behavior-y:none}
   table.stock td.nmc{min-width:240px}
   .zz{color:var(--faint)}
   .x{width:34px;height:34px;border-radius:8px}
-  table.igrid td.gc{padding:2px 3px;width:84px}table.igrid td.gc input{width:78px;height:30px;border:1px solid var(--line);border-radius:6px;background:var(--surface);text-align:right;padding:0 8px;font-size:14px;font-weight:600}
+  table.igrid td.gc{padding:2px 3px;width:68px}table.igrid td.gc input{width:64px;height:30px;border:1px solid var(--line);border-radius:6px;background:var(--surface);text-align:right;padding:0 8px;font-size:14px;font-weight:600}
   table.igrid td.gc input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
   table.igrid td.gc.kkm input{border-color:color-mix(in srgb,var(--kkm) 35%,var(--line))}table.igrid td.gc.om input{border-color:color-mix(in srgb,var(--om) 35%,var(--line))}table.igrid td.gc.own input{border-color:color-mix(in srgb,var(--own) 35%,var(--line))}
   table.igrid th.kkm{color:var(--kkm)}table.igrid th.om{color:var(--om)}table.igrid th.own{color:var(--own)}
-  table.igrid td.bo,table.igrid td.bs{font-weight:700;width:60px}
+  table.igrid td.bo,table.igrid td.bs{font-weight:700;width:56px}table.igrid td.ost1,table.igrid td.ost2{width:64px}table.igrid td.l.g{min-width:170px;white-space:normal}table.igrid th{line-height:1.15}
   table.igrid .gi{margin-left:8px;font-size:11px;font-weight:700;color:var(--kkm);background:var(--kkm-soft);border-radius:5px;padding:1px 5px}
   table.igrid tr:focus-within td{background:var(--accent-soft)}
   .scrolly{max-height:calc(100vh - 170px);overflow:auto}
@@ -910,6 +921,12 @@ function back(){
 function doBack(){ R = HIST.pop() || {s:'home'}; NP = null; render(); window.scrollTo(0,0); }
 function toast(t){ TOAST = t; render(); clearTimeout(toast.h); toast.h = setTimeout(() => { TOAST = null; const el = document.querySelector('.toast'); if (el) el.remove(); }, 1700); }
 function askSave(saveFn, discardFn){ CONF = {text:'Сохранить изменения?', yes:{l:'Сохранить', c:'pri', f:saveFn}, no:{l:'Не сохранять', f:discardFn}}; ANIM = true; render(); }
+// Защита от случайного удаления: старые и важные записи — только по ПИН-коду (продавец удалить не может)
+function pinGuard(what, fn){
+  if (isSeller()) return confirmBox(what + '<br><br>Удалить может только админ или управляющий.', 'Понятно', () => {});
+  openNP({title:'ПИН-код для удаления', sub:what + '<br>Введите ПИН, чтобы подтвердить удаление.', mask:true, allowZero:true, ok:'Удалить', okDang:true, onOk:() => {
+    if (NP.val === S.pin){ NP = null; fn(); render(); } else { NP.val = ''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Неверный ПИН — ничего не удалено</span>'; } }});
+}
 function confirmBox(text, okLabel, fn){ CONF = {text, yes:{l:okLabel, c:'dang', f:fn}, no:{l:'Нет', f:() => {}}}; ANIM = true; render(); }
 
 const hdr = (title, opt={}) => {
@@ -952,7 +969,6 @@ V.home = () => {
     <div class="homehead"><div><p class="home-date">Сегодня</p><div class="muted">${dLong(TODAY)}</div></div>${isSeller() ? '' : `<button class="eye ${SHOW ? 'on' : ''}" data-a="eye" aria-label="${SHOW ? 'Скрыть' : 'Показать всё'}">${ICON[SHOW ? 'eye' : 'eyeoff']}</button>`}</div>
     ${S.wip && S.wip.items.length && vis(S.wip.type) ? `<button class="banner" data-a="wipopen">Есть несохранённый ${isRet(S.wip.type) ? 'возврат' : 'приход'}: ${TYPES[S.wip.type].full}, ${S.wip.items.length} поз. <b>Открыть ›</b></button>` : ''}
     ${draft ? `<button class="banner" data-a="go" data-v="inv">Есть незаконченная инвентаризация <b>Продолжить ›</b></button>` : ''}
-    <div class="wcard"><button class="wh" data-a="week" data-v="in"><b>Эта неделя ›</b><span class="muted">${dShort(o.from)} – ${dShort(o.to)} · приход по дням</span></button><div class="bars">${bars}</div></div>
     <div class="kpis">${[
       kpi('week', 'in', '--accent', 'box', 'Приход за неделю', fmt(W.pin(W.T)), today(W.pin(W.td)), true),
       kpi('week', 'cash', '--kkm', 'card', 'Терминал', fmt(W.ct), today(W.tt)),
@@ -1018,11 +1034,10 @@ function homeDesk(){
           <tr class="tot"><td class="l">Итого</td><td>${fz(T.kkm)}</td><td>${fz(T.om)}</td>${own ? `<td>${fz(T.own)}</td>` : ''}<td>${fz(T.g)}</td><td>${fz(W.pin(T))}</td><td>${fz(W.pret(T))}</td><td>${fz(W.ct)}</td><td>${fz(W.ck)}</td><td>${W.give ? '+' + fmt(W.give) : ''}</td><td>${W.back ? '−' + fmt(W.back) : ''}</td></tr></table></div></div>
     <div class="cols">
       <div class="stack" style="padding:0">
-        <div class="panel"><div class="ph"><b>Приход по дням</b><span class="muted small">нажмите на столбик — приходы дня</span></div><div class="bars">${bars}</div></div>
-      </div>
-      <div class="stack" style="padding:0">
         <div class="panel"><div class="ph"><b>Документы сегодня</b><button data-a="sgo" data-v="plist">Все ›</button></div>
           ${docs.length ? `<div class="tbl-wrap"><table class="tight">${docRows}</table></div>` : '<div class="empty-st small">Сегодня приходов и возвратов нет</div>'}</div>
+      </div>
+      <div class="stack" style="padding:0">
         <div class="panel"><div class="ph"><b>Долги за неделю</b><button data-a="week" data-v="debt">Все ›</button></div>
           ${top.length ? `<div class="tbl-wrap"><table class="tight"><tr><th class="l">Должник</th><th>Взял</th><th>Вернул</th><th>Долг</th></tr>${top.map(d => `<tr class="rowtap" data-a="dopen" data-v="${d.id}"><td class="l">${esc(d.name)}</td><td style="color:var(--bad)">${per[d.id].g ? '+' + fmt(per[d.id].g) : ''}</td><td style="color:var(--good)">${per[d.id].b ? '−' + fmt(per[d.id].b) : ''}</td><td><b>${fmt(debtOf(d.id))}</b></td></tr>`).join('')}</table></div>` : '<div class="empty-st small">За неделю движений нет</div>'}</div>
       </div>
@@ -1093,7 +1108,7 @@ V.plist = () => {
       <div class="pf"><button class="btn pri" data-a="pnew">+ Новый ${K.one.toLowerCase()}</button></div></div>`;
     let right = '<div class="panel"><div class="empty-st">Выберите документ слева</div></div>';
     if (sel){ const items = S.prihod.filter(x => x.doc === sel.id), t = TYPES[sel.type], qty = items.reduce((s, x) => s + x.qty, 0), sum = docSum(items, sel.date);
-      right = `<div class="panel"><div class="ph"><b style="font-size:16px">${K.one} № ${docs.indexOf(sel) + 1} · <span class="pill p-${t.c}" style="font-size:12px">${t.full}</span></b><span class="phb"><button data-a="popen" data-v="${sel.id}">✏️ Изменить</button></span></div>
+      right = `<div class="panel"><div class="ph"><b style="font-size:16px">${K.one} № ${docs.indexOf(sel) + 1} · <span class="pill p-${t.c}" style="font-size:12px">${t.full}</span></b><span class="phb"><button data-a="popen" data-edit="1" data-v="${sel.id}">✏️ Изменить</button></span></div>
         <div class="tbl-wrap"><table class="tight doc"><tr><th class="l">Наименование</th><th>Цена</th><th>Кол-во</th><th>Сумма</th></tr>${items.map(x => { const pr = priceAt(x.pid, sel.date).cost; return `<tr class="rowtap" data-a="popen" data-v="${sel.id}"><td class="l g">${esc((P(x.pid) || {}).name || '?')}</td><td>${fmt(pr)}</td><td><b>${x.qty}</b></td><td>${fmt(pr * x.qty)}</td></tr>`; }).join('')}
         <tr class="tot"><td class="l">Итого · ${items.length} поз.</td><td></td><td>${qty}</td><td>${fmt(sum)}</td></tr></table></div></div>`; }
     return hdr(K.many, {right: dateBtn(R.date, 'pdate')}) + `<div class="wrap stack" style="padding-top:12px">${mdLayout(left, right)}</div>`;
@@ -1115,6 +1130,16 @@ V.pdoc = () => {
   const sum = docSum(w.items, w.date);
   const counts = {}; w.items.forEach(x => counts[x.pid] = (counts[x.pid]||0) + x.qty);
   const one = isRet(w.type) ? 'Возврат' : 'Приход', qty = w.items.reduce((s, x) => s + x.qty, 0);
+  if (w.view && w.docId){   // сохранённый документ открывается только для просмотра — случайно ничего не изменить
+    const doc = S.docs.find(x => x.id === w.docId), no = doc ? S.docs.filter(x => x.date === doc.date && isRet(x.type) === isRet(doc.type) && vis(x.type)).sort((a, b) => a.ts - b.ts).indexOf(doc) + 1 : '';
+    return hdr(one + (no ? ' № ' + no : ''), {sum, tag:`<span class="pill p-${t.c}" style="margin-left:auto">${t.full}</span>`}) + `<div class="wrap stack nar2">
+      <div class="small muted">${dLong(w.date)} · сохранён · только просмотр</div>
+      <div class="tbl-wrap"><table class="tight doc"><tr><th class="l">Наименование</th><th>Цена</th><th>Кол-во</th><th>Сумма</th></tr>
+        ${w.items.map(e => { const pr = priceAt(e.pid, w.date).cost; return `<tr><td class="nmc">${esc(P(e.pid).name)}</td><td>${fmt(pr)}</td><td><b>${e.qty}</b></td><td>${fmt(pr*e.qty)}</td></tr>`; }).join('')}
+        <tr class="tot"><td class="l">Итого · ${w.items.length} поз.</td><td></td><td>${qty}</td><td>${fmt(sum)}</td></tr></table></div>
+      <button class="btn sec" data-a="pedit">✏️ Изменить этот ${one.toLowerCase()}</button>
+    </div>`;
+  }
   const showAll = !R.q && (R.addOpen || !w.items.length);
   return hdr(one, {sum, tag:`<span class="pill p-${t.c}" style="margin-left:auto">${t.full}</span>`}) + sbar('Название или номер товара') + `<div class="wrap stack">
     ${!R.q ? `<div class="small muted">${dLong(w.date)}${w.docId ? '' : ' · новый ' + one.toLowerCase()}${w.dirty ? ' · <b style="color:var(--warn)">не сохранено</b>' : ''}</div>` : ''}
@@ -1123,9 +1148,9 @@ V.pdoc = () => {
       <tr class="tot"><td class="l">Итого · ${w.items.length} поз.</td><td></td><td>${qty}</td><td>${fmt(sum)}</td></tr></table></div>
       <div class="small muted">Чтобы исправить или удалить строку — нажмите на неё.</div>` : ''}
     <div class="sec-h">${R.q ? 'Найдено' : 'Товары · нажмите, чтобы добавить'}</div>
-    ${R.q ? '' : brandChips(cat, {fav:true})}
+    ${R.q ? '' : brandChips(cat, ordered(cat).map(p => p.id))}
     <div class="list" id="plist">${prodRows(cat, R.q||'', pid => counts[pid] ? `<span class="badge">+${counts[pid]}</span>` : '', 'padd')}</div>
-    ${w.docId && !R.q ? `<button class="btn dang" data-a="pdocdel">Удалить этот ${one.toLowerCase()}</button>` : ''}
+    ${w.docId && !R.q ? `<button class="btn dang ghost" data-a="pdocdel">Удалить этот ${one.toLowerCase()}</button>` : ''}
   </div>` + fabs([{a:'search', i:'search', l:'Поиск', s:1}, {a:'psave', i:'check', l:'Сохранить ' + one.toLowerCase(), c:'Сохранить', dirty:w.dirty}]);
 };
 /* ---------- бренды: группировка товаров («Milano», «Kent», …) ---------- */
@@ -1147,28 +1172,42 @@ function brands(cat){
   list.forEach(b => b.ids.forEach(id => of[id] = b.key));
   return BRC[cat] = Object.assign(list, {of});
 }
-let FAVC = null, FAVK = '';
-function favs(){   // «Частые»: что чаще всего приходило за последние 45 дней
-  const k = DATAV + '|' + S.prihod.length + '|' + TODAY; if (FAVK === k && FAVC) return FAVC;
-  const from = addD(TODAY, -45), c = {}; S.prihod.forEach(x => { if (x.date >= from && !isRet(x.type)) c[x.pid] = (c[x.pid] || 0) + 1; });
-  FAVK = k; return FAVC = new Set(Object.keys(c).sort((a, b) => c[b] - c[a]).slice(0, 30));
+let USEC = null, USEK = '', BRALL = false, FSORT = (() => { try { return localStorage.getItem('chorsu_fsort') !== '0'; } catch(e){ return true; } })();
+function useScore(){   // как часто товар приходил за последние 60 дней (число приходов)
+  const k = DATAV + '|' + S.prihod.length + '|' + TODAY; if (USEK === k && USEC) return USEC;
+  const from = addD(TODAY, -60), c = {}; S.prihod.forEach(x => { if (x.date >= from && !isRet(x.type)) c[x.pid] = (c[x.pid] || 0) + 1; });
+  USEK = k; return USEC = c;
 }
-const brandOk = (p, cat) => { if (!R.brand || (R.q && R.q.trim())) return true; if (R.brand === '*') return favs().has(p.id); return brands(cat || p.cat).of[p.id] === R.brand; };
-let BRALL = false;
-function brandChips(cat, opts = {}){
-  const list = brands(cat); if (list.length < 3) return '';
+function byUse(arr, idOf = x => x.id){   // «★ Частые»: сначала самые частые, при равенстве — по номеру
+  if (!FSORT) return arr; const sc = useScore();
+  return arr.map((x, i) => [x, i, sc[idOf(x)] || 0]).sort((a, b) => b[2] - a[2] || a[1] - b[1]).map(x => x[0]);
+}
+const brandOk = (p, cat) => { if (!R.brand || R.brand === '*' || (R.q && R.q.trim())) return true; return brands(cat || p.cat).of[p.id] === R.brand; };
+// ids — товары, которые реально показаны на этом экране (до выбора бренда): по ним и считаются цифры на кнопках
+function brandChips(cat, ids, opts = {}){
+  const all = brands(cat), cnt = {}; ids.forEach(id => { const k = all.of[id]; if (k) cnt[k] = (cnt[k] || 0) + 1; });
+  const list = all.filter(b => cnt[b.key]), sc = useScore(), use = b => b.ids.reduce((s, id) => s + (sc[id] || 0), 0);
+  if (R.brand && R.brand !== '*' && !cnt[R.brand]) R.brand = '';
   const chip = (k, l, n) => `<button class="bchip ${(R.brand || '') === k ? 'on' : ''}" data-a="brand" data-v="${k}">${esc(l)}${n != null ? `<span>${n}</span>` : ''}</button>`;
-  const N = 14, cut = DESK && !BRALL && list.length > N + 2, top = new Set(list.filter(b => b.key !== '~').slice().sort((a, b) => b.ids.length - a.ids.length).slice(0, N).map(b => b.key)), shown = cut ? list.filter(b => top.has(b.key) || b.key === R.brand) : list;
-  return `<div class="brands" role="tablist" aria-label="Бренды">${chip('', 'Все товары')}${opts.fav && favs().size ? chip('*', '★ Частые') : ''}${shown.map(b => chip(b.key, b.name, b.ids.length)).join('')}${cut ? `<button class="bchip more" data-a="ballt">Ещё ${list.length - shown.length} ▾</button>` : DESK && list.length > N + 2 ? `<button class="bchip more" data-a="ballt">Свернуть ▴</button>` : ''}</div>`;
+  const srt = opts.sort === false ? '' : `<span class="bsort" role="group" aria-label="Порядок"><button class="${FSORT ? 'on' : ''}" data-a="fsort" data-v="1" title="Сначала товары, которые приходят чаще">★ Частые</button><button class="${FSORT ? '' : 'on'}" data-a="fsort" data-v="0" title="По номеру в таблице">№ По номеру</button></span>`;
+  if (list.length < 3) return `<div class="brands">${chip('', 'Все товары', ids.length)}${srt}</div>`;
+  const N = DESK ? 12 : 5, need = list.length > N + 1;
+  let shown = list;
+  if (need && !BRALL){ const top = new Set(list.filter(b => b.key !== '~').slice().sort((a, b) => use(b) - use(a) || cnt[b.key] - cnt[a.key]).slice(0, N).map(b => b.key));
+    shown = list.filter(b => top.has(b.key) || b.key === R.brand); if (FSORT) shown = shown.slice().sort((a, b) => (b.key === R.brand) - (a.key === R.brand) || use(b) - use(a)); }
+  else if (FSORT) shown = list.slice().sort((a, b) => (a.key === '~') - (b.key === '~') || use(b) - use(a));
+  const more = need ? `<button class="bchip more" data-a="ballt">${BRALL ? 'Свернуть ▴' : `Все бренды · ${list.length} ▾`}</button>` : '';
+  return `<div class="brands ${BRALL && need ? 'all' : ''}" role="tablist" aria-label="Бренды">${chip('', 'Все товары', ids.length)}${srt}${more}${shown.map(b => chip(b.key, b.name, cnt[b.key])).join('')}</div>`;
 }
 function prodRows(cat, q, right, act, sub){
   const ql = q.trim().toLowerCase();
-  const items = ordered(cat).map((p,i) => ({p, n:i+1})).filter(({p,n}) => (!ql || String(n) === ql || match(p.name, ql)) && brandOk(p, cat));
+  const items = byUse(ordered(cat).map((p,i) => ({p, n:i+1})).filter(({p,n}) => (!ql || String(n) === ql || match(p.name, ql)) && brandOk(p, cat)), x => x.p.id);
   if (!items.length) return `<div class="empty-st">Ничего не найдено</div>`;
   return items.map(({p,n}) => `<button class="row" data-a="${act}" data-v="${p.id}"><span class="num">${n}</span><span class="nm">${esc(p.name)}${sub ? sub(p.id) : ''}</span>${right(p.id)}</button>`).join('');
 }
 function savePdoc(){
   const w = S.wip; if (!w) return;
+  if (w.view){ S.wip = null; save(); return doBack(); }
   if (!w.items.length && !w.docId){ S.wip = null; save(); doBack(); return toast('Пустой приход не сохранён'); }
   let doc = w.docId && S.docs.find(d => d.id === w.docId);
   if (!doc){ doc = {id:uid(), date:w.date, type:w.type, ts:Date.now()}; S.docs.push(doc); }
@@ -1198,6 +1237,9 @@ V.cash = () => {
     ${cashTable(o)}
   </div>`;
 };
+// исправление уже записанной суммы за прошлый день — только после подтверждения
+const cashRisky = (day, old, n) => day < TODAY && old > 0 && n !== old;
+function cashAsk(day, k, old, n, fn){ CONF = {text:`Исправить ${k === 't' ? 'терминал' : 'кассу'} за ${wdShort(day)} ${dShort(day)}?<br><b>было ${fmt(old)} → станет ${fmt(n)}</b>`, yes:{l:'Исправить', c:'pri', f:fn}, no:{l:'Нет', f:() => {}}}; ANIM = true; render(); }
 function saveCash(){ S.cash[R.date] = {t:R.cd.t, k:R.cd.k}; R.dirty = false; save(); toast('Сохранено'); }
 
 /* Долги */
@@ -1258,7 +1300,8 @@ V.debtor = () => {
     <button class="dinfo" data-a="dcard"><span>${x.ph ? '☎ <b>' + esc(x.ph) + '</b>' : '<span class="muted">Телефон не записан</span>'}${x.ph2 ? ' · близкий: ' + esc(x.ph2) : ''}<br><span class="${over ? 'neg' : 'muted'}">${x.limOn && x.lim ? 'Лимит ' + fmt(x.lim) + (over ? ' — достигнут' : ' · можно ещё ' + fmt(x.lim - debtOf(d.id))) : 'Лимит выключен'}</span></span><b>Карточка ›</b></button>
     <div class="grid2"><button class="btn give" data-a="dmove" data-v="1">Дал в долг +</button><button class="btn ret" data-a="dmove" data-v="-1">Вернул −</button></div>
     <div class="sec-h">История</div>
-    <div class="list">${mv.map(m => `<div class="row"><span class="nm">${dShort(m.date)} <span class="small muted">${esc(m.note||'')}</span></span><span class="rt" style="color:var(${m.amt>0?'--om':'--good'})">${m.amt>0?'+':''}${fmt(m.amt)}</span><button class="x" data-a="mdel" data-v="${m.id}" aria-label="Удалить запись">✕</button></div>`).join('') || '<div class="empty-st">Записей нет</div>'}</div>
+    <div class="list">${mv.map(m => `<button class="row" data-a="mdel" data-v="${m.id}"><span class="nm">${dShort(m.date)} <span class="small muted">${esc(m.note||'')}</span></span><span class="rt" style="color:var(${m.amt>0?'--om':'--good'})">${m.amt>0?'+':''}${fmt(m.amt)}</span></button>`).join('') || '<div class="empty-st">Записей нет</div>'}</div>
+    ${mv.length ? '<div class="small muted">Ошиблись? Нажмите на запись. Сегодняшнюю можно удалить сразу, более старую — только по ПИН-коду.</div>' : ''}
     <button class="btn sec" data-a="dgrp">${d.grp==='n' ? 'Вернуть в должники' : 'Перенести в Несгор'}</button>
     <button class="btn sec" data-a="dren">Изменить имя</button>
   </div>`;
@@ -1307,12 +1350,14 @@ V.icard = () => {
     <div class="pmeta"><span class="no">№ ${dr.idx+1} из ${items.length}</span><span class="small muted">${dr.edit ? 'изменение ' + dShort(dr.disp) : (dr.lbl||'')}</span></div>
     <p class="pname">${esc(p.name)}</p>
     <div class="grid3">${cell(0,'kkm','ККМ блок')}${cell(1,'kkm','ККМ дона')}${inc(pr.kkm - pr.rkkm, 'kkm')}${cell(2,'om','Омбор блок')}${cell(3,'om','Омбор дона')}${inc(pr.om - pr.rom, 'om')}${seller ? '' : cell(4,'own',WORD)}${cell(5,'ret','Возврат')}${seller ? '<div></div><div></div>' : inc(pr.own - pr.rown, 'own')}</div>
+    <div id="ost">${ostHtml(row, a, seller)}</div>
     <div class="hint" id="bhint">${seller ? '' : dr.sugs && dr.sugs[p.id] ? `${WORD} подставлен: было ${a[4]||0} + приход ${pr.own}. Исправьте, если не так.` : (sug>0 && row[4]!==sug ? `Ожидается: ${sug} <button data-a="isug" data-v="${sug}">Подставить</button>` : '')}</div>
   </div>
   <div class="botbar wrap"><div class="in"><button class="btn sec" data-a="inav" data-v="-1" ${dr.idx===0?'disabled':''}>‹ Назад</button><button class="sbtn" data-a="ilist" aria-label="Список товаров">${ICON.list}<span style="font-size:15px;font-weight:700">Список</span></button><button class="btn pri" data-a="${isLast?'ifinish':'inav'}" data-v="1">${isLast?'Завершить':'Дальше ›'}</button></div></div>`;
 };
 /* Инвентаризация на компьютере — одной таблицей, как в Excel: Enter — вниз, Tab — вправо */
 const saveDraftSoon = () => { clearTimeout(saveDraftSoon.h); saveDraftSoon.h = setTimeout(() => { LOC.drafts = S.drafts; ls.set(LOC_KEY, LOC); }, 400); };
+const ostCells = (r, seller) => { const n = i => r[i] || 0, f = r.some(x => x != null), k = n(0) + n(1) + n(2) + n(3); return `<td class="ost1">${f ? fmt(k) : ''}</td>${seller ? '' : `<td class="ost2">${f ? fmt(k + n(4)) : ''}</td>`}`; };
 function igridBal(pid){
   const dr = S.drafts.cig, prev = prevInvFor('cig', dr.date), r = dr.rows[pid];
   if (!r || !r.some(x => x != null) || !prev) return ['', ''];
@@ -1324,19 +1369,24 @@ V.igrid = () => {
   const items = ordered('cig'), prev = prevInvFor('cig', dr.date), seller = isSeller(), q = (R.q || '').trim().toLowerCase();
   const filled = items.filter(p => dr.rows[p.id] && dr.rows[p.id].some(x => x != null)).length;
   const cols = [[0,'ККМ блок','kkm'], [1,'ККМ дона','kkm'], [2,'Омбор блок','om'], [3,'Омбор дона','om']].concat(seller ? [] : [[4, WORD, 'own']]).concat([[5,'Возврат','ret']]);
-  const rows = items.map((p, n) => ({p, n:n+1})).filter(({p, n}) => (!q || String(n) === q || match(p.name, q)) && brandOk(p, 'cig') && (!R.onlyEmpty || !(dr.rows[p.id] && dr.rows[p.id].some(x => x != null))));
+  const notFilled = p => !(dr.rows[p.id] && dr.rows[p.id].some(x => x != null)), base = items.filter(p => !R.onlyEmpty || notFilled(p));
+  const rows = byUse(items.map((p, n) => ({p, n:n+1})).filter(({p, n}) => (!q || String(n) === q || match(p.name, q)) && brandOk(p, 'cig') && (!R.onlyEmpty || notFilled(p))), x => x.p.id);
   const body = rows.map(({p, n}) => { const a = (prev && prev.rows[p.id]) || Z, pr = prihodSum(p.id, prev ? prev.date : '0000', dr.date), r = dr.rows[p.id] || [], b = igridBal(p.id);
     const inc = (pr.kkm - pr.rkkm) || (pr.om - pr.rom) || (!seller && (pr.own - pr.rown)) ? `<span class="gi">${[pr.kkm - pr.rkkm ? 'К+' + (pr.kkm - pr.rkkm) : '', pr.om - pr.rom ? 'О+' + (pr.om - pr.rom) : '', !seller && pr.own - pr.rown ? 'З+' + (pr.own - pr.rown) : ''].filter(Boolean).join(' ')}</span>` : '';
-    return `<tr data-pid="${p.id}"><td class="num muted">${n}</td><td class="l g">${esc(p.name)}${inc}</td><td class="muted">${a[0]+a[1]} / ${a[2]+a[3]}${seller ? '' : ' / ' + (a[4]||0)}</td>${cols.map(([i, , c]) => ` <td class="gc ${c} ${({kkm:'ck', om:'co', own:'cz', ret:'cr'})[c]}"><input class="gin" data-in="ginv" data-pid="${p.id}" data-i="${i}" inputmode="numeric" value="${r[i] == null ? '' : r[i]}" placeholder="${i === 4 && !r.length && (a[4]||0) + pr.own - pr.rown > 0 ? (a[4]||0) + pr.own - pr.rown : ''}" autocomplete="off"></td>`).join('')}<td class="bo cof">${b[0]}</td>${seller ? '' : `<td class="bs csv">${b[1]}</td>`}</tr>`; }).join('');
+    return `<tr data-pid="${p.id}"><td class="num muted">${n}</td><td class="l g">${esc(p.name)}${inc}</td><td class="muted">${a[0]+a[1]} / ${a[2]+a[3]}${seller ? '' : ' / ' + (a[4]||0)}</td>${cols.map(([i, , c]) => ` <td class="gc ${c} ${({kkm:'ck', om:'co', own:'cz', ret:'cr'})[c]}"><input class="gin" data-in="ginv" data-pid="${p.id}" data-i="${i}" inputmode="numeric" value="${r[i] == null ? '' : r[i]}" placeholder="${i === 4 && !r.length && (a[4]||0) + pr.own - pr.rown > 0 ? (a[4]||0) + pr.own - pr.rown : ''}" autocomplete="off"></td>`).join('')}${ostCells(r, seller)}<td class="bo cof">${b[0]}</td>${seller ? '' : `<td class="bs csv">${b[1]}</td>`}</tr>`; }).join('');
   return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Выйти</button><h1>Инвентаризация ${dr.edit ? '(изменение) ' : ''}${dShort(dr.disp)}</h1><span class="muted small">заполнено <b id="gfill">${filled}</b> из ${items.length}</span>
     <div class="fabs"><div class="fabw"><button class="fab" data-a="ifinish">${ICON.check}<span class="fl">Завершить</span></button></div><div class="fabw"><button class="fab s" data-a="iempty">${ICON.list}<span class="fl">${R.onlyEmpty ? 'Все товары' : 'Только незаполненные'}</span></button></div><div class="fabw"><button class="fab s" data-a="search">${ICON.search}<span class="fl">Найти</span></button></div></div></div></div>
   ${sbar('Название или номер')}
   <div class="wrap stack" style="padding-top:10px">
     <div class="small muted">Пишите количество в пачках. <b>Enter</b> — вниз, <b>Tab</b> — вправо. «Было» — ККМ / Омбор${seller ? '' : ' / ' + WORD} прошлой инвентаризации; К+ О+${seller ? '' : ' З+'} — приход за неделю. Справа баланс: <b style="color:var(--accent)">офис</b>${seller ? '' : ', <b style="color:var(--kkm)">свой</b>'}. Незаполненные при завершении: ККМ и Омбор — 0${seller ? '' : ', ' + WORD.toLowerCase() + ' — как было'}.</div>
-    ${R.q ? '' : brandChips('cig')}
-    <div class="panel"><div class="tbl-wrap scrolly3"><table class="tight igrid"><tr><th class="num">№</th><th class="l g">Товар</th><th>Было</th>${cols.map(([, l, c]) => `<th class="${c} ${({kkm:'ck', om:'co', own:'cz', ret:'cr'})[c]}">${l}</th>`).join('')}<th class="cof">Офис</th>${seller ? '' : '<th class="csv">Свой</th>'}</tr>${body || `<tr><td colspan="12" class="l muted">Ничего не найдено</td></tr>`}</table></div></div>
+    ${R.q ? '' : brandChips('cig', base.map(p => p.id))}
+    <div class="panel"><div class="tbl-wrap scrolly3"><table class="tight igrid"><tr><th class="num">№</th><th class="l g">Товар</th><th>Было</th>${cols.map(([, l, c]) => `<th class="${c} ${({kkm:'ck', om:'co', own:'cz', ret:'cr'})[c]}">${l}</th>`).join('')}<th class="ost1">Остаток</th>${seller ? '' : '<th class="ost2">Остаток<br>с запасом</th>'}<th class="cof">Офис</th>${seller ? '' : '<th class="csv">Свой</th>'}</tr>${body || `<tr><td colspan="12" class="l muted">Ничего не найдено</td></tr>`}</table></div></div>
   </div>`;
 };
+function ostHtml(r, a, seller){   // сколько реально осталось: без запаса и с запасом
+  const n = i => r[i] || 0, k = n(0) + n(1), o = n(2) + n(3), z = n(4), w = (a[0]||0) + (a[1]||0) + (a[2]||0) + (a[3]||0), wz = w + (a[4]||0);
+  return `<div class="ost ${seller ? 'one' : ''}"><div class="o1"><span>Остаток без запаса</span><b>${fmt(k + o)}</b><small>ККМ ${fmt(k)} + Омбор ${fmt(o)} · было ${fmt(w)}</small></div>${seller ? '' : `<div class="o2"><span>Остаток с запасом</span><b>${fmt(k + o + z)}</b><small>+ ${WORD.toLowerCase()} ${fmt(z)} · было ${fmt(wz)}</small></div>`}</div>`;
+}
 function liveHtml(pid){
   const dr = S.drafts.cig, prev = prevInvFor('cig', dr.date);
   const row = (dr.rows[pid] || []).map(x => x||0);
@@ -1366,7 +1416,7 @@ V.ijump = () => {
   return hdr('Список сигарет') + sbar('Название или номер') + `<div class="wrap stack">
     ${!R.q ? `<div class="grid2"><button class="btn sec" data-a="ifirst">Первый незаполненный</button><button class="btn sec" data-a="ifinish">Завершить</button></div>
     <div class="small muted">Справа балансы: <b style="color:var(--accent)">офис</b>${own ? ' · <b style="color:var(--kkm)">свой</b>' : ''}. Под названием: ККМ · Омбор${own ? ' · ' + WORD : ''}. Нажмите на товар, чтобы перейти к нему.</div>` : ''}
-    ${R.q ? '' : brandChips('cig')}
+    ${R.q ? '' : brandChips('cig', ordered('cig').map(p => p.id))}
     <div class="list sep" id="plist">${prodRows('cig', R.q, pid => { const c = bal(pid); if (!c) return dr.rows[pid] && dr.rows[pid].some(x => x != null) ? '' : '<span class="small muted">не заполнен</span>';
         return `<span class="mbal"><b class="off ${c.soldOff < 0 ? 'neg' : ''}">${c.soldOff}</b>${own ? `<b class="own2 ${c.sold < 0 ? 'neg' : ''}">${c.sold}</b>` : ''}</span>`; }, 'ijumpto',
       pid => { const r = dr.rows[pid]; if (!r || !r.some(x => x != null)) return ''; const k = (r[0]||0)+(r[1]||0), o = (r[2]||0)+(r[3]||0), b = r[4]||0; return `<div class="small muted">ККМ ${k} · Омбор ${o}${own ? ' · ' + WORD + ' ' + b : ''}</div>`; })}</div></div>`
@@ -1436,7 +1486,7 @@ V.rsales = () => {
       <div><span>По себестоимости</span><b>${fmt(g.c)}</b></div><div><span>По продажной</span><b>${fmt(g.s)}</b></div></div></div>`;
     const split = R.cat === 'cig' ? (SHOW ? grp('ККМ + Омбор', T.o) + grp(WORD, T.b, 1) + grp('Всего', {q:qty, c:cost, s:sale}) : grp('ККМ + Омбор', T.o)) : '';
     const act = r => r.p.cat === 'cig' && !SHOW ? (r.c.wasOff || r.c.pr.kkm || r.c.pr.om || r.c.nowOff) : (r.c.was || r.c.inc || r.c.now);
-    const shown = rows.filter(r => act(r) && (!R.onlyNeg || sv(r.c) < 0) && (!R.q || match(r.p.name, R.q)) && brandOk(r.p, R.cat));
+    const base = rows.filter(r => act(r) && (!R.onlyNeg || sv(r.c) < 0)), shown = byUse(base.filter(r => (!R.q || match(r.p.name, R.q)) && brandOk(r.p, R.cat)), r => r.p.id);
     const ex = R.cat === 'goods' ? `<div class="card"><div class="sumrow"><span>Вне списка: было ${fmt(extraSum(per.from.extra))}, стало ${fmt(extraSum(per.to.extra))}</span><b>${fmt(extraSum(per.from.extra) - extraSum(per.to.extra))}</b></div></div>` : '';
     body = `${weeknav(invShort(per.from) + ' – ' + invShort(per.to), 'неделя', 'rsnav', R.pi > 0, R.pi < ps.length - 1, evDate(per.to))}
       ${R.cat === 'cig' ? split + `<button class="stat ${neg?'badst':''}" data-a="rneg" style="text-align:left"><span class="lbl">Ошибки (минус) · нажмите, чтобы ${R.onlyNeg?'показать все':'показать только их'}</span><b>${neg}</b></button>` : `
@@ -1447,7 +1497,7 @@ V.rsales = () => {
       </div>`}
       ${ex}
       ${R.onlyNeg ? `<button class="btn sec" data-a="rneg">Показать все товары</button>` : ''}
-      ${R.q ? '' : brandChips(R.cat)}
+      ${R.q ? '' : brandChips(R.cat, base.map(r => r.p.id))}
       ${DESK ? salesTable(shown) : `<div class="list" id="plist">${shown.map(r => salesRow(r, per)).join('') || '<div class="empty-st">Нет строк</div>'}</div>`}
       ${R.q ? '' : `<button class="btn sec" data-a="xls">⬇ Скачать эту неделю в Excel</button>`}`;
   }
@@ -1521,7 +1571,11 @@ V.rstock = () => {
 };
 V.rweek = () => {
   const inv = S.inv.find(i => i.id === R.id); if (!inv) return V.rstock();
-  const items = repProducts(inv.cat).filter(p => (!R.q || match(p.name, R.q)) && brandOk(p, inv.cat)), s = invSums(inv);
+  const own0 = SHOW && !isSeller(), prev0 = prevInvFor(inv.cat, inv.date);
+  const active = p => { const r = inv.rows[p.id] || Z; if (inv.cat === 'goods') return !!r[0]; if (r[0] || r[1] || r[2] || r[3] || (own0 && r[4])) return true;
+    const pr = prihodSum(p.id, prev0 ? prev0.date : '0000', inv.date); if (pr.kkm - pr.rkkm || pr.om - pr.rom || (own0 && pr.own - pr.rown)) return true;
+    if (!prev0) return false; const c = calc(p.id, prev0.rows[p.id], inv.rows[p.id], prev0.date, inv.date); return !!(c.soldOff || (own0 && c.sold)); };
+  const base = repProducts(inv.cat).filter(active), items = byUse(base.filter(p => (!R.q || match(p.name, R.q)) && brandOk(p, inv.cat))), s = invSums(inv);
   let body;
   if (inv.cat === 'goods'){
     const rows = items.map(p => { const q = (inv.rows[p.id]||[0])[0]||0, pr = priceAt(p.id, inv.date).sale; return q ? `<tr><td class="nmc"><span class="n">${repNum(p.id)}.</span>${esc(p.name)}</td><td>${q}</td><td>${fmt(pr)}</td><td>${fmt(q*pr)}</td></tr>` : ''; }).join('');
@@ -1547,12 +1601,12 @@ V.rweek = () => {
       <div class="sumrow"><span><b>Всего с запасом</b></span><b>${fmt(s.k + s.o + s.b)}</b></div>` : ''}</div>`}
       ${R.q ? '' : `<div class="grid2"><button class="btn sec" data-a="office" data-v="${inv.id}">📤 Отчёт для офиса</button><button class="btn sec" data-a="iedit" data-v="${inv.id}">✏️ Изменить</button></div>
 `}
-      ${R.q ? '' : brandChips('cig')}
+      ${R.q ? '' : brandChips('cig', base.map(p => p.id))}
       <div class="tbl-wrap"><table class="tight wide stock">${head}${rows}${tot}</table></div>
       <p class="small muted">Всё в пачках. «Приход за неделю» — с прошлой инвентаризации, за вычетом возвратов. Баланс: офис — ККМ и Омбор${own ? ', свой — вместе с запасом' : ''}. Под названием — сумма ККМ + Омбор по себестоимости. Таблицу можно листать вбок.</p>`;
   }
   const wl = invList(inv.cat), wi = wl.findIndex(i => i.id === inv.id);
-  return hdr('Остатки') + sbar('Название товара') + `<div class="wrap stack">${R.q ? '' : weeknav(invLong(inv), 'инвентаризация', 'rwnav', wi > 0, wi < wl.length - 1, evDate(inv))}${body}</div>` + fabs([{a:'search', i:'search', l:'Поиск', c:'Найти', s:1}]);
+  return hdr('Остатки') + sbar('Название товара') + `<div class="wrap stack">${R.q ? '' : weeknav(invLong(inv), 'инвентаризация', 'rwnav', wi > 0, wi < wl.length - 1, evDate(inv))}${body}${R.q || isSeller() ? '' : `<button class="btn dang ghost" data-a="idel" data-v="${inv.id}">Удалить эту инвентаризацию</button>`}</div>` + fabs([{a:'search', i:'search', l:'Поиск', c:'Найти', s:1}]);
 };
 V.rbal = () => {
   if (needPin() && !UNLOCK) return hdr('Баланс с офисом') + lockScreen();
@@ -1584,14 +1638,14 @@ V.rbal = () => {
 };
 V.rprice = () => {
   R.cat = R.cat || 'cig'; R.to = R.to || TODAY; R.from = R.from || addD(R.to, -29);
-  const items = ordered(R.cat).filter(p => (!R.q || match(p.name, R.q)) && brandOk(p, R.cat)), cig = R.cat === 'cig';
+  const items = byUse(ordered(R.cat).filter(p => (!R.q || match(p.name, R.q)) && brandOk(p, R.cat))), cig = R.cat === 'cig';
   let changed = 0;
   const rows = items.map(p => { const c = priceAt(p.id, R.to), b = priceAt(p.id, R.from), ch = (PRIX[p.id] || []).filter(x => x.from > R.from && x.from <= R.to && x.from !== '2026-01-01'); if (ch.length) changed++;
     if (R.onlyCh && !ch.length) return '';
     return `<tr class="rowtap" data-a="rpitem" data-v="${p.id}"><td class="nmc"><span class="n">${numOf(p.id)}.</span>${esc(p.name)}${ch.length ? `<div class="small" style="color:var(--warn)">изменилась ${ch.map(x => dShort(x.from)).join(', ')} · было ${fmt(b.cost)}${cig ? ' / ' + fmt(b.sale) : ''}</div>` : ''}</td><td>${fmt(c.cost)}</td>${cig ? `<td>${fmt(c.sale)}</td><td>${fmt(c.sale - c.cost)}</td>` : ''}</tr>`; }).join('');
   return hdr('Прайс-лист') + sbar('Название товара') + `<div class="wrap stack">
     ${R.q ? '' : `${catSeg()}<div class="range"><div class="field"><label for="pr_from">С какого дня</label><input type="date" id="pr_from" data-in="pdr" data-k="from" value="${R.from}" max="${TODAY}"></div><div class="field"><label for="pr_to">Цены на дату</label><input type="date" id="pr_to" data-in="pdr" data-k="to" value="${R.to}" max="${TODAY}"></div></div>
-    <button class="btn sec" data-a="ronlych">${R.onlyCh ? 'Показать все цены' : `Изменились за период: ${changed}`}</button>${brandChips(R.cat)}`}
+    <button class="btn sec" data-a="ronlych">${R.onlyCh ? 'Показать все цены' : `Изменились за период: ${changed}`}</button>${brandChips(R.cat, ordered(R.cat).map(p => p.id))}`}
     <div class="tbl-wrap"><table class="tight"><tr><th class="l">Товар · цены на ${dShort(R.to)}</th><th>${cig ? 'Себест.' : 'Цена'}</th>${cig ? '<th>Продажа</th><th>Наценка</th>' : ''}</tr>${rows || `<tr><td class="l" colspan="4">Нет строк</td></tr>`}</table></div>
     <p class="small muted">Нажмите на товар — цены по дням за период.</p>
   </div>` + fabs([{a:'search', i:'search', l:'Поиск', c:'Найти', s:1}]);
@@ -1655,8 +1709,8 @@ V.rsw = () => {
   let rows = repProducts(R.cat).map((p, i) => { const vals = ps.map(per => sv(calc(p.id, per.from.rows[p.id], per.to.rows[p.id], per.from.date, per.to.date)));
     return {p, i, vals, sum: vals.reduce((a, b) => a + b, 0)}; }).filter(r => r.vals.some(v => v));
   rows.forEach(r => r.vals.forEach((v, i) => tot[i] += v));
-  rows = rows.filter(r => (!R.q || match(r.p.name, R.q)) && brandOk(r.p, R.cat));
-  const kv = {total: r => r.sum, last: r => r.vals[0], trend: r => r.vals[0] - (r.vals[1] || 0), num: r => r.i, name: () => 0}[R.sort] || (r => r.vals[+R.sort.slice(1)] || 0);
+  const baseIds = rows.map(r => r.p.id); rows = rows.filter(r => (!R.q || match(r.p.name, R.q)) && brandOk(r.p, R.cat));
+  const kv = {total: r => r.sum, last: r => r.vals[0], trend: r => r.vals[0] - (r.vals[1] || 0), use: r => useScore()[r.p.id] || 0, num: r => r.i, name: () => 0}[R.sort] || (r => r.vals[+R.sort.slice(1)] || 0);
   const html = sortRows(rows, kv).map(r => `<tr class="rowtap" data-a="rprod" data-v="${r.p.id}"><td class="stick nmc">${esc(r.p.name)}</td><td><b>${fmt(r.sum)}</b></td>${r.vals.map((v, i) => `<td class="${v === 0 ? 'z' : v < 0 ? 'neg' : ''} ${R.sort === 'c' + i ? 'sorted' : ''}">${fmt(v)}</td>`).join('')}</tr>`).join('');
   const range = `<div class="range"><div class="field"><label for="sw_from">С какого дня</label><input type="date" id="sw_from" data-in="pdr" data-k="from" value="${R.from}" max="${TODAY}"></div><div class="field"><label for="sw_to">По какой</label><input type="date" id="sw_to" data-in="pdr" data-k="to" value="${R.to}" max="${TODAY}"></div></div>`;
   if (DESK){ const selP = R.sel && P(R.sel);
@@ -1665,10 +1719,10 @@ V.rsw = () => {
     const side = selP ? (() => { const P_ = panelOf(V.rprod, {s:'rprod', id:selP.id}); return `<div class="panel"><div class="ph"><b style="font-size:15px">${esc(selP.name)}</b><span class="phb"><button data-a="swsel" data-v="">✕</button></span></div><div class="pb">${P_.html}</div></div>`; })() : '';
     return hdr('Аналитика продаж') + sbar('Название товара') + `<div class="wrap stack" style="padding-top:12px">
       <div class="toolbar">${catSeg()}<div class="range">${range.replace('<div class="range">', '').replace(/<\/div>$/, '')}</div></div>
-      ${sortBar([['total','Всего'], ['last','Последняя неделя'], ['trend','Рост'], ['num','По порядку'], ['name','По названию']])}${R.q ? '' : brandChips(R.cat)}
+      ${sortBar([['total','Всего'], ['last','Последняя неделя'], ['trend','Рост'], ['use','★ Частые'], ['num','По номеру'], ['name','По названию']])}${R.q ? '' : brandChips(R.cat, baseIds, {sort:false})}
       ${side ? `<div class="md rev"><div class="mdl">${tableH}</div><div class="mdr">${side}</div></div>` : tableH}
       <div class="small muted">Продано пачек по неделям, свежие слева. Нажмите на товар — справа откроется график и сравнение недель.</div></div>` + fabs([{a:'search', i:'search', l:'Найти товар', c:'Найти'}]); }
-  return hdr('Аналитика продаж') + sbar('Название товара') + `<div class="wrap stack">${R.q ? '' : catSeg() + range + (ps.length ? '' : '<div class="note info">В этом периоде нет недель — выберите другие даты.</div>') + sortBar([['total','Всего'], ['last','Последняя неделя'], ['trend','Рост'], ['num','По порядку'], ['name','По названию']]) + brandChips(R.cat)}
+  return hdr('Аналитика продаж') + sbar('Название товара') + `<div class="wrap stack">${R.q ? '' : catSeg() + range + (ps.length ? '' : '<div class="note info">В этом периоде нет недель — выберите другие даты.</div>') + sortBar([['total','Всего'], ['last','Последняя неделя'], ['trend','Рост'], ['use','★ Частые'], ['num','По номеру'], ['name','По названию']]) + brandChips(R.cat, baseIds, {sort:false})}
     <div class="small muted">Продано ${R.cat === 'cig' ? 'пачек' : 'шт'} по неделям (свежие слева). Нажмите на товар — откроется график, на заголовок недели — сортировка по ней.</div>
     <div class="tbl-wrap"><table class="tight wide"><tr><th class="stick l">Товар</th>${thS('total', 'Всего')}${ps.map((per, i) => thS('c' + i, invShort(per.to))).join('')}</tr>
     ${R.q ? '' : `<tr class="tot"><td class="stick l">Все товары</td><td>${fmt(tot.reduce((a, b) => a + b, 0))}</td>${tot.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`}${html}</table></div></div>`
@@ -1702,14 +1756,14 @@ V.rpd = () => {
   let rows = repProducts(R.cat).map((p, i) => ({p, i})).filter(r => by[r.p.id]).map(r => { const vals = days.map(d => by[r.p.id][d] || 0); const f = vals.findIndex(v => v);
     return Object.assign(r, {vals, sum: vals.reduce((a, b) => a + b, 0), cnt: vals.filter(v => v).length, recent: f < 0 ? 1e9 : f}); });
   const tot = days.map((d, k) => rows.reduce((s, r) => s + r.vals[k], 0));
-  rows = rows.filter(r => (!R.q || match(r.p.name, R.q)) && brandOk(r.p, R.cat));
-  const kv = {total: r => r.sum, days: r => r.cnt, last: r => -r.recent, num: r => r.i, name: () => 0}[R.sort] || (r => r.vals[+R.sort.slice(1)] || 0);
+  const baseIds = rows.map(r => r.p.id); rows = rows.filter(r => (!R.q || match(r.p.name, R.q)) && brandOk(r.p, R.cat));
+  const kv = {total: r => r.sum, days: r => r.cnt, last: r => -r.recent, use: r => useScore()[r.p.id] || 0, num: r => r.i, name: () => 0}[R.sort] || (r => r.vals[+R.sort.slice(1)] || 0);
   const html = sortRows(rows, kv).map(r => `<tr class="rowtap" data-a="rpprod" data-v="${r.p.id}"><td class="stick nmc">${esc(r.p.name)}</td><td><b>${fmt(r.sum)}</b></td>${r.vals.map((v, i) => `<td class="${v ? '' : 'z'} ${R.sort === 'c' + i ? 'sorted' : ''}">${v ? fmt(v) : '·'}</td>`).join('')}</tr>`).join('');
   const kinds = [['all','Все'], ['kkm','ККМ'], ['om','Омбор']].concat(SHOW ? [['own', WORD]] : []);
   const chips = R.cat === 'goods' ? '' : `<div class="chips">${kinds.map(([k, l]) => `<button class="chip ${R.pt === k ? 'on' : ''}" data-a="rpt" data-v="${k}">${l}</button>`).join('')}</div>`;
   return hdr('Аналитика прихода') + sbar('Название товара') + `<div class="wrap stack">
     ${R.q ? '' : `${catSeg()}<div class="range"><div class="field"><label for="pd_from">С какого дня</label><input type="date" id="pd_from" data-in="pdr" data-k="from" value="${R.from}" max="${TODAY}"></div><div class="field"><label for="pd_to">По какой</label><input type="date" id="pd_to" data-in="pdr" data-k="to" value="${R.to}" max="${TODAY}"></div></div>${chips}
-      ${sortBar([['total','Больше всего'], ['days','Чаще всего'], ['last','Недавние'], ['num','По порядку'], ['name','По названию']])}${brandChips(R.cat)}`}
+      ${sortBar([['total','Больше всего'], ['days','Чаще всего'], ['last','Недавние'], ['use','★ Частые'], ['num','По номеру'], ['name','По названию']])}${brandChips(R.cat, baseIds, {sort:false})}`}
     <div class="small muted">Сколько заказывали (пачек/шт) по дням, свежие слева. Нажмите на товар — откроется график, на заголовок дня — сортировка по нему. ${days.length >= 120 ? 'Показаны последние 120 дней периода.' : ''}</div>
     ${rows.length ? `<div class="tbl-wrap"><table class="tight wide"><tr><th class="stick l">Товар</th>${thS('total', 'Всего')}${days.map((d, i) => thS('c' + i, wdShort(d) + ' ' + dShort(d))).join('')}</tr>
     ${R.q ? '' : `<tr class="tot"><td class="stick l">Все товары</td><td>${fmt(tot.reduce((a, b) => a + b, 0))}</td>${tot.map(v => `<td>${v ? fmt(v) : '·'}</td>`).join('')}</tr>`}${html}</table></div>` : '<div class="card empty-st">За этот период приходов нет</div>'}
@@ -1909,7 +1963,7 @@ const weeknav = (label, sub, act, prevOk, nextOk, v) => `<div class="datenav"><b
 /* ---------- ручные изменения долга (прибыль/убыток недели и др.) ---------- */
 const ADJ_WHY = ['Прибыль недели', 'Убыток недели', 'Другое'];
 const adjNote = n => String(n || '').replace(/^сверка с Excel/, 'из Excel').replace(/^сверка с офисом$/, 'изменение');
-const adjRow = a => `<div class="row"><span class="nm"><b>${esc(adjNote(a.note))}</b><div class="small muted">${wdShort(a.date)} ${dShort(a.date)}</div></span><span class="rt" style="color:var(${a.amt < 0 ? '--good' : '--bad'})">${a.amt>0?'+':'−'}${fmt(Math.abs(a.amt))}</span><button class="x" data-a="adel" data-v="${a.id}" aria-label="Удалить">✕</button></div>`;
+const adjRow = a => `<div class="row"><span class="nm"><b>${esc(adjNote(a.note))}</b><div class="small muted">${wdShort(a.date)} ${dShort(a.date)}</div></span><span class="rt" style="color:var(${a.amt < 0 ? '--good' : '--bad'})">${a.amt>0?'+':'−'}${fmt(Math.abs(a.amt))}</span></div>`.replace('<div class="row">', `<button class="row" data-a="adel" data-v="${a.id}">`).replace(/<\/div>$/, '</button>');
 V.adjnew = () => {
   R.adate = R.adate || TODAY; R.asign = R.asign || 1; R.aamt = R.aamt || 0;
   const b0 = balanceEnd(R.adate), b1 = b0 == null ? null : b0 + R.asign * R.aamt;
@@ -1955,7 +2009,7 @@ const tile2 = (a, v, t, s) => `<button class="tile" data-a="${a}" data-v="${v}">
 V.sprod = () => {
   R.q = R.q || '';
   return hdr(R.cat==='cig'?'Сигареты':'Прочие товары') + sbar('Поиск') + `<div class="wrap stack">
-    ${R.q ? '' : brandChips(R.cat)}
+    ${R.q ? '' : brandChips(R.cat, ordered(R.cat).map(p => p.id))}
     <div class="list" id="plist">${prodRows(R.cat, R.q, pid => { const c = curPrice(pid); return `<span class="small muted" style="white-space:nowrap">${fmt(c.cost)}${R.cat==='cig' ? ' / ' + fmt(c.sale) : ''}</span>`; }, 'sedit')}</div>
     ${S.products.some(p => p.cat===R.cat && p.hidden) ? `<div class="sec-h">Скрытые</div><div class="list">${S.products.filter(p=>p.cat===R.cat&&p.hidden).map(p=>`<button class="row" data-a="sedit" data-v="${p.id}"><span class="nm muted">${esc(p.name)}</span></button>`).join('')}</div>`:''}
   </div>` + fabs([{a:'search', i:'search', l:'Поиск', s:1}, {a:'sadd', i:'plus', l:'Новый товар', c:'Новый'}]);
@@ -1989,7 +2043,7 @@ function npHtml(){
     <div class="npx" id="npx">${NP.extra ? NP.extra(n) : ''}</div>
     <div class="npkb small muted" style="display:none">Можно печатать цифрами на клавиатуре · Enter — готово · Esc — отмена</div>
     <div class="keys">${['1','2','3','4','5','6','7','8','9', NP.money?'000':'00','0','⌫'].map(k => `<button data-a="npk" data-v="${k}">${k}</button>`).join('')}</div>
-    <div class="sheet-btns"><button class="btn sec" data-a="npclose">Отмена</button><button class="btn pri" id="npok" data-a="npok" ${NP.allowZero || n>0 ? '' : 'disabled'}>${NP.ok || 'Записать'}</button></div>
+    <div class="sheet-btns"><button class="btn sec" data-a="npclose">Отмена</button><button class="btn ${NP.okDang ? 'dang' : 'pri'}" id="npok" data-a="npok" ${NP.allowZero || n>0 ? '' : 'disabled'}>${NP.ok || 'Записать'}</button></div>
     ${NP.onDel ? `<button class="btn dang" data-a="npdel">${NP.delL || 'Удалить строку'}</button>` : ''}
   </div></div>`;
 }
@@ -2044,18 +2098,25 @@ const A = {
   apf: d => { keepNote(); R.aamt = +d.v; render(); },
   asave: () => { keepNote(); const nm = (R.anote || '').trim(); if (!nm){ R.err = 'Напишите наименование'; return render(); } if (!R.aamt){ R.err = 'Введите сумму'; return render(); }
     S.adj = S.adj || []; S.adj.push({id:uid(), date:R.adate, amt:R.asign * R.aamt, note:nm}); save(); doBack(); toast(R.asign > 0 ? 'Добавлено к долгу' : 'Долг убавлен'); },
-  adel: d => confirmBox('Удалить это ручное изменение?', 'Удалить', () => { S.adj = S.adj.filter(a => a.id !== d.v); save(); }),
+  adel: d => { const a = S.adj.find(x => x.id === d.v); if (!a) return; const what = `${esc(adjNote(a.note))}: ${dShort(a.date)}, ${a.amt > 0 ? '+' : '−'}${fmt(Math.abs(a.amt))}`;
+    confirmBox('Удалить это изменение долга?<br><b>' + what + '</b>', 'Удалить', () => setTimeout(() => pinGuard(what, () => { S.adj = S.adj.filter(x => x.id !== d.v); save(); toast('Удалено'); }), 0)); },
   npdel: () => NP.onDel(),
   pnew: () => { TSHEET = true; ANIM = true; render(); },
   tsclose: () => { TSHEET = false; render(); },
   pnewt: d => { TSHEET = false; S.wip = {docId:null, date:R.date || TODAY, type:d.v, items:[], dirty:false}; save(); go('pdoc'); },
-  popen: d => { const doc = S.docs.find(x => x.id === d.v); S.wip = {docId:doc.id, date:doc.date, type:doc.type, items:S.prihod.filter(x => x.doc === doc.id).map(x => ({pid:x.pid, qty:x.qty})), dirty:false}; save(); go('pdoc'); },
+  popen: d => { const doc = S.docs.find(x => x.id === d.v); S.wip = {docId:doc.id, date:doc.date, type:doc.type, items:S.prihod.filter(x => x.doc === doc.id).map(x => ({pid:x.pid, qty:x.qty})), dirty:false, view:d.edit !== '1'}; save(); go('pdoc'); },
   padd: d => { const w = S.wip, pid = d.v, pr = priceAt(pid, w.date), already = w.items.filter(x => x.pid===pid).reduce((a,x)=>a+x.qty,0);
     openNP({title:P(pid).name, sub:`<span class="pill p-${TYPES[w.type].c}">${TYPES[w.type].full}</span> · цена ${fmt(pr.cost)}${already ? ' · уже в приходе: ' + already : ''}`, extra:n => 'Сумма: ' + fmt(n*pr.cost) + qtyWarn(n), ok:'Добавить',
       onOk:n => { w.items.push({pid, qty:n}); w.dirty = true; save(); NP = null; R.q = ''; R.sOpen = false; toast('Добавлено: +' + n); }}); },
   pidel: d => { S.wip.items.splice(+d.v, 1); S.wip.dirty = true; save(); render(); },
   psave: () => savePdoc(),
-  pdocdel: () => confirmBox(isRet(S.wip.type) ? 'Удалить весь этот возврат?' : 'Удалить весь этот приход?', 'Удалить', () => { const id = S.wip.docId; S.docs = S.docs.filter(x => x.id !== id); S.prihod = S.prihod.filter(x => x.doc !== id); S.wip = null; save(); doBack(); toast('Приход удалён'); }),
+  pdocdel: () => { const w = S.wip, one = isRet(w.type) ? 'возврат' : 'приход', doc = S.docs.find(x => x.id === w.docId); if (!doc) return;
+    const what = `${one[0].toUpperCase() + one.slice(1)} ${dShort(doc.date)}, ${TYPES[doc.type].full}: ${S.prihod.filter(x => x.doc === doc.id).length} поз. на ${fmt(docSum(S.prihod.filter(x => x.doc === doc.id), doc.date))}`;
+    const del = () => { const id = doc.id; S.docs = S.docs.filter(x => x.id !== id); S.prihod = S.prihod.filter(x => x.doc !== id); S.wip = null; save(); doBack(); toast((one === 'возврат' ? 'Возврат' : 'Приход') + ' удалён'); };
+    confirmBox('Удалить весь этот ' + one + '?<br><b>' + what + '</b>', 'Удалить', () => doc.date === TODAY ? del() : setTimeout(() => pinGuard(what, del), 0)); },
+  idel: d => { const inv = S.inv.find(i => i.id === d.v); if (!inv) return; const what = `Инвентаризация ${inv.cat === 'cig' ? 'сигарет' : 'товаров'} за ${dShort(evDate(inv))}`;
+    confirmBox('Удалить всю инвентаризацию?<br><b>' + what + '</b><br>Остатки и продажи этой недели пересчитаются.', 'Удалить', () => setTimeout(() => pinGuard(what, () => { S.inv = S.inv.filter(i => i.id !== inv.id); save(); HIST.length = 0; HIST.push({s:'home'}); R = {s:'rstock', cat:inv.cat}; toast('Инвентаризация удалена'); }), 0)); },
+  pedit: () => { if (S.wip){ S.wip.view = false; save(); render(); } },
   cdate: d => { const f = () => { R.date = addD(R.date, +d.v); render(); }; if (R.dirty) askSave(() => { saveCash(); f(); }, () => { R.dirty = false; R.cd = null; f(); }); else f(); },
   cset: d => openNP({title: d.v==='t' ? 'Терминал' : 'Касса', sub: dLong(R.date) + (R.cd[d.v] ? ' · сейчас ' + fmt(R.cd[d.v]) : ''), money:true, allowZero:true, ok:'Готово', onOk:n => { R.cd[d.v] = n; R.dirty = true; NP = null; render(); }}),
   csave: () => saveCash(),
@@ -2072,8 +2133,11 @@ const A = {
   dcard: () => go('dcard', {id:R.id, dc:null}),
   dclim: () => { keepDc(); openNP({title:'Лимит долга', money:true, allowZero:true, val:String((R.dc && R.dc.lim) ?? dInfo(R.id).lim ?? ''), ok:'Готово', onOk:n => { R.dc = Object.assign(R.dc || {}, {lim:n}); NP = null; render(); }}); },
   dcsave: () => { keepDc(); S.dinfo = S.dinfo || {}; S.dinfo[R.id] = Object.assign({}, dInfo(R.id), R.dc); save(); doBack(); toast('Карточка сохранена'); },
-  mdel: d => confirmBox('Удалить эту запись долга?', 'Удалить', () => { S.moves = S.moves.filter(m => m.id !== d.v); save(); toast('Удалено'); }),
-  dgrp: () => { const dd = S.debtors.find(x => x.id === R.id); dd.grp = dd.grp === 'n' ? 'a' : 'n'; dd.ts = Date.now(); save(); toast(dd.grp==='n' ? 'Перенесено в Несгор' : 'Перенесено в должники'); },
+  mdel: d => { const m = S.moves.find(x => x.id === d.v); if (!m) return; const dd = S.debtors.find(x => x.id === m.did), what = `${esc(dd ? dd.name : '')}: ${dShort(m.date)}, ${m.amt > 0 ? 'дал в долг +' : 'вернул '}${fmt(m.amt)}`;
+    const del = () => { S.moves = S.moves.filter(x => x.id !== d.v); save(); toast('Запись удалена'); };
+    confirmBox('Удалить запись?<br><b>' + what + '</b>', 'Удалить', () => m.date === TODAY ? del() : setTimeout(() => pinGuard(what, del), 0)); },
+  dgrp: () => { const dd = S.debtors.find(x => x.id === R.id); confirmBox(dd.grp === 'n' ? `Вернуть «${esc(dd.name)}» в должники?` : `Перенести «${esc(dd.name)}» в Несгор?`, dd.grp === 'n' ? 'Вернуть' : 'Перенести', () => A.dgrp2()); },
+  dgrp2: () => { const dd = S.debtors.find(x => x.id === R.id); dd.grp = dd.grp === 'n' ? 'a' : 'n'; dd.ts = Date.now(); save(); toast(dd.grp==='n' ? 'Перенесено в Несгор' : 'Перенесено в должники'); },
   icat: d => { R.cat = d.v; render(); },
   istart: d => { const disp = document.getElementById('idate').value || TODAY, eve = true, date = addD(disp, 1);
     const lbl = dShort(disp);
@@ -2119,7 +2183,8 @@ const A = {
   wtab: d => { R.tab = d.v; render(); },
   iempty: () => { R.onlyEmpty = !R.onlyEmpty; render(); },
   ballt: () => { BRALL = !BRALL; render(); },
-  brand: d => { R.brand = d.v; render(); const l = document.querySelector('.brands'); if (l){ const top = l.getBoundingClientRect().top + window.scrollY - 120; if (window.scrollY > top) window.scrollTo(0, Math.max(0, top)); } },
+  fsort: d => { FSORT = d.v === '1'; try { localStorage.setItem('chorsu_fsort', FSORT ? '1' : '0'); } catch(e){} render(); },
+  brand: d => { R.brand = d.v; BRALL = false; render(); const on = document.querySelector('.brands .bchip.on'); if (on && on.parentElement.scrollWidth > on.parentElement.clientWidth) on.parentElement.scrollLeft = Math.max(0, on.offsetLeft - 120); const l = document.querySelector('.brands'); if (l){ const top = l.getBoundingClientRect().top + window.scrollY - 120; if (window.scrollY > top) window.scrollTo(0, Math.max(0, top)); } },
   docgo: d => { const doc = S.docs.find(x => x.id === d.v); if (!doc) return; go('plist', {date:doc.date, kind:isRet(doc.type) ? 'ret' : 'in'}); A.popen({v:doc.id}); },
   helpclose: () => { HELP = false; render(); },
   help: () => { HELP = true; ANIM = true; render(); },
@@ -2132,7 +2197,8 @@ const A = {
   dayr: d => go('plist', {date:d.v, kind:'ret'}),
   dayc: d => go('cash', {date:d.v}),
   cnp: d => { const [day, k] = d.v.split('|'), c = cashOf(day); openNP({title:(k === 't' ? 'Терминал' : 'Касса') + ' · ' + wdShort(day) + ' ' + dShort(day), sub:c[k] ? 'сейчас ' + fmt(c[k]) : '', money:true, allowZero:true, val:c[k] ? String(c[k]) : '', ok:'Сохранить',
-    onOk:n => { S.cash[day] = Object.assign({t:0, k:0}, S.cash[day] || {}, {[k]:n}); save(); NP = null; toast('Сохранено'); }}); },
+    onOk:n => { const set = () => { S.cash[day] = Object.assign({t:0, k:0}, S.cash[day] || {}, {[k]:n}); save(); toast('Сохранено'); }; NP = null;
+      if (cashRisky(day, c[k], n)) return cashAsk(day, k, c[k], n, set); set(); }}); },
   rcnav: d => { R.di += +d.v; render(); },
   rbnav: d => { R.di += +d.v; render(); },
   dpick: d => { DSHEET = {act:d.act, v:d.v || TODAY, title:d.t}; ANIM = true; render(); },
@@ -2177,7 +2243,8 @@ const A = {
       if (inv.cat === 'goods') S.drafts.goods = Object.assign(base, {adds:Object.keys(inv.rows).filter(pid => inv.rows[pid][0]).map(pid => ({id:uid(), pid, qty:inv.rows[pid][0], ts:Date.now()})), extra:(inv.extra||[]).map(x => Object.assign({}, x))});
       else { const rows = {}; ordered('cig').forEach(p => { rows[p.id] = (inv.rows[p.id] || [0,0,0,0,0,0]).slice(); }); S.drafts.cig = Object.assign(base, {idx:0, rows}); }
       save(); HIST.length = 0; HIST.push({s:'home'}, {s:'inv', cat:inv.cat}); R = {s: inv.cat === 'goods' ? 'ginv' : 'icard', cat:inv.cat}; render(); window.scrollTo(0,0); };
-    if (S.drafts[inv.cat]) confirmBox('Есть незаконченная инвентаризация. Заменить её изменением ' + dShort(evDate(inv)) + '?', 'Заменить', start); else start(); },
+    if (S.drafts[inv.cat]) confirmBox('Есть незаконченная инвентаризация. Заменить её изменением ' + dShort(evDate(inv)) + '?', 'Заменить', start);
+    else { CONF = {text:'Изменить инвентаризацию за ' + dShort(evDate(inv)) + '?<br><b>Старые цифры заменятся только после «Сохранить».</b>', yes:{l:'Изменить', c:'pri', f:start}, no:{l:'Нет', f:() => {}}}; ANIM = true; render(); } },
   office: d => sendOffice(d.v),
   rptnow: () => { const l = invList('cig').slice(-1)[0]; sendReports(l); render(); },
   rper: d => { R.pi = +d.v; R.open = null; render(); }, rday: d => { R.di = +d.v; render(); },
@@ -2290,7 +2357,10 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('change', e => {
   const el = e.target;
-  if (el.dataset.in === 'cash'){ const d = el.dataset.d, k = el.dataset.k, n = +(el.value.replace(/\D/g, '') || 0); S.cash[d] = Object.assign({t:0, k:0}, S.cash[d] || {}, {[k]:n}); el.value = n ? fmt(n) : ''; save();
+  if (el.dataset.in === 'cash'){ const d = el.dataset.d, k = el.dataset.k, n = +(el.value.replace(/\D/g, '') || 0), old = cashOf(d)[k];
+    if (n === old){ el.value = n ? fmt(n) : ''; delete el.dataset.dirty; return; }
+    if (cashRisky(d, old, n)){ el.value = old ? fmt(old) : ''; delete el.dataset.dirty; return cashAsk(d, k, old, n, () => { S.cash[d] = Object.assign({t:0, k:0}, S.cash[d] || {}, {[k]:n}); save(); }); }
+    S.cash[d] = Object.assign({t:0, k:0}, S.cash[d] || {}, {[k]:n}); el.value = n ? fmt(n) : ''; delete el.dataset.dirty; save();
     const tr = el.closest('tr'), c = cashOf(d); tr.querySelector('.tsum').textContent = c.t + c.k ? fmt(c.t + c.k) : '—';
     const tot = tr.parentElement.querySelector('tr.tot'); if (tot){ let a = 0, b = 0; for (let x = tot.dataset.from; x <= tot.dataset.to; x = addD(x, 1)){ const y = cashOf(x); a += y.t; b += y.k; } tot.querySelector('.ct').textContent = fmt(a); tot.querySelector('.ck2').textContent = fmt(b); tot.querySelector('.ca').textContent = fmt(a + b); }
     el.classList.add('saved'); setTimeout(() => el.classList.remove('saved'), 900); return; }
@@ -2318,13 +2388,15 @@ document.addEventListener('input', e => {
       const bi = el.closest('tr').querySelector('input[data-i="4"]'); if (bi && sug > 0 && i !== 4){ bi.value = sug; } }
     dr.rows[pid][i] = el.value === '' ? null : +el.value; saveDraftSoon();
     const fc = document.getElementById('gfill'); if (fc) fc.textContent = ordered('cig').filter(p => dr.rows[p.id] && dr.rows[p.id].some(x => x != null)).length;
-    const tr = el.closest('tr'), b = igridBal(pid); tr.querySelector('.bo').innerHTML = b[0]; const bs = tr.querySelector('.bs'); if (bs) bs.innerHTML = b[1];
+    const tr = el.closest('tr'), b = igridBal(pid); tr.querySelector('.bo').innerHTML = b[0];
+    const oc = document.createElement('tr'); oc.innerHTML = ostCells(dr.rows[pid], isSeller()); const o1 = tr.querySelector('td.ost1'), o2 = tr.querySelector('td.ost2'); if (o1) o1.innerHTML = oc.children[0].innerHTML; if (o2 && oc.children[1]) o2.innerHTML = oc.children[1].innerHTML; const bs = tr.querySelector('.bs'); if (bs) bs.innerHTML = b[1];
   } else if (el.dataset.in === 'inv'){
     const dr = S.drafts.cig, p = ordered('cig')[dr.idx], i = +el.dataset.i;
     el.value = el.value.replace(/\D/g,'');
     dr.rows[p.id][i] = el.value === '' ? null : +el.value;
     if (i === 4 && dr.sugs && dr.sugs[p.id]){ delete dr.sugs[p.id]; const h = document.getElementById('bhint'); if (h) h.textContent = ''; }
     save(); const lv = document.getElementById('live'); if (lv) lv.innerHTML = liveHtml(p.id);
+    const os = document.getElementById('ost'), pv = prevInvFor('cig', dr.date); if (os) os.innerHTML = ostHtml(dr.rows[p.id], (pv && pv.rows[p.id]) || Z, isSeller());
   }
 });
 /* hide floating buttons while the phone keyboard is open */
