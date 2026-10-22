@@ -294,7 +294,12 @@ function report_(sheets) {
     // сначала листы «📊» (впереди, по порядку), потом недельные для офиса — сразу за ними, новые первыми
     sheets.filter(s => s.pos !== 'week').forEach((s, i) => { writeSheet_(ss, s, i); done.push(s.name); });
     const dash = ss.getSheets().filter(x => x.getName().indexOf('📊') === 0).length;
-    sheets.filter(s => s.pos === 'week').reverse().forEach(s => {
+    const weeks = sheets.filter(s => s.pos === 'week');
+    // сначала создаём пустые листы недели по порядку («Qarz17.10», потом «17.10»), чтобы формулы между ними не ломались
+    weeks.forEach((s, i) => { if (!ss.getSheetByName(s.name)) ss.insertSheet(s.name, Math.min(dash + i, ss.getNumSheets())); });
+    weeks.forEach(s => {
+      if (s.kind === 'office' && OFFICE_EXACT) { officeExact_(ss, s, dash); done.push(s.name); return; }
+      if (s.kind === 'qarz' && OFFICE_EXACT) { qarzExact_(ss, s, dash); done.push(s.name); return; }
       if (s.kind === 'office') s = officeSheet_(ss, s);
       writeSheet_(ss, s, dash); done.push(s.name);
     });
@@ -411,4 +416,148 @@ function officeSheet_(ss, s) {
   marks.push({r: rows.length, bold: true, bg: TOT_BG});
   return {name: s.name, pos: 'week', rows, head: 3, freezeRows: 3, num: [1, 2], dates: [], text: [0], widths: [290, 80, 110], headBg: '#D8D8D8', marks,
     cells: [{a1: 'C2', f: 'dd.MM.yyyy'}, {a1: 'B2', bold: true}, {a1: 'A3', note: 'Для отчёта офиса скопируйте B4:C' + lastTpl + ' и вставьте в B4 листа «' + s.name + '» офиса (Правка → Специальная вставка → Только значения).'}]};
+}
+
+
+/* ===================== Листы для офиса один в один с Excel «Inventarizatsiya» =====================
+ * «дд.мм»: те же строки, столбцы, цвета, шрифты, рамки и объединения, что в листе офиса (например «18.07»):
+ *   B1 «Do'kon nomi:», C1 «Sana:», B2 магазин, C2 дата, строка 3 «Номи | ККМ | Омбор»,
+ *   строки 4…288 — товары в порядке офиса (названия из листа «Шаблон офиса»), внизу — блок «Bu yerga yozmang !».
+ * «Qarzдд.мм»: A1 =SUM(B:B), C1 «Formula bor», A2 «Nomi», B2 «Summa», C2 = магазин из листа «дд.мм», ниже должники.
+ * Названия товаров и магазина в коде не хранятся — только в вашей таблице.
+ */
+const OFFICE_EXACT = true;
+// стили ячеек листа офиса: [заливка, жирный, размер, шрифт, формат числа, по горизонтали, перенос, рамка: [верх, лево, низ, право]]
+const OS_ = [
+  ['#DAEEF3', 0, 9, 'Arimo', '', '', 0, ''],                    // 0
+  ['#DAEEF3', 0, 9, 'Arimo', '', 'right', 0, ''],               // 1
+  [null, 0, 11, 'Calibri', '', '', 0, ''],                      // 2
+  ['#DAEEF3', 1, 8, 'Arimo', '', '', 1, ''],                    // 3
+  ['#DAEEF3', 1, 8, 'Arimo', 'dd.mm.yyyy', '', 1, ''],          // 4
+  ['#D8D8D8', 1, 11, 'Arimo', '', 'center', 0, 'tttt'],         // 5
+  ['#92D050', 1, 12, 'Arimo', '', 'center', 0, 'tttt'],         // 6
+  ['#D8D8D8', 1, 12, 'Arimo', '', 'center', 0, 'tttt'],         // 7
+  ['#FFFF00', 1, 11, 'Arimo', '', 'left', 0, 'tmtt'],           // 8
+  ['#92D050', 0, 11, 'Arial', '#,##0_);[Red](#,##0)', 'center', 0, 'tttt'], // 9
+  ['#FFFFFF', 0, 11, 'Arial', '#,##0_);[Red](#,##0)', 'center', 0, 'tttt'], // 10
+  [null, 1, 11, 'Arimo', '', 'left', 0, 'tmtt'],                // 11
+  ['#92D050', 1, 11, 'Arimo', '', 'left', 0, 'tmtt'],           // 12
+  ['#FFFFFF', 0, 11, 'Arial', '', 'center', 0, 'tttt'],         // 13
+  ['#FF0000', 1, 11, 'Arimo', '', 'left', 0, 'tmtt'],           // 14
+  ['#DAEEF3', 0, 9, 'Arimo', '', 'center', 0, 't---'],          // 15
+  [null, 0, 11, 'Calibri', '', '', 0, 't---'],                  // 16
+  [null, 0, 11, 'Arial', '#,##0_);[Red](#,##0)', '', 0, 'tttt'], // 17
+  ['#FFFF00', 0, 11, 'Arial', '#,##0', 'center', 0, 'tttt'],    // 18
+  ['#D6E3BC', 0, 11, 'Arial', '#,##0', 'center', 0, 'tttt'],    // 19
+  ['#D6E3BC', 0, 11, 'Arial', '', 'center', 0, 'tttt'],         // 20
+  [null, 0, 11, 'Arimo', '#,##0" сўм"', 'right', 0, 't-tt'],    // 21
+  ['#92D050', 0, 11, 'Arial', '', 'center', 0, 'ttt-'],         // 22
+  ['#92D050', 0, 11, 'Arial', 'd-mmm', 'center', 0, 't-t-'],    // 23
+  ['#92D050', 0, 11, 'Arial', '', 'center', 1, 'ttt-'],         // 24
+  ['#DAEEF3', 0, 9, 'Arimo', '', 'center', 0, ''],              // 25
+  [null, 0, 9, 'Arimo', '', '', 0, ''],                         // 26
+  [null, 0, 9, 'Arimo', '', 'center', 0, '']                    // 27
+];
+// по столбцам A…D: [с строки, по строку, стиль] — как в листе офиса (строки 4…288 — товары)
+const OR_ = [
+  [[1, 2, 0], [3, 3, 5], [4, 5, 8], [6, 276, 11], [277, 277, 14], [278, 288, 11], [289, 289, 15], [290, 293, 17], [294, 294, 15], [295, 296, 21], [297, 297, 0], [298, 300, 25], [301, 338, 26]],
+  [[1, 1, 1], [2, 2, 3], [3, 3, 6], [4, 101, 9], [102, 102, 12], [103, 288, 9], [289, 289, 16], [290, 290, 18], [291, 291, 19], [292, 293, 20], [294, 294, 16], [295, 295, 22], [296, 296, 24], [297, 297, 0], [301, 338, 26]],
+  [[1, 1, 1], [2, 2, 4], [3, 3, 7], [4, 208, 10], [209, 209, 13], [210, 288, 10], [289, 294, 0], [295, 296, 23], [297, 300, 0], [301, 301, 26], [302, 338, 27]],
+  [[1, 294, 0], [295, 296, 23], [297, 300, 0], [301, 301, 26], [302, 338, 27]]
+];
+const OFF_ROWS_ = 338, OFF_ITEMS_ = 285;   // в листе офиса 285 строк товаров (4…288)
+
+function freshSheet_(ss, name, pos) {   // лист очищается на месте — ссылки на него из других листов не ломаются
+  let sh = ss.getSheetByName(name);
+  if (!sh) return ss.insertSheet(name, Math.min(Number(pos) || 0, ss.getNumSheets()));
+  const f = sh.getFilter(); if (f) f.remove();
+  const all = sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns());
+  all.breakApart(); all.clearDataValidations(); sh.clear(); sh.clearNotes();
+  sh.setFrozenRows(0); sh.setFrozenColumns(0);
+  return sh;
+}
+
+function officeExact_(ss, s, pos) {
+  const items = s.items || [], names = items.map(x => x[0]);
+  const tsh = ss.getSheetByName(TPL_SHEET);
+  let shop = '', order = [], map = [];
+  if (tsh && tsh.getLastRow() > 1) {
+    shop = String(tsh.getRange('F1').getValue() || '');
+    const v = tsh.getRange(2, 1, tsh.getLastRow() - 1, 2).getValues();
+    const last = v.map(r => String(r[0]).trim() !== '').lastIndexOf(true);
+    order = v.slice(0, last + 1);
+    map = matchOffice_(order, names);
+    const col = map.map((m, i) => [String(order[i][0]).trim() === '' ? '' : (m.j >= 0 && m.how !== 'точно' && m.how !== 'по столбцу B' ? m.how + ': ' + names[m.j] : m.how)]);
+    if (col.length) tsh.getRange(2, 3, col.length, 1).setValues(col).setBackgrounds(col.map(c => [/^похоже/.test(c[0]) ? '#FFF1D2' : /^нет|^B:/.test(c[0]) ? '#F1F1F1' : null]));
+  } else { order = items.map(it => [it[0], '']); map = items.map((it, j) => ({j, how: 'точно'})); }
+  const n = order.length, d = n - OFF_ITEMS_;           // если в шаблоне другое число строк — низ сдвигается
+  const R = r => r >= 289 ? r + d : r, total = OFF_ROWS_ + d;
+  const sh = freshSheet_(ss, s.name, pos);
+  if (sh.getMaxRows() < total + 40) sh.insertRowsAfter(sh.getMaxRows(), total + 40 - sh.getMaxRows());
+  // значения A1:D…
+  const val = []; for (let r = 0; r < total; r++) val.push(['', '', '', '']);
+  const put = (r, c, v) => { val[R(r) - 1][c] = v; };
+  put(1, 1, "Do'kon nomi:"); put(1, 2, 'Sana:'); put(2, 1, s.shop || shop); put(2, 2, s.date ? serial_(s.date) : '');
+  put(3, 0, 'Номи'); put(3, 1, 'ККМ'); put(3, 2, 'Омбор');
+  const usedItem = {};
+  order.forEach((t, i) => { const j = map[i].j; if (j >= 0) usedItem[j] = 1; const it = j >= 0 ? items[j] : null;
+    val[3 + i] = [String(t[0]).trim(), it && it[1] ? it[1] : '', it && it[2] ? it[2] : '', '']; });
+  ['A289', 'C289', 'C290', 'C291', 'C292', 'C293', 'A294', 'C294', 'A298', 'C298', 'A299', 'C299', 'A300', 'C300'].forEach(a => put(+a.slice(1), a.charCodeAt(0) - 65, 'Bu yerga yozmang !'));
+  put(290, 0, s.naqdsiz || ''); put(290, 1, 'Naqdsiz'); put(291, 0, s.tovar || ''); put(291, 1, 'tovar');
+  put(292, 0, s.oxirgi || ''); put(292, 1, 'oxirgi pul'); put(293, 0, s.qarzName ? "='" + s.qarzName + "'!A1" : ''); put(293, 1, 'qarz');
+  put(295, 1, 'Arenda'); put(296, 1, 'Svet');
+  if (s.date) { put(295, 2, serial_(s.date)); put(295, 3, serial_(s.date)); put(296, 2, serial_(s.date)); put(296, 3, serial_(s.date)); }
+  put(335, 0, 'qarzdor'); put(335, 1, 'rasxod'); put(336, 0, 'rasm joylang'); put(336, 1, 'rasm joylang');
+  put(338, 0, 0); put(338, 1, 0); put(338, 2, 0); put(338, 3, 0);
+  // оформление
+  const bg = [], fw = [], fs = [], ff = [], nf = [], ha = [], wr = [];
+  for (let r = 0; r < total; r++) { bg.push([null, null, null, null]); fw.push(['normal', 'normal', 'normal', 'normal']); fs.push([11, 11, 11, 11]); ff.push(['Calibri', 'Calibri', 'Calibri', 'Calibri']); nf.push(['General', 'General', 'General', 'General']); ha.push([null, null, null, null]); wr.push([false, false, false, false]); }
+  const borders = [];
+  OR_.forEach((runs, c) => runs.forEach(([a, b, k]) => {
+    const ra = a >= 289 ? a + d : a, rb = b >= 289 ? b + d : (b === 288 ? 288 + d : b);
+    const st = OS_[k];
+    for (let r = ra; r <= rb && r <= total; r++) { const i = r - 1; bg[i][c] = st[0]; fw[i][c] = st[1] ? 'bold' : 'normal'; fs[i][c] = st[2]; ff[i][c] = st[3]; nf[i][c] = st[4] || 'General'; ha[i][c] = st[5] || null; wr[i][c] = !!st[6]; }
+    if (st[7]) borders.push([ra, c + 1, Math.min(rb, total) - ra + 1, st[7]]);
+  }));
+  const all = sh.getRange(1, 1, total, 4);
+  all.setNumberFormats(nf);
+  all.setValues(val);
+  all.setBackgrounds(bg).setFontWeights(fw).setFontSizes(fs).setFontFamilies(ff).setHorizontalAlignments(ha).setWraps(wr).setVerticalAlignment('middle');
+  const B = SpreadsheetApp.BorderStyle;
+  borders.forEach(([r, c, h, p]) => { if (h < 1) return;
+    const rg = sh.getRange(r, c, h, 1);
+    const on = x => x !== '-' ? true : null;
+    rg.setBorder(on(p[0]), on(p[1]), on(p[2]), on(p[3]), null, (p[0] !== '-' || p[2] !== '-') && h > 1 ? true : null, '#000000', B.SOLID);
+    if (p[1] === 'm') rg.setBorder(null, true, null, null, null, null, '#000000', B.SOLID_MEDIUM); });
+  ['A289:B289', 'A294:B294', 'A298:B298', 'A299:B299', 'A300:B300'].forEach(a => { const r = +a.match(/\d+/)[0] + d; sh.getRange('A' + r + ':B' + r).merge(); });
+  sh.setFrozenRows(3);
+  [294, 83, 120, 66, 60].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  // в шаблоне офиса нет, а остаток есть — ниже, отдельно (в отчёт офиса не копировать)
+  const extra = items.filter((it, j) => !usedItem[j] && (it[1] || it[2]));
+  if (extra.length) {
+    const r0 = total + 3;
+    sh.getRange(r0, 1, 1, 3).setValues([['Есть остаток, но нет в шаблоне офиса — допишите вручную:', '', '']]).setFontWeight('bold').setBackground('#FFF1D2');
+    sh.getRange(r0 + 1, 1, extra.length, 3).setValues(extra.map(it => [it[0], it[1] || '', it[2] || '']));
+  }
+  return sh;
+}
+
+function qarzExact_(ss, s, pos) {
+  const list = s.list || [], n = list.length, last = Math.max(278, n + 2);
+  const sh = freshSheet_(ss, s.name, pos);
+  if (sh.getMaxRows() < last + 5) sh.insertRowsAfter(sh.getMaxRows(), last + 5 - sh.getMaxRows());
+  const v = [['=SUM(B:B)', '', 'Formula bor'], ['Nomi', 'Summa', s.office ? "='" + s.office + "'!B2" : '']];
+  for (let r = 3; r <= last; r++) { const x = list[r - 3]; v.push([x ? x[0] : '', x ? x[1] : '', '=C' + (r - 1)]); }
+  const rg = sh.getRange(1, 1, last, 3);
+  sh.getRange(1, 1, last, 1).setNumberFormat('@');
+  sh.getRange('A1').setNumberFormat('#,##0');
+  sh.getRange(1, 2, last, 1).setNumberFormat('#,##0');
+  rg.setValues(v).setFontFamily('Calibri').setFontSize(11);
+  sh.getRange('A1:B2').setFontWeight('bold').setHorizontalAlignment('center');
+  sh.getRange(3, 1, last - 2, 1).setHorizontalAlignment('left');
+  sh.getRange(3, 2, last - 2, 1).setHorizontalAlignment('right');
+  sh.getRange(2, 3, last - 1, 1).setBackground('#00B050');
+  sh.setFrozenRows(2);
+  [190, 84, 87, 66].forEach((w, i) => sh.setColumnWidth(i + 1, w));
+  return sh;
 }
