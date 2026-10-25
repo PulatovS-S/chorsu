@@ -339,6 +339,7 @@ html,body{overscroll-behavior-y:none}
   #side .it:hover{background:var(--sunk)}#side .it.on{background:var(--accent-soft);color:var(--accent)}
   #side .it .tx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #side .grp{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;padding:12px 8px 4px}
+  #side .grp.gtog{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;border-radius:6px}#side .grp.gtog:hover{background:var(--sunk);color:var(--muted)}#side .grp.gtog span{font-size:12px}
   #side .sync{font-size:12px;padding:6px 8px;border-radius:8px;text-align:left;background:var(--good-soft);color:var(--good)}
   #side .sync.warn{background:var(--warn-soft);color:var(--warn)}#side .sync.bad{background:var(--bad-soft);color:var(--bad)}#side .sync.busy{background:var(--sunk);color:var(--muted)}
   #side .foot{margin-top:auto;display:flex;flex-direction:column;gap:4px;padding-top:8px}
@@ -442,6 +443,85 @@ html,body{overscroll-behavior-y:none}
   .panel .pb .grid2{max-width:420px}
   .panel .pb .list{border-radius:8px}
   .panel .pb .card{padding:10px 12px}
+}
+
+
+/* ---------- v18: панели инструментов, касса, отчёты, журнал ---------- */
+.tbar{background:var(--surface);border-bottom:1px solid var(--line);padding-block:6px}
+.tbin{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.tbin > *,.tmid > *{flex:none}.tbin .tsp{flex:1 1 0}
+.tbar.inl{background:none;border:0;padding:4px 0 0}
+.tb{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:15px;white-space:nowrap}
+.tb svg{width:18px;height:18px}.tb .ti{font-size:16px;line-height:1;min-width:16px;text-align:center}
+.tb.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tb.dang{color:var(--bad);border-color:color-mix(in srgb, var(--bad) 35%, var(--line))}
+.tb.dirty{box-shadow:0 0 0 3px var(--warn-soft)}
+.tb:disabled{opacity:.4;cursor:default}
+.tb:not(:disabled):hover{background:var(--sunk)}.tb.pri:not(:disabled):hover{filter:brightness(1.08);background:var(--accent)}
+.tmid{display:contents}.tsp{flex:1}
+.tper{display:inline-flex;align-items:center;gap:4px}
+.tper input{min-height:40px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 8px;font-size:15px;font-weight:600;width:148px}
+.tarr{width:36px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:18px;font-weight:700}.tarr:disabled{opacity:.35}
+.tq{display:inline-flex;gap:4px}.tq .chip,.tchips .chip{min-height:36px;font-size:14px;padding:0 10px;border-width:1px}
+.tchips{display:inline-flex;gap:4px;flex-wrap:nowrap;overflow:visible;padding:0}
+.seg.tseg{display:inline-grid;width:auto;min-width:220px;padding:3px}.seg.tseg button{min-height:34px;font-size:14px;padding:0 10px}
+.tinfo{display:inline-flex;align-items:center;gap:8px}.tinfo .datebtn{margin-left:0}
+.whsel{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:10px;padding:2px 4px;background:var(--surface)}
+.whsel .lbl{font-size:12px;padding:0 4px}
+.whsel button{min-height:34px;padding:0 10px;border-radius:8px;font-weight:700;font-size:14px;color:var(--muted)}
+.whsel button.on{background:var(--accent);color:var(--accent-ink)}
+.pill.p-wh{background:var(--sunk);color:var(--ink);font-size:11px;padding:1px 7px;border:1px solid var(--line)}
+.pill.p-good{background:var(--good-soft);color:var(--good)}.pill.p-bad{background:var(--bad-soft);color:var(--bad)}
+td.pos{color:var(--good)}td.neg0{color:var(--bad)}
+.crit{display:flex;flex-direction:column}
+.cb{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:10px max(16px,env(safe-area-inset-left,0px));font-size:15px;font-weight:600}
+.cb.bad{background:var(--bad);color:#fff}.cb.warn{background:var(--warn-soft);color:var(--warn)}.cb.info{background:var(--accent-soft);color:var(--accent)}
+.cb button{flex:none;min-height:36px;padding:0 12px;border-radius:8px;background:color-mix(in srgb, currentColor 14%, transparent);font-weight:700;font-size:14px;color:inherit}
+.dmeta{padding:8px 14px}.lnk{color:var(--accent);text-decoration:underline;font-size:inherit;font-weight:600;padding:0}
+.cform,.cview{display:flex;flex-direction:column;gap:10px}
+.flex{display:flex;align-items:center;gap:10px}
+.datebtn.big{min-height:48px;font-size:17px;margin-left:0}
+.chips.wrapc{flex-wrap:wrap;overflow:visible}
+.csep{width:1px;align-self:stretch;background:var(--line);margin:0 4px}
+.npopt{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0}.npopt .chip{min-height:40px;font-size:15px}
+.mgh{display:flex;justify-content:space-between;width:100%;text-align:left;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:8px 2px 2px}
+.mbal.unf b{opacity:.45}
+table.igrid .zz{color:var(--faint);font-weight:500}
+/* строка под курсором клавиатуры — заметно, наведение мышью — слабее */
+.row:hover,tr.rowtap:hover td{background:color-mix(in srgb, var(--sunk) 55%, var(--surface))}
+#app .row[data-a]:focus,#app .row.kcur:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft)!important;box-shadow:inset 6px 0 0 var(--accent)}
+#app tr.rowtap:focus{outline:2px solid var(--accent);outline-offset:-2px}#app tr.rowtap:focus td{background:var(--accent-soft)!important}#app tr.rowtap:focus td:first-child{box-shadow:inset 6px 0 0 var(--accent)}
+#app .row[data-a]:focus .nm{font-weight:700}
+@media (max-width:899px){
+  .tbin{gap:6px 6px}
+  .tmid{display:flex;flex:1 1 100%;order:5;gap:6px;align-items:center;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:2px;min-width:0}.tmid::-webkit-scrollbar{display:none}
+  .tbin > .tb{order:1}.tbin .tsp{order:2}
+  .tb{min-height:44px;padding:0 10px}.tb .tl{font-size:14px}
+  .tper input{width:124px;padding:0 4px;font-size:14px}
+  .tq,.tchips{overflow:visible}
+  .whsel{max-width:100%}
+  .tb[data-a="print"],.tb[data-a="syncnow"]{display:none}
+  .seg.tseg button,.whsel button{min-height:42px}.tq .chip,.tchips .chip{min-height:42px}
+  .tbin .tsp{flex:1 1 0}
+}
+@media (min-width:900px){
+  .tbar{position:sticky;top:57px;z-index:4;background:color-mix(in srgb, var(--surface) 94%, transparent);backdrop-filter:blur(6px)}
+  .tbar .tbin{max-width:1192px;margin:0 auto}#app.wide .tbar .tbin{max-width:1480px}
+  #app>.tbar{max-width:none;margin:0}
+  .tb{min-height:34px;font-size:13.5px;padding:0 10px;border-radius:8px}.tb svg{width:16px;height:16px}
+  .tper input,.tarr{min-height:34px;height:34px;font-size:13.5px;border-radius:8px}
+  .tq .chip,.tchips .chip{min-height:30px;font-size:13px}
+  .whsel button{min-height:28px;font-size:13px}
+  .cb{padding:8px 24px;font-size:14px}
+  .sbar{top:105px}
+}
+@media print{
+  #side,.tbar,.fabs,.sbar,.back,.syncbar,.crit,.hdel2,.toast,.brands,.botbar,#splash{display:none!important}
+  body{display:block!important;background:#fff;color:#000;font-size:11px}
+  #app{max-width:none!important;padding:0!important}#app>*{max-width:none!important}
+  .scrolly,.scrolly2,.scrolly3,.tbl-wrap{max-height:none!important;overflow:visible!important}
+  .hdr{position:static!important;border:0}.panel,.tbl-wrap{border:0!important}
+  th,td{padding:3px 5px!important;font-size:10px!important}
+  .md{display:block!important}.mdr{position:static!important}
 }
 
 @keyframes up{from{transform:translateY(30px);opacity:.6}}
@@ -682,9 +762,10 @@ const match = (name, q) => { const n = norm(name); return norm(q).split(' ').fil
 
 /* ---------- data: local copy of the Google Sheet + outbox ---------- */
 const CFG_KEY = 'chorsu_cfg', DB_KEY = 'chorsu_db', LOC_KEY = 'chorsu_local', OUT_KEY = 'chorsu_outbox';
+let STORE_ERR = '';   // v18: запись в память устройства не удалась — показываем красную полосу, а не молчим
 const ls = {
   get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
-  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); if (STORE_ERR && k === LOC_KEY) STORE_ERR = ''; return true; } catch(e){ if (k === LOC_KEY || k === OUT_KEY) STORE_ERR = 'Память устройства переполнена — черновик или очередь не записались. Освободите место или отправьте записи в базу.'; return false; } },
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
 // База на устройстве — в IndexedDB (сотни МБ вместо 5 МБ localStorage). Листы хранятся по отдельности ('t|лист'),
@@ -699,10 +780,11 @@ const IDB = (() => { let dbp = null;
     write: (puts, dels) => tx('readwrite', st => { dels.forEach(k => st.delete(typeof k === 'string' ? k : range(k.p))); puts.forEach(([k, v]) => st.put(v, k)); }),
     // все записи с ключами на префикс: [[ключ, значение], …]
     all: p => open().then(db => new Promise((res, rej) => { const st = db.transaction('kv', 'readonly').objectStore('kv'), qk = st.getAllKeys(range(p)), qv = st.getAll(range(p));
-      qv.onsuccess = () => res(qk.result.map((k, i) => [k, qv.result[i]])); qv.onerror = () => rej(qv.error); }))};
+      qv.onsuccess = () => res(qk.result.map((k, i) => [k, qv.result[i]])); qv.onerror = () => rej(qv.error); })),
+    keys: p => open().then(db => new Promise((res, rej) => { const q = db.transaction('kv', 'readonly').objectStore('kv').getAllKeys(range(p)); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }))};
 })();
-const ROWT = {sales:'S|', salelines:'L|', poslog:'J|'};   // листы, которые только дописываются: на устройстве — по записи
-const emptySDB = () => ({sales:{}, salelines:{}, poslog:{}});
+const ROWT = {sales:'S|', salelines:'L|', poslog:'J|', actlog:'G|', draftbk:'B|'};   // листы, которые только дописываются (и черновики устройств): на устройстве — по записи
+const emptySDB = () => ({sales:{}, salelines:{}, poslog:{}, actlog:{}, draftbk:{}});
 let SDB = emptySDB();                   // чеки, строки чеков, журнал кассы — отдельно от DB: база не клонируется после каждого чека
 const splitRows = d => { if (d && d.t) Object.keys(ROWT).forEach(k => { if (d.t[k]){ SDB[k] = d.t[k]; delete d.t[k]; } }); return d; };
 const tbl = k => ROWT[k] ? (SDB[k] = SDB[k] || {}) : (DB.t[k] = DB.t[k] || {});
@@ -717,7 +799,12 @@ const rejKey = o => o.t + '\u0001' + o.id;
 function rejAdd(list){ const ks = new Set(list.map(rejKey)); REJ = REJ.filter(o => !ks.has(rejKey(o))).concat(list); ls.set(REJ_KEY, REJ); }
 const LOC = ls.get(LOC_KEY, {drafts:{}, wip:null});
 let SEQ = OUT.reduce((m, o) => Math.max(m, o.s||0), 0);
-const TABLES = ['products','prices','docs','prihod','inv','invlines','extra','cash','adj','debtors','moves','settings','dinfo','barcodes','posusers'];
+const TABLES = ['products','prices','docs','prihod','inv','invlines','extra','cash','adj','debtors','moves','settings','dinfo','barcodes','posusers','cashdocs'];
+const NEW18 = {cashdocs:1, actlog:1, draftbk:1};   // листы Code.gs v18: старый сервер их молча выбрасывает — такие записи ждут на устройстве
+const WH = {W:'West', SS:'Sofdil', O:'Омбор'}, WHr = {West:'W', Sofdil:'SS', 'Омбор':'O', W:'W', SS:'SS', O:'O'};
+const KASSA = {cash:'Наличные', card:'Карта'}, KASSAr = {'Наличные':'cash', 'Карта':'card'};
+const CKIND = {sale:{n:'Продажа за день', dir:'in'}, inother:{n:'Прочий приход', dir:'in'}, office:{n:'Касса (сдано в офис)', dir:'out', kassa:'cash'}, term:{n:'Терминал', dir:'out', kassa:'card'}, outother:{n:'Прочий расход', dir:'out'}};
+const CKINDr = Object.assign(Object.fromEntries(Object.entries(CKIND).map(([k, v]) => [v.n, k])), {'Сдано в офис':'office', 'Касса':'office'});
 const CATn = {cig:'сигареты', goods:'товары'}, CATr = {'сигареты':'cig', 'товары':'goods'};
 const TYPn = {kkm:'ККМ', om:'Омбор', own:'Запас', g:'Товары', rkkm:'Возврат ККМ', rom:'Возврат Омбор', rown:'Возврат запаса', rg:'Возврат товары'};
 const TYPr = Object.assign(Object.fromEntries(Object.entries(TYPn).map(([k, v]) => [v, k])), {'Свои':'own', 'Возврат свои':'rown'});   // старые записи «Свои» читаются и при сохранении переписываются в «Запас»
@@ -727,7 +814,8 @@ const SSTn = {paid:'Оплачен', debt:'В долг', cancel:'Отменён'
 const Nn = v => { const n = Number(v); return isFinite(n) ? n : 0; };
 const Sx = v => v == null ? '' : String(v);
 const rk = row => { const a = row.map(Sx); while (a.length && a[a.length - 1] === '') a.pop(); return a.join('\u0001'); };
-const emptyS = () => ({products:[], prices:[], docs:[], prihod:[], inv:[], cash:{}, adj:[], debtors:[], moves:[], dinfo:{}, barcodes:{}, posusers:[], sales:[], poslog:[], pin:'0422', bal0:{date:'2026-04-19', amount:0}, drafts:LOC.drafts || {}, wip:LOC.wip || null});
+const CASH0_DATE = '2026-10-26';   // с этого дня ведётся остаток кассы (наличные и карта); меняется в отчёте «Остаток кассы»
+const emptyS = () => ({products:[], prices:[], docs:[], prihod:[], inv:[], cash:{}, adj:[], debtors:[], moves:[], dinfo:{}, barcodes:{}, posusers:[], sales:[], poslog:[], cashdocs:[], actlog:[], draftbk:[], pin:'0422', bal0:{date:'2026-04-19', amount:0}, cash0:{date:CASH0_DATE, cash:0, card:0}, drafts:LOC.drafts || {}, wip:LOC.wip || null});
 
 function toTables(S){
   const T = {}; TABLES.forEach(k => T[k] = {});
@@ -735,7 +823,7 @@ function toTables(S){
   const pos = {cig:0, goods:0};
   S.products.forEach(p => { T.products[p.id] = [p.id, ++pos[p.cat], p.name, CATn[p.cat], p.hidden ? 'да' : '', p.block == null ? '' : p.block, p.group || '']; });
   S.prices.forEach(x => { const id = x.pid + '|' + x.from; T.prices[id] = [id, x.pid, pn[x.pid]||'', x.from, x.cost, x.sale, x.bsale || '']; });
-  S.docs.forEach(d => { T.docs[d.id] = [d.id, d.date, TYPn[d.type], d.ts]; });
+  S.docs.forEach(d => { T.docs[d.id] = [d.id, d.date, TYPn[d.type], d.ts, d.wh ? WH[d.wh] || d.wh : '']; });
   S.prihod.forEach(x => { const c = priceAt(x.pid, x.date).cost; T.prihod[x.id] = [x.id, x.doc, x.date, TYPn[x.type], x.pid, pn[x.pid]||'', x.qty, c, c * x.qty]; });
   S.inv.forEach(i => {
     if (!i.id) i.id = (i.cat === 'cig' ? 'i' : 'g') + i.date.replace(/-/g, '');
@@ -748,11 +836,13 @@ function toTables(S){
   Object.keys(S.cash).forEach(d => { const c = S.cash[d]; if (c.t || c.k || (DB && DB.t.cash && DB.t.cash[d])) T.cash[d] = [d, d, c.t||0, c.k||0]; });
   (S.adj || []).forEach(a => { T.adj[a.id] = [a.id, a.date, a.amt, a.note||'']; });
   const dn = {}; S.debtors.forEach(d => { dn[d.id] = d.name; T.debtors[d.id] = [d.id, d.name, GRPn[d.grp], d.ts]; });
-  S.moves.forEach(m => { T.moves[m.id] = [m.id, m.did, dn[m.did]||'', m.date, m.amt, m.note||'', m.sale||'']; });
+  S.moves.forEach(m => { T.moves[m.id] = [m.id, m.did, dn[m.did]||'', m.date, m.amt, m.note||'', m.sale||'', m.kassa ? KASSA[m.kassa] : '']; });
+  (S.cashdocs || []).forEach(c => { T.cashdocs[c.id] = [c.id, c.date, c.dir === 'in' ? 'Приход' : 'Расход', (CKIND[c.kind] || {}).n || c.kind, KASSA[c.kassa] || 'Наличные', c.amt, c.note || '', c.ts || 0, c.author || '', c.dev || '', c.upd || 0]; });
   Object.keys(S.barcodes || {}).forEach(code => { const b = S.barcodes[code]; T.barcodes[code] = [code, b.pid, pn[b.pid]||'', b.unit === 'b' ? 'блок' : 'шт']; });
   (S.posusers || []).forEach(u => { T.posusers[u.id] = [u.id, u.name, u.role, u.pin || '', u.active === false ? 'нет' : 'да']; });
   Object.keys(S.dinfo || {}).forEach(id => { const x = S.dinfo[id]; if (dn[id] != null) T.dinfo[id] = [id, dn[id], x.ph||'', x.ph2||'', x.pass||'', x.addr||'', x.lim||0, x.limOn ? 'да' : '']; });
   T.settings.pin = ['pin', S.pin]; T.settings.bal0_date = ['bal0_date', S.bal0.date]; T.settings.bal0_amount = ['bal0_amount', S.bal0.amount];
+  const c0 = S.cash0 || {}; if (c0.date !== CASH0_DATE || c0.cash || c0.card || (DB && DB.t.settings && DB.t.settings.cash0_date)){ T.settings.cash0_date = ['cash0_date', c0.date]; T.settings.cash0_cash = ['cash0_cash', c0.cash || 0]; T.settings.cash0_card = ['cash0_card', c0.card || 0]; }
   return T;
 }
 function fromTables(){
@@ -761,7 +851,7 @@ function fromTables(){
   prods.sort((a, b) => a.cat === b.cat ? a.pos - b.pos : (a.cat === 'cig' ? -1 : 1));
   S2.products = prods.map(p => { const o = {id:p.id, name:p.name, cat:p.cat, hidden:p.hidden}; if (p.block != null) o.block = p.block; if (p.group) o.group = p.group; return o; });
   S2.prices = g('prices').map(r => { const o = {pid:Sx(r[1]), from:Sx(r[3]), cost:Nn(r[4]), sale:Nn(r[5])}; if (Nn(r[6])) o.bsale = Nn(r[6]); return o; });
-  S2.docs = g('docs').map(r => ({id:Sx(r[0]), date:Sx(r[1]), type:TYPr[r[2]] || 'kkm', ts:Nn(r[3])}));
+  S2.docs = g('docs').map(r => { const o = {id:Sx(r[0]), date:Sx(r[1]), type:TYPr[r[2]] || 'kkm', ts:Nn(r[3])}; if (WHr[Sx(r[4])]) o.wh = WHr[Sx(r[4])]; return o; });
   S2.prihod = g('prihod').map(r => ({id:Sx(r[0]), doc:Sx(r[1]), date:Sx(r[2]), type:TYPr[r[3]] || 'kkm', pid:Sx(r[4]), qty:Nn(r[6])}));
   const invs = {};
   g('inv').forEach(r => { invs[r[0]] = {id:Sx(r[0]), disp:Sx(r[1]), eve:true, cat:CATr[r[2]] || 'cig', date:Sx(r[3]), rows:{}, extra:[]}; });
@@ -771,7 +861,10 @@ function fromTables(){
   g('cash').forEach(r => { S2.cash[Sx(r[1])] = {t:Nn(r[2]), k:Nn(r[3])}; });
   S2.adj = g('adj').map(r => ({id:Sx(r[0]), date:Sx(r[1]), amt:Nn(r[2]), note:Sx(r[3])}));
   S2.debtors = g('debtors').map(r => ({id:Sx(r[0]), name:Sx(r[1]), grp:GRPr[r[2]] || 'a', ts:Nn(r[3])}));
-  S2.moves = g('moves').map(r => { const o = {id:Sx(r[0]), did:Sx(r[1]), date:Sx(r[3]), amt:Nn(r[4]), note:Sx(r[5])}; if (Sx(r[6])) o.sale = Sx(r[6]); return o; });
+  S2.moves = g('moves').map(r => { const o = {id:Sx(r[0]), did:Sx(r[1]), date:Sx(r[3]), amt:Nn(r[4]), note:Sx(r[5])}; if (Sx(r[6])) o.sale = Sx(r[6]); if (KASSAr[Sx(r[7])]) o.kassa = KASSAr[Sx(r[7])]; return o; });
+  S2.cashdocs = g('cashdocs').map(r => ({id:Sx(r[0]), date:Sx(r[1]), dir:Sx(r[2]) === 'Приход' ? 'in' : 'out', kind:CKINDr[Sx(r[3])] || (Sx(r[2]) === 'Приход' ? 'inother' : 'outother'), kassa:KASSAr[Sx(r[4])] || 'cash', amt:Nn(r[5]), note:Sx(r[6]), ts:Nn(r[7]), author:Sx(r[8]), dev:Sx(r[9]), upd:Nn(r[10])})).filter(c => c.date);
+  S2.actlog = g('actlog').map(r => ({id:Sx(r[0]), date:Sx(r[1]), time:Sx(r[2]), ts:Nn(r[3]), who:Sx(r[4]), dev:Sx(r[5]), act:Sx(r[6]), doc:Sx(r[7]), docId:Sx(r[8]), docDate:Sx(r[9]), no:Sx(r[10]), desc:Sx(r[11]), sum:Nn(r[12]), data:Sx(r[13])})).sort((a, b) => a.ts - b.ts);
+  S2.draftbk = g('draftbk').map(r => ({id:Sx(r[0]), dev:Sx(r[1]), who:Sx(r[2]), kind:Sx(r[3]), date:Sx(r[4]), upd:Nn(r[5]), data:Sx(r[6])}));
   S2.barcodes = {}; g('barcodes').forEach(r => { if (Sx(r[0])) S2.barcodes[Sx(r[0])] = {pid:Sx(r[1]), unit:r[3] === 'блок' ? 'b' : 'p'}; });
   S2.posusers = g('posusers').map(r => ({id:Sx(r[0]), name:Sx(r[1]), role:Sx(r[2]) || 'продавец', pin:Sx(r[3]), active:r[4] !== 'нет'}));
   const sl = {}; g('salelines').forEach(r => { (sl[Sx(r[1])] = sl[Sx(r[1])] || []).push({id:Sx(r[0]), pid:Sx(r[3]), name:Sx(r[4]), unit:r[5] === 'блок' ? 'b' : 'p', qty:Nn(r[6]), packs:Nn(r[7]), price:Nn(r[8]), sum:Nn(r[9])}); });
@@ -783,6 +876,7 @@ function fromTables(){
   if (st.pin) S2.pin = Sx(st.pin[1]).padStart(4, '0');
   if (st.bal0_date) S2.bal0.date = Sx(st.bal0_date[1]);
   if (st.bal0_amount) S2.bal0.amount = Nn(st.bal0_amount[1]);
+  if (st.cash0_date && Sx(st.cash0_date[1])) S2.cash0 = {date:Sx(st.cash0_date[1]), cash:Nn((st.cash0_cash || [])[1]), card:Nn((st.cash0_card || [])[1])};
   return S2;
 }
 let S = DB ? fromTables() : emptyS(), DATAV = 0;
@@ -816,7 +910,8 @@ async function loadLocal(){   // база с устройства → {d, s, all
 const applyOut = o => { const tb = tbl(o.t); if (o.del) delete tb[o.id]; else tb[o.id] = o.row; };   // свои неотправленные записи важнее
 function queue(ops){
   const keys = new Set(ops.map(o => o.t + '\u0001' + o.id));
-  OUT = OUT.filter(o => !keys.has(o.t + '\u0001' + o.id)).concat(ops.map(o => Object.assign({s:++SEQ}, o)));
+  const at = Date.now(); OUT = OUT.filter(o => !keys.has(o.t + '\u0001' + o.id)).concat(ops.map(o => Object.assign({s:++SEQ, at}, o)));
+  if (REJ.some(o => o.old && keys.has(o.t + '\u0001' + o.id))){ REJ = REJ.filter(o => !(o.old && keys.has(o.t + '\u0001' + o.id))); ls.set(REJ_KEY, REJ); }   // v18: свежая запись (или удаление) заменяет ждущую копию
   ls.set(OUT_KEY, OUT);
 }
 function save(){
@@ -837,6 +932,7 @@ function save(){
 
 /* ---------- sync with the Google Sheet ---------- */
 const SYNC = {state:'idle', last:ls.get('chorsu_last', 0), err:'', warn:''};
+let SKEW = 0;   // время сервера минус время устройства, мс
 const EPOCH_KEY = 'chorsu_epoch', DATA_EPOCH = '2026-10-25';   // сменить дату — все устройства один раз загрузят базу заново целиком
 let pushT = null, syncing = null;
 const schedulePush = () => { clearTimeout(pushT); pushT = setTimeout(() => sync(), 1500); };
@@ -850,7 +946,11 @@ async function api(method, payload){
   const r = await fetch(CFG.u, {method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)});
   return r.json();
 }
+let SRV_V = ls.get('chorsu_srvv', 0);   // версия Code.gs по последнему обновлению (0 — неизвестна или старше v18)
+const need18 = o => NEW18[o.t] || (o.t === 'docs' && o.row && o.row[4]) || (o.t === 'moves' && o.row && o.row[7]);   // нужен Code.gs v18
 async function push(){
+  if (SRV_V < 18){ const hold = OUT.filter(o => !o.del && need18(o) || o.del && NEW18[o.t]);   // старый Code.gs: новые листы ждут на устройстве; приход со складом уходит, а копия ждёт
+    if (hold.length){ rejAdd(hold.map(o => Object.assign({}, o, {old:1}))); OUT = OUT.filter(o => !NEW18[o.t]); ls.set(OUT_KEY, OUT); } }
   if (SRV_OLD){ const hold = OUT.filter(oldSrvDrops);   // старый Code.gs: не отправлять в пустоту, а держать в «Не сохранено»
     if (hold.length){ rejAdd(hold.map(o => Object.assign({}, o, {old:1}))); OUT = OUT.filter(o => !oldSrvDrops(o)); ls.set(OUT_KEY, OUT); } }
   while (OUT.length){
@@ -870,6 +970,10 @@ async function pull(full){
   if (since === -1){ DB = {rev:0, t:{}}; TABLES.forEach(k => DB.t[k] = {}); SDB = emptySDB(); PERS.all = true; }
   let changed = since === -1; const ch = new Set();
   SRV_DINFO = 'dinfo' in j.tables;
+  if (j.now) SKEW = Number(j.now) - Date.now();   // v18: разница часов устройства и сервера
+  const v = Number(j.v) || ('cashdocs' in j.tables ? 18 : 0);
+  if (v !== SRV_V){ SRV_V = v; ls.set('chorsu_srvv', v);
+    if (v >= 18 && REJ.some(o => o.old && need18(o))){ const back18 = REJ.filter(o => o.old && need18(o)); queue(back18.map(o => o.del ? {t:o.t, id:o.id, del:1} : {t:o.t, id:o.id, row:o.row})); REJ = REJ.filter(o => !(o.old && need18(o))); ls.set(REJ_KEY, REJ); schedulePush(); } }
   const old = !('poslog' in j.tables);   // новый Code.gs отдаёт ключ каждого своего листа, даже пустого
   if (old !== SRV_OLD){ SRV_OLD = old; ls.set('chorsu_srvold', old);
     if (!old && REJ.some(o => o.old)){ queue(REJ.filter(o => o.old).map(o => o.del ? {t:o.t, id:o.id, del:1} : {t:o.t, id:o.id, row:o.row})); REJ = REJ.filter(o => !o.old); ls.set(REJ_KEY, REJ); schedulePush(); } }   // сервер обновили — отложенное уходит само
@@ -880,7 +984,7 @@ async function pull(full){
       if (del) delete tb[id]; else tb[id] = nr;
       changed = true; if (ROWT[k]) persistRow(k, id); else ch.add(k); });
   }
-  OUT.forEach(applyOut);
+  OUT.forEach(applyOut); REJ.forEach(o => { if (o.old) applyOut(o); });   // свои записи, ждущие нового Code.gs, тоже важнее
   const old120 = addD(TODAY, -120); for (const id in SDB.salelines){ if (Sx(SDB.salelines[id][2]) < old120){ delete SDB.salelines[id]; persistRow('salelines', id); } }
   DB.rev = j.rev; persistDB([...ch]);
   return changed;
@@ -917,7 +1021,7 @@ function statusText(){
   const n = OUT.length, t = SYNC.last ? new Date(SYNC.last).toTimeString().slice(0,5) : '';
   if (SYNC.state === 'busy') return ['busy', 'Сохраняю в базу…'];
   if (SYNC.state === 'key') return ['bad', 'Телефон не подключён к базе: ключ не подходит. Откройте ссылку подключения ещё раз.'];
-  if (SRV_OLD) return ['warn', 'Сервер базы старой версии — обновите Code.gs' + (REJ.length ? ` · ${REJ.length} ${plRec(REJ.length)} не сохранено` : '')];
+  if (SRV_OLD || (SRV_V < 18 && SYNC.last)) return ['warn', 'Сервер базы старой версии — обновите Code.gs (v18)' + (REJ.length ? ` · ${REJ.length} ${plRec(REJ.length)} ждут` : '')];
   if (REJ.length) return ['warn', `${REJ.length} ${plRec(REJ.length)} не сохранено: нет прав`];
   if (n && SYNC.state === 'offline') return ['warn', `Нет интернета · ${n} ${plWait(n)} отправки`];
   if (n && SYNC.state === 'err') return ['warn', `Нет связи с базой · ${n} ${plWait(n)}, отправится само`];
@@ -954,7 +1058,10 @@ function dayPrihod(date){
   return r;
 }
 const docSum = (items, date) => items.reduce((a,x) => a + x.qty * priceAt(x.pid, date).cost, 0);
-const cashOf = date => S.cash[date] || {t:0, k:0};
+// Терминал и «Сдано в офис» за день: старые записи «Терминал и касса» (до v18) + документы «Расход из кассы» (v18)
+let CDX = null, CDXK = '';
+function cashDocIdx(){ const k = DATAV + '|' + (S.cashdocs || []).length; if (CDXK === k && CDX) return CDX; CDX = {}; (S.cashdocs || []).forEach(c => { if (c.kind === 'term' || c.kind === 'office'){ const x = CDX[c.date] = CDX[c.date] || {t:0, k:0}; x[c.kind === 'term' ? 't' : 'k'] += c.amt; } }); CDXK = k; return CDX; }
+const cashOf = date => { const a = S.cash[date], b = cashDocIdx()[date]; if (!b) return a || {t:0, k:0}; return {t:(a ? a.t : 0) + b.t, k:(a ? a.k : 0) + b.k}; };
 function balanceEnd(date){
   if (!S.bal0 || date < S.bal0.date) return null;
   let b = S.bal0.amount, d = S.bal0.date; const by = {};
@@ -1004,6 +1111,7 @@ function back(){
   if (R.sOpen || R.q){ R.q = ''; R.sOpen = false; document.body.classList.remove('kb'); return render(); }
   if (R.s === 'pdoc' && S.wip && S.wip.dirty) return askSave(savePdoc, () => { S.wip = null; save(); doBack(); });
   if (R.s === 'cash' && R.dirty) return askSave(saveCash, () => { R.dirty = false; doBack(); });
+  if ((R.s === 'cdoc' || R.s === 'cash') && R.cd && (R.cedit || !R.cd.id) && R.cd.amt) return askSave(saveCdoc, () => { R.cd = null; R.cedit = false; doBack(); });
   if (R.s === 'pdoc'){ S.wip = null; save(); }
   doBack();
 }
@@ -1077,7 +1185,7 @@ function panelOf(viewFn, ctx){
   const keep = R; R = Object.assign({}, R, ctx || {}); let h = ''; try { h = viewFn(); } finally { R = Object.assign(keep, {}); }
   const tmp = document.createElement('div'); tmp.innerHTML = h;
   const title = (tmp.querySelector('.hdr h1') || {}).textContent || '', sum = (tmp.querySelector('.hdr .hsum') || {}).textContent || '';
-  tmp.querySelectorAll(':scope > .hdr, :scope > .sbar, :scope > .fabs').forEach(e => e.remove());
+  tmp.querySelectorAll(':scope > .hdr, :scope > .sbar, :scope > .fabs, :scope > .tbar, :scope > .crit').forEach(e => e.remove());
   tmp.querySelectorAll('.wrap').forEach(e => e.classList.remove('wrap'));
   return {title, sum, html: tmp.innerHTML};
 }
@@ -1138,8 +1246,12 @@ const MENU = () => [['pos','cart','--goods','Продажа'], ['plist','box','-
   .concat(isSeller() ? [] : [['reports','chart','--goods','Отчёты'], ['settings','gear','--muted','Настройки']]).concat(CFG.user ? [['me','ppl','--muted', CFG.user.name]] : []);
 let MSHEET = false;
 function menuSheetHtml(){
+  const closed = ls.get('chorsu_menugrp', {ref:1});
+  const btn = ([to, ic, col, l]) => `<button data-a="mgo" data-v="${to}"><i style="color:var(${col});background:color-mix(in srgb, var(${col}) 14%, transparent)">${ICON[ic] || ic}</i><b>${esc(l)}</b></button>`;
+  const extra = [['settings','gear','--muted','Настройки']].concat(CFG.user ? [['me','ppl','--muted', CFG.user.name]] : []).filter(x => !(isSeller() && x[0] === 'settings'));
   return `<div class="ov ${ANIM?'anim':''}" data-a="mclose"><div class="sheet" data-stop="1"><h2>Меню</h2>
-    <div class="mgrid">${MENU().map(([to, ic, col, l]) => `<button data-a="mgo" data-v="${to}"><i style="color:var(${col});background:color-mix(in srgb, var(${col}) 14%, transparent)">${ICON[ic]}</i><b>${esc(l)}</b></button>`).join('')}</div>
+    ${MENU_GROUPS().filter(g => g[2].length).map(([k, t, items]) => `<button class="mgh" data-a="mgrp" data-v="${k}" aria-expanded="${!closed[k]}">${t}<span>${closed[k] ? '▸ ' + items.length : '▾'}</span></button>${closed[k] ? '' : `<div class="mgrid">${items.map(btn).join('')}</div>`}`).join('')}
+    <div class="mgrid">${extra.map(btn).join('')}</div>
     <button class="btn sec" data-a="mclose">Закрыть</button></div></div>`;
 }
 /* Неделя по дням: одна страница для прихода, возврата, кассы и долгов (и с главной, и из отчётов) */
@@ -1184,32 +1296,58 @@ function rdaysTable(o){
 }
 const tile = (to, ic, col, title, sub) => `<button class="tile" data-a="go" data-v="${to}"><span class="ic" style="background:var(--sunk);background:color-mix(in srgb, var(${col}) 14%, transparent);color:var(${col})">${ICON[ic]}</span><span style="min-width:0"><b>${title}</b><span>${sub}</span></span><span class="chev">›</span></button>`;
 
-/* Приходы за день */
+/* Приходы и возвраты: период «с — по», три вида — «Документы», «Все строки», «По товарам» (v18) */
+let PDX = null, PDXK = '';
+const docLines = id => { const k = DATAV + '|' + S.prihod.length; if (PDXK !== k || !PDX){ PDX = {}; S.prihod.forEach(x => (PDX[x.doc] = PDX[x.doc] || []).push(x)); PDXK = k; } return PDX[id] || []; };
+const docNo = d => S.docs.filter(x => x.date === d.date && isRet(x.type) === isRet(d.type) && vis(x.type)).sort((a, b) => a.ts - b.ts).indexOf(d) + 1;
+const whPill = wh => wh ? `<span class="pill p-wh" title="Склад ${esc(WH[wh] || wh)}">${esc(wh)}</span>` : '';
+function perInit(){ if (!R.from || !R.to){ R.from = R.to = R.date || TODAY; } if (R.to > TODAY) R.to = TODAY; if (R.from > R.to) R.from = R.to; R.date = R.to; }
 V.plist = () => {
-  R.date = R.date || TODAY; R.kind = R.kind || 'in'; const K = KIND[R.kind];
-  const docs = S.docs.filter(d => d.date === R.date && (R.kind === 'ret') === isRet(d.type) && vis(d.type)).sort((a,b) => a.ts - b.ts);
-  const total = docs.reduce((s, d) => s + docSum(S.prihod.filter(x => x.doc === d.id), d.date), 0);
+  R.kind = R.kind || 'in'; const K = KIND[R.kind]; perInit(); R.pv = R.pv || 'docs';
+  const one = R.from === R.to;
+  const docs = S.docs.filter(d => d.date >= R.from && d.date <= R.to && (R.kind === 'ret') === isRet(d.type) && vis(d.type) && (!R.wh || d.wh === R.wh))
+    .sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : a.ts - b.ts);
+  const total = docs.reduce((s, d) => s + docSum(docLines(d.id), d.date), 0);
+  const per = one ? dLong(R.from) : dShort(R.from) + '.' + R.from.slice(2, 4) + ' – ' + dShort(R.to) + '.' + R.to.slice(2, 4);
+  const views = `<div class="seg seg5 tseg" style="--n:3">${[['docs', 'Документы'], ['lines', 'Все строки'], ['prod', 'По товарам']].map(([k, l]) => `<button class="${R.pv === k ? 'on' : ''}" data-a="pview" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const whs = `<div class="chips tchips">${[['', 'Все склады']].concat(Object.keys(WH).map(k => [k, k])).map(([k, l]) => `<button class="chip ${(R.wh || '') === k ? 'on' : ''}" data-a="pwhf" data-v="${k}" title="${k ? WH[k] : ''}">${l}</button>`).join('')}</div>`;
+  const bar = toolBar([{a:'pnew', i:'plus', l:'Новый', k:'N', pri:1}], periodCtl() + views + whs, {xls:1, print:1});
+  const head = hdr(K.many, {right:`<span class="hsum2">${docs.length ? fmt(total) : ''}</span>`});
+  const empty = `<div class="card empty-st">${one ? 'В этот день' : 'За этот период'} ${K.no} нет.<br>Период можно выбрать в панели вверху. «+ Новый» — создать.</div>`;
+  if (R.pv === 'lines' || R.pv === 'prod'){
+    const rows = []; docs.slice().reverse().forEach(d => docLines(d.id).forEach(x => rows.push({x, d})));
+    if (!rows.length) return head + bar + `<div class="wrap stack">${empty}</div>`;
+    let body;
+    if (R.pv === 'lines'){ let q = 0, sm = 0;
+      body = `<table class="tight xl"><tr><th class="l">Дата</th><th class="l">Документ</th><th class="l">Склад</th><th class="l">Товар</th><th>Цена</th><th>Кол-во</th><th>Сумма</th></tr>${rows.map(({x, d}) => { const pr = priceAt(x.pid, d.date).cost; q += x.qty; sm += pr * x.qty; const t = TYPES[d.type];
+        return `<tr class="rowtap" data-a="popen" data-v="${d.id}"><td class="l">${wdShort(d.date)} ${dShort(d.date)}</td><td class="l"><span class="pill p-${t.c}" style="font-size:11px;padding:1px 6px">${t.n}</span> № ${docNo(d)}</td><td class="l">${d.wh || ''}</td><td class="l g">${esc((P(x.pid) || {}).name || '?')}</td><td>${fmt(pr)}</td><td><b>${x.qty}</b></td><td>${fmt(pr * x.qty)}</td></tr>`; }).join('')}
+        <tr class="tot"><td class="l" colspan="4">Итого · ${rows.length} строк · ${docs.length} док.</td><td></td><td>${fmt(q)}</td><td>${fmt(sm)}</td></tr></table>`;
+    } else { const by = {}; rows.forEach(({x, d}) => { const pr = priceAt(x.pid, d.date).cost, o = by[x.pid] = by[x.pid] || {q:0, s:0, docs:new Set()}; o.q += x.qty; o.s += pr * x.qty; o.docs.add(d.id); });
+      const list = Object.keys(by).map(pid => ({p:P(pid) || {id:pid, name:'?'}, ...by[pid]})).sort((a, b) => b.q - a.q);
+      body = `<table class="tight xl"><tr><th class="num">№</th><th class="l">Товар</th><th>Кол-во</th><th>Ср. цена</th><th>Сумма</th><th>Документов</th></tr>${list.map(r => `<tr class="rowtap" data-a="rpprod" data-v="${r.p.id}"><td class="num muted">${repNum(r.p.id)}</td><td class="l g">${esc(r.p.name)}</td><td><b>${fmt(r.q)}</b></td><td>${fmt(r.q ? r.s / r.q : 0)}</td><td>${fmt(r.s)}</td><td>${r.docs.size}</td></tr>`).join('')}
+        <tr class="tot"><td></td><td class="l">Итого · ${list.length} товаров</td><td>${fmt(list.reduce((a, r) => a + r.q, 0))}</td><td></td><td>${fmt(list.reduce((a, r) => a + r.s, 0))}</td><td>${docs.length}</td></tr></table>`; }
+    return head + bar + `<div class="wrap stack" style="padding-top:12px"><div class="small muted">${per} · ${R.pv === 'lines' ? 'все строки всех документов. Нажмите на строку — откроется документ.' : 'один товар — одна строка, количество и сумма сложены. Нажмите — все приходы товара.'}</div><div class="panel"><div class="tbl-wrap scrolly">${body}</div></div></div>`;
+  }
+  const byDate = []; docs.forEach(d => { const last = byDate[byDate.length - 1]; if (last && last.date === d.date) last.docs.push(d); else byDate.push({date:d.date, docs:[d]}); });
   if (DESK){
-    const sel = docs.find(d => d.id === R.sel) || docs[0];
-    const left = `<div class="panel"><div class="ph"><b>${dLong(R.date)}</b><b>${docs.length ? fmt(total) : ''}</b></div>
-      ${docs.length ? `<div class="tbl-wrap"><table class="tight">${docs.map((d, i) => { const items = S.prihod.filter(x => x.doc === d.id), t = TYPES[d.type];
-        return `<tr class="rowtap ${sel && sel.id === d.id ? 'cur' : ''}" data-a="psel" data-v="${d.id}"><td class="l g"><b>${K.one} № ${i+1}</b><div class="small muted"><span class="pill p-${t.c}" style="font-size:11px;padding:1px 7px">${t.n}</span> ${items.length} поз.</div></td><td><b>${fmt(docSum(items, d.date))}</b></td></tr>`; }).join('')}</table></div>`
-      : `<div class="empty-st small">В этот день ${K.no} нет</div>`}
+    const sel = docs.find(d => d.id === R.sel) || docs[0]; R.sel = sel ? sel.id : null;
+    const left = `<div class="panel"><div class="ph"><b>${per}</b><b>${docs.length ? fmt(total) : ''}</b></div>
+      ${docs.length ? `<div class="tbl-wrap scrolly"><table class="tight">${byDate.map(g => `${one ? '' : `<tr class="gh"><td class="l">${wdShort(g.date)} ${dShort(g.date)} · ${g.docs.length} док.</td><td>${fmt(g.docs.reduce((s, d) => s + docSum(docLines(d.id), d.date), 0))}</td></tr>`}${g.docs.map(d => { const items = docLines(d.id), t = TYPES[d.type];
+        return `<tr class="rowtap ${sel && sel.id === d.id ? 'cur' : ''}" data-a="pdsel" data-v="${d.id}"><td class="l g"><b>${K.one} № ${docNo(d)}</b><div class="small muted"><span class="pill p-${t.c}" style="font-size:11px;padding:1px 7px">${t.n}</span> ${whPill(d.wh)} ${items.length} поз.</div></td><td><b>${fmt(docSum(items, d.date))}</b></td></tr>`; }).join('')}`).join('')}</table></div>`
+      : `<div class="empty-st small">${one ? 'В этот день' : 'За этот период'} ${K.no} нет</div>`}
       <div class="pf"><button class="btn pri" data-a="pnew">+ Новый ${K.one.toLowerCase()}</button></div></div>`;
     let right = '<div class="panel"><div class="empty-st">Выберите документ слева</div></div>';
-    if (sel){ const items = S.prihod.filter(x => x.doc === sel.id), t = TYPES[sel.type], qty = items.reduce((s, x) => s + x.qty, 0), sum = docSum(items, sel.date);
-      right = `<div class="panel"><div class="ph"><b style="font-size:16px">${K.one} № ${docs.indexOf(sel) + 1} · <span class="pill p-${t.c}" style="font-size:12px">${t.full}</span></b><span class="phb"><button data-a="popen" data-edit="1" data-v="${sel.id}">✏️ Изменить</button><button class="pdel" data-a="pdocdel" data-v="${sel.id}">${ICON.trash} Удалить</button></span></div>
-        <div class="tbl-wrap"><table class="tight doc"><tr><th class="l">Наименование</th><th>Цена</th><th>Кол-во</th><th>Сумма</th></tr>${items.map(x => { const pr = priceAt(x.pid, sel.date).cost; return `<tr class="rowtap" data-a="popen" data-v="${sel.id}"><td class="l g">${esc((P(x.pid) || {}).name || '?')}</td><td>${fmt(pr)}</td><td><b>${x.qty}</b></td><td>${fmt(pr * x.qty)}</td></tr>`; }).join('')}
-        <tr class="tot"><td class="l">Итого · ${items.length} поз.</td><td></td><td>${qty}</td><td>${fmt(sum)}</td></tr></table></div></div>`; }
-    return hdr(K.many, {right: dateBtn(R.date, 'pdate')}) + `<div class="wrap stack" style="padding-top:12px">${mdLayout(left, right)}</div>`;
+    if (sel){ const items = docLines(sel.id), t = TYPES[sel.type], qty = items.reduce((s, x) => s + x.qty, 0), sum = docSum(items, sel.date);
+      right = `<div class="panel"><div class="ph"><b style="font-size:16px">${K.one} № ${docNo(sel)} · ${dShort(sel.date)} · <span class="pill p-${t.c}" style="font-size:12px">${t.full}</span> ${whPill(sel.wh)}</b><span class="phb"><button data-a="popen" data-edit="1" data-v="${sel.id}" title="Изменить (Ctrl+E)">✏️ Изменить</button><button class="pdel" data-a="pdocdel" data-v="${sel.id}" title="Удалить (Ctrl+D)">${ICON.trash} Удалить</button></span></div>
+        <div class="tbl-wrap"><table class="tight doc xl"><tr><th class="l">Наименование</th><th>Цена</th><th>Кол-во</th><th>Сумма</th></tr>${items.map(x => { const pr = priceAt(x.pid, sel.date).cost; return `<tr class="rowtap" data-a="popen" data-v="${sel.id}"><td class="l g">${esc((P(x.pid) || {}).name || '?')}</td><td>${fmt(pr)}</td><td><b>${x.qty}</b></td><td>${fmt(pr * x.qty)}</td></tr>`; }).join('')}
+        <tr class="tot"><td class="l">Итого · ${items.length} поз.</td><td></td><td>${qty}</td><td>${fmt(sum)}</td></tr></table></div>${docMeta(sel.id)}</div>`; }
+    return head + bar + `<div class="wrap stack" style="padding-top:12px">${mdLayout(left, right)}</div>`;
   }
-  return hdr(K.many, {right: dateBtn(R.date, 'pdate')}) + `<div class="wrap stack">
-    <div class="sumrow" style="padding:0"><span class="muted">${dLong(R.date)}</span>${docs.length ? `<b>${fmt(total)}</b>` : ''}</div>
-    ${docs.length && DESK ? `<div class="panel"><div class="tbl-wrap"><table class="tight"><tr><th class="l">Документ</th><th class="l">Вид</th><th>Позиций</th><th>Штук</th><th>Сумма</th></tr>${docs.map((d, i) => { const items = S.prihod.filter(x => x.doc === d.id), t = TYPES[d.type];
-      return `<tr class="rowtap" data-a="popen" data-v="${d.id}"><td class="l"><b>${K.one} № ${i+1}</b></td><td class="l"><span class="pill p-${t.c}" style="font-size:11px">${t.n}</span> ${t.full}</td><td>${items.length}</td><td>${fmt(items.reduce((s, x) => s + x.qty, 0))}</td><td><b>${fmt(docSum(items, d.date))}</b></td></tr>`; }).join('')}</table></div></div>`
-    : docs.length ? `<div class="list">${docs.map((d,i) => { const items = S.prihod.filter(x => x.doc === d.id); const t = TYPES[d.type];
-      return `<button class="row" data-a="popen" data-v="${d.id}"><span class="doc-ic p-${t.c}">${t.n}</span><span class="nm">${K.one} № ${i+1}<div class="small muted">${t.full} · ${items.length} поз.</div></span><span class="rt">${fmt(docSum(items, d.date))}</span></button>`; }).join('')}</div>`
-    : `<div class="card empty-st">В этот день ${K.no} нет.<br>Дату можно выбрать справа вверху.<br>Нажмите <b>+</b> внизу справа, чтобы создать.</div>`}
+  return head + bar + `<div class="wrap stack">
+    <div class="sumrow" style="padding:0"><span class="muted">${per}</span>${docs.length ? `<b>${fmt(total)}</b>` : ''}</div>
+    ${docs.length ? byDate.map(g => `${one ? '' : `<div class="sec-h">${wdShort(g.date)}, ${dMid(g.date)}</div>`}<div class="list">${g.docs.map(d => { const items = docLines(d.id); const t = TYPES[d.type];
+      return `<button class="row" data-a="popen" data-v="${d.id}"><span class="doc-ic p-${t.c}">${t.n}</span><span class="nm">${K.one} № ${docNo(d)} ${whPill(d.wh)}<div class="small muted">${t.full} · ${items.length} поз.</div></span><span class="rt">${fmt(docSum(items, d.date))}</span></button>`; }).join('')}</div>`).join('')
+    : empty}
   </div>` + fabs([{a:'pnew', i:'plus', l:'Новый ' + K.one.toLowerCase(), c:'Новый'}]);
 };
 V.rlist = () => { R.kind = 'ret'; R.s = 'plist'; return V.plist(); };
@@ -1220,19 +1358,23 @@ V.pdoc = () => {
   const sum = docSum(w.items, w.date);
   const counts = {}; w.items.forEach(x => counts[x.pid] = (counts[x.pid]||0) + x.qty);
   const one = isRet(w.type) ? 'Возврат' : 'Приход', qty = w.items.reduce((s, x) => s + x.qty, 0);
+  const doc = w.docId && S.docs.find(x => x.id === w.docId), no = doc ? docNo(doc) : '';
+  const whSel = `<span class="whsel" role="group" aria-label="Склад"><span class="lbl">Склад</span>${Object.keys(WH).map(k => `<button class="${w.wh === k ? 'on' : ''}" data-a="pwh" data-v="${k}" title="${WH[k]}">${DESK ? WH[k] + ' · ' + k : k}</button>`).join('')}</span>`;
   if (w.view && w.docId){   // сохранённый документ открывается только для просмотра — случайно ничего не изменить
-    const doc = S.docs.find(x => x.id === w.docId), no = doc ? S.docs.filter(x => x.date === doc.date && isRet(x.type) === isRet(doc.type) && vis(x.type)).sort((a, b) => a.ts - b.ts).indexOf(doc) + 1 : '';
-    return hdr(one + (no ? ' № ' + no : ''), {sum, tag:`<span class="pill p-${t.c}" style="margin-left:auto">${t.full}</span>`, del:{a:'pdocdel'}}) + `<div class="wrap stack nar2">
+    const bar = toolBar([{a:'pedit', i:'✏️', l:'Изменить', k:'Ctrl+E', pri:1}, {a:'pdocdel', i:'trash', l:'Удалить', k:'Ctrl+D', dang:1}, {a:'pnew', i:'plus', l:'Новый', k:'N'}], `<span class="tinfo">${dateBtn(w.date, 'wipdate', 'Дата документа')} ${whPill(w.wh) || '<span class="small muted">склад не указан</span>'}</span>`, {xls:1, print:1});
+    return hdr(one + (no ? ' № ' + no : ''), {sum, tag:`<span class="pill p-${t.c}" style="margin-left:auto">${t.full}</span>`}) + bar + `<div class="wrap stack nar2">
       <div class="small muted">${dLong(w.date)} · сохранён · только просмотр</div>
-      <div class="tbl-wrap"><table class="tight doc"><tr><th class="l">Наименование</th><th>Цена</th><th>Кол-во</th><th>Сумма</th></tr>
+      <div class="tbl-wrap"><table class="tight doc xl"><tr><th class="l">Наименование</th><th>Цена</th><th>Кол-во</th><th>Сумма</th></tr>
         ${w.items.map(e => { const pr = priceAt(e.pid, w.date).cost; return `<tr><td class="nmc">${esc(P(e.pid).name)}</td><td>${fmt(pr)}</td><td><b>${e.qty}</b></td><td>${fmt(pr*e.qty)}</td></tr>`; }).join('')}
         <tr class="tot"><td class="l">Итого · ${w.items.length} поз.</td><td></td><td>${qty}</td><td>${fmt(sum)}</td></tr></table></div>
-      <button class="btn sec" data-a="pedit">✏️ Изменить этот ${one.toLowerCase()}</button>
+      ${docMeta(w.docId)}
+      <button class="btn sec monly" data-a="pedit">✏️ Изменить этот ${one.toLowerCase()}</button>
     </div>`;
   }
   const showAll = !R.q && (R.addOpen || !w.items.length);
-  return hdr(one, {sum, tag:`<span class="pill p-${t.c}" style="margin-left:auto">${t.full}</span>`, del:w.docId || w.items.length ? {a:'pdocdel'} : null}) + sbar('Название или номер товара') + `<div class="wrap stack">
-    ${!R.q ? `<div class="small muted">${dLong(w.date)}${w.docId ? '' : ' · новый ' + one.toLowerCase()}${w.dirty ? ' · <b style="color:var(--warn)">не сохранено</b>' : ''}</div>` : ''}
+  const bar = toolBar([{a:'psave', i:'check', l:'Сохранить', k:'Ctrl+S', pri:1, dirty:w.dirty}, {a:'pcancel', i:'✕', l:'Отменить', k:'Esc'}, {a:'pdocdel', i:'trash', l:'Удалить', k:'Ctrl+D', dang:1, dis:!(w.docId || w.items.length)}, {a:'search', i:'search', l:'Найти', k:'Ctrl+F'}], `<span class="tinfo">${dateBtn(w.date, 'wipdate', 'Дата документа')}</span>${whSel}`, {});
+  return hdr(one + (no ? ' № ' + no : ''), {sum, tag:`<span class="pill p-${t.c}" style="margin-left:auto">${t.full}</span>`}) + bar + sbar('Название или номер товара') + `<div class="wrap stack">
+    ${!R.q ? `<div class="small muted">${dLong(w.date)}${w.docId ? '' : ' · новый ' + one.toLowerCase()}${w.dirty ? ' · <b style="color:var(--warn)">не сохранено</b>' : ''}${w.wh ? '' : ' · <b style="color:var(--warn)">выберите склад</b>'}</div>` : ''}
     ${!R.q && w.items.length ? `<div class="tbl-wrap"><table class="tight doc"><tr><th class="l">Наименование</th><th>Цена</th><th>Кол-во</th><th>Сумма</th></tr>
       ${w.items.map((e,i) => { const pr = priceAt(e.pid, w.date).cost; return `<tr class="rowtap" data-a="piedit" data-v="${i}"><td class="nmc">${esc(P(e.pid).name)}</td><td>${fmt(pr)}</td><td><b>${e.qty}</b></td><td>${fmt(pr*e.qty)}</td></tr>`; }).join('')}
       <tr class="tot"><td class="l">Итого · ${w.items.length} поз.</td><td></td><td>${qty}</td><td>${fmt(sum)}</td></tr></table></div>
@@ -1299,13 +1441,22 @@ function savePdoc(){
   const w = S.wip; if (!w) return;
   if (w.view){ S.wip = null; save(); return doBack(); }
   if (!w.items.length && !w.docId){ S.wip = null; save(); doBack(); return toast('Пустой приход не сохранён'); }
-  let doc = w.docId && S.docs.find(d => d.id === w.docId);
+  let doc = w.docId && S.docs.find(d => d.id === w.docId); const isNew = !doc;
+  if (doc && doc.date !== w.date && !w.dateOk && (doc.date < TODAY || w.date < TODAY)) return confirmBox(`Перенести ${isRet(doc.type) ? 'возврат' : 'приход'} на другой день?<br><b>было ${wdShort(doc.date)} ${dShort(doc.date)} → станет ${wdShort(w.date)} ${dShort(w.date)}</b><br>Цены пересчитаются на новую дату.`, 'Перенести', () => { w.dateOk = true; savePdoc(); });
+  const before = doc ? {date:doc.date, wh:doc.wh || '', n:docLines(doc.id).length, sum:docSum(docLines(doc.id), doc.date), lines:docLines(doc.id).map(x => ({id:x.id, pid:x.pid, qty:x.qty}))} : null;
   if (!doc){ doc = {id:uid(), date:w.date, type:w.type, ts:Date.now()}; S.docs.push(doc); }
+  doc.date = w.date; if (w.wh) doc.wh = w.wh; else delete doc.wh;
   S.prihod = S.prihod.filter(x => x.doc !== doc.id);
   w.items.forEach(x => S.prihod.push({id:uid(), doc:doc.id, date:doc.date, pid:x.pid, type:doc.type, qty:x.qty}));
-  if (!w.items.length) S.docs = S.docs.filter(d => d.id !== doc.id);
-  const one = isRet(doc.type) ? 'Возврат' : 'Приход';
-  S.wip = null; save(); doBack(); toast(one + ' сохранён');
+  const one = isRet(doc.type) ? 'Возврат' : 'Приход', sum = docSum(w.items, doc.date);
+  if (w.wh) ls.set('chorsu_lastwh_' + doc.type, w.wh);
+  if (!w.items.length){ S.docs = S.docs.filter(d => d.id !== doc.id);
+    logAct('Удалён', one, doc.id, before.date, '', `${TYPES[doc.type].full}${before.wh ? ' · ' + before.wh : ''} · ${before.n} поз. (удалены все строки)`, before.sum, {doc:Object.assign({}, doc, {date:before.date, wh:before.wh || undefined}), lines:before.lines}); }
+  else { const ch = []; if (before && before.date !== doc.date) ch.push('дата ' + dShort(before.date) + ' → ' + dShort(doc.date)); if (before && (before.wh || '') !== (doc.wh || '')) ch.push('склад ' + (before.wh || '—') + ' → ' + (doc.wh || '—')); if (before && Math.round(before.sum) !== Math.round(sum)) ch.push('сумма ' + fmt(before.sum) + ' → ' + fmt(sum));
+    logAct(isNew ? 'Создан' : 'Изменён', one, doc.id, doc.date, docNo(doc), `${TYPES[doc.type].full}${doc.wh ? ' · ' + doc.wh : ''} · ${w.items.length} поз.${ch.length ? ' · ' + ch.join(', ') : ''}`, sum); }
+  S.wip = null; save(); doBack();
+  if (R.s === 'plist' && w.items.length){ R.sel = doc.id; if (R.from && (doc.date < R.from || doc.date > R.to)){ R.from = R.to = doc.date; } render(); }
+  toast(one + (w.items.length ? ' сохранён' : ' удалён'));
 }
 
 /* Терминал и касса */
@@ -1350,14 +1501,14 @@ V.debts = () => {
     const P_ = sel ? panelOf(V.debtor, {s:'debtor', id:sel.id}) : null;
     const right = P_ ? `<div class="panel"><div class="ph"><b style="font-size:16px">${esc(P_.title)}</b><span class="phb"><b style="font-size:18px">${P_.sum}</b><button class="pdel" data-a="ddel">${ICON.trash} Удалить</button></span></div><div class="pb">${P_.html}</div></div>` : '<div class="panel"><div class="empty-st">Выберите должника</div></div>';
     if (sel) R.id = sel.id;
-    return hdr('Долги клиентов', {right:`<span class="hsum2">${fmt(tot.a + (hideN ? 0 : tot.n))}</span>`}) + sbar('Имя') + `<div class="wrap stack" style="padding-top:12px">${mdLayout(left, right)}</div>` + fabs([{a:'search', i:'search', l:'Поиск', s:1}, {a:'dnew', i:'plus', l:'Новый должник', c:'Новый должник'}]); }
+    return hdr('Долги клиентов', {right:`<span class="hsum2">${fmt(tot.a + (hideN ? 0 : tot.n))}</span>`}) + debtsBar() + sbar('Имя') + `<div class="wrap stack" style="padding-top:12px">${mdLayout(left, right)}</div>` + fabs([{a:'search', i:'search', l:'Поиск', s:1}, {a:'dnew', i:'plus', l:'Новый должник', c:'Новый должник'}]); }
   if (false){ const last = id => S.moves.filter(m => m.did === id).map(m => m.date).sort().slice(-1)[0];
     const tb = (arr, title, sum) => `<div class="panel"><div class="ph"><b>${title} · ${arr.length}</b><b>${fmt(sum)}</b></div>${arr.length ? `<div class="tbl-wrap"><table class="tight"><tr><th class="l">Имя</th><th>Долг</th><th>Последнее движение</th><th>Взял всего</th><th>Вернул всего</th></tr>${arr.map(d => { const ms = S.moves.filter(m => m.did === d.id), v = debtOf(d.id), l = last(d.id);
       return `<tr class="rowtap" data-a="dopen" data-v="${d.id}"><td class="l"><b>${esc(d.name)}</b></td><td class="${v < 0 ? 'neg' : ''}"><b>${fmt(v)}</b></td><td>${l ? dShort(l) + '.' + l.slice(2, 4) : '—'}</td><td>${fmt(ms.filter(m => m.amt > 0).reduce((s, m) => s + m.amt, 0))}</td><td>${fmt(-ms.filter(m => m.amt < 0).reduce((s, m) => s + m.amt, 0))}</td></tr>`; }).join('')}</table></div>` : '<div class="empty-st small">Нет</div>'}</div>`;
     return hdr('Долги клиентов', {sum:tot.a + (hideN ? 0 : tot.n)}) + sbar('Имя') + `<div class="wrap stack" style="padding-top:12px">
       <div class="grid2" style="max-width:520px"><button class="btn sec" data-a="dhiden">${hideN ? 'Показать несгораемые' : 'Скрыть несгораемые'}</button><button class="btn sec" data-a="dzero">${R.showZero ? 'Скрыть погашенных' : 'Показать погашенных (' + zero.length + ')'}</button></div>
       ${tb(as, 'Должники', tot.a)}${hideN ? '' : tb(ns, 'Несгор', tot.n)}${R.showZero ? tb(zero, 'Погашены', 0) : ''}</div>` + fabs([{a:'search', i:'search', l:'Поиск', s:1}, {a:'dnew', i:'plus', l:'Новый должник', c:'Новый должник'}]); }
-  return hdr('Долги клиентов', {sum:tot.a + (hideN ? 0 : tot.n)}) + sbar('Имя') + `<div class="wrap stack">
+  return hdr('Долги клиентов', {sum:tot.a + (hideN ? 0 : tot.n)}) + debtsBar() + sbar('Имя') + `<div class="wrap stack">
     ${as.length || !q ? `<div class="sec-h">Должники · ${fmt(tot.a)}</div><div class="list">${as.map(row).join('') || '<div class="empty-st">Нет</div>'}</div>` : ''}
     ${!q ? `<button class="btn sec" data-a="dhiden">${hideN ? `Показать несгораемые (${ns.length} · ${fmt(tot.n)})` : 'Скрыть несгораемые'}</button>` : ''}
     ${!hideN && (ns.length || !q) ? `<div class="sec-h">Несгор · ${fmt(tot.n)}</div><div class="list">${ns.map(row).join('') || '<div class="empty-st">Нет</div>'}</div>` : ''}
@@ -1367,6 +1518,7 @@ V.debts = () => {
   </div>` + fabs([{a:'search', i:'search', l:'Поиск', s:1}, {a:'dnew', i:'plus', l:'Новый должник', c:'Новый'}]);
 };
 const dInfo = id => (S.dinfo || {})[id] || {};
+const debtsBar = () => toolBar([{a:'dnew', i:'plus', l:'Новый должник', k:'N', pri:1}].concat(DESK && R.sel ? [{a:'dmove', v:'1', i:'+', l:'Дал в долг'}, {a:'dmove', v:'-1', i:'−', l:'Вернул'}] : []), '', {search:1, xls:1, print:1});
 const dSub = id => { const x = dInfo(id), parts = []; if (x.ph) parts.push('☎ ' + esc(x.ph)); if (x.limOn && x.lim) parts.push('лимит ' + fmt(x.lim) + (debtOf(id) > x.lim ? ' · превышен' : '')); return parts.join(' · '); };
 V.dcard = () => {
   const d = S.debtors.find(x => x.id === R.id); if (!d) return V.debts(); const x = Object.assign({}, dInfo(d.id), R.dc || {});
@@ -1386,7 +1538,7 @@ V.debtor = () => {
   const d = S.debtors.find(x => x.id === R.id); if (!d) return V.debts();
   const mv = S.moves.filter(m => m.did === d.id).sort((a,b) => a.date < b.date ? 1 : -1);
   const x = dInfo(d.id), over = x.limOn && x.lim && debtOf(d.id) >= x.lim;
-  return hdr(esc(d.name), {sum:debtOf(d.id), tag: d.grp==='n' ? '<span class="pill p-om" style="margin-left:auto">Несгор</span>' : '', del:{a:'ddel'}}) + `<div class="wrap stack">
+  return hdr(esc(d.name), {sum:debtOf(d.id), tag: d.grp==='n' ? '<span class="pill p-om" style="margin-left:auto">Несгор</span>' : ''}) + (R.s === 'debtor' || !DESK ? toolBar([{a:'dmove', v:'1', i:'+', l:'Дал в долг', pri:1}, {a:'dmove', v:'-1', i:'−', l:'Вернул'}, {a:'dcard', i:'✏️', l:'Карточка'}, {a:'ddel', i:'trash', l:'Удалить', dang:1}], '', {print:1}) : '') + `<div class="wrap stack">
     <button class="dinfo" data-a="dcard"><span>${x.ph ? '☎ <b>' + esc(x.ph) + '</b>' : '<span class="muted">Телефон не записан</span>'}${x.ph2 ? ' · близкий: ' + esc(x.ph2) : ''}<br><span class="${over ? 'neg' : 'muted'}">${x.limOn && x.lim ? 'Лимит ' + fmt(x.lim) + (over ? ' — достигнут' : ' · можно ещё ' + fmt(x.lim - debtOf(d.id))) : 'Лимит выключен'}</span></span><b>Карточка ›</b></button>
     <div class="grid2"><button class="btn give" data-a="dmove" data-v="1">Дал в долг +</button><button class="btn ret" data-a="dmove" data-v="-1">Вернул −</button></div>
     <div class="sec-h">История</div>
@@ -1406,9 +1558,10 @@ V.inv = () => {
   const list = invList(R.cat), last = list.slice(-1)[0], dr = S.drafts[R.cat];
   const total = ordered(R.cat).length;
   const prog = dr ? (R.cat === 'goods' ? `записано ${Object.keys(goodsAgg(dr)).length} товаров` : `заполнено ${Object.keys(dr.rows).length} из ${total}`) : '';
-  return hdr('Инвентаризация') + `<div class="wrap stack">
+  return hdr('Инвентаризация') + toolBar(dr ? [{a:'icont', i:'▶', l:'Продолжить', pri:1}, {a:'ifinish', i:'check', l:'Завершить'}, {a:'idocdel', i:'trash', l:'Удалить документ', dang:1}] : [{a:'istart', i:'plus', l:'Начать', pri:1}], '', {}) + `<div class="wrap stack">
     <div class="seg"><button class="${R.cat==='cig'?'on':''}" data-a="icat" data-v="cig">Сигареты</button><button class="${R.cat==='goods'?'on':''}" data-a="icat" data-v="goods">Товары</button></div>
     <div class="card"><div class="lbl">Последняя инвентаризация</div><div style="font-size:22px;font-weight:700;margin-top:4px">${last ? invLong(last) : 'ещё не было'}</div></div>
+    ${(S.draftbk || []).filter(x => x.kind === 'inv-' + R.cat && x.id.indexOf(DEVID + '|') !== 0 && Date.now() - x.upd < 864e5).map(x => `<div class="note warn">Инвентаризацию ${R.cat === 'cig' ? 'сигарет' : 'товаров'} уже ведёт <b>${esc(x.dev)}</b> (${esc(x.who)}), обновлено ${fmtTs(x.upd)}. Не начинайте вторую — цифры разойдутся.${isSeller() ? '' : ` <button class="chip" data-a="draftrest" data-v="${esc(x.id)}">Продолжить её здесь</button>`}</div>`).join('')}
     ${dr ? `<div class="note warn">${dr.edit ? 'Изменение инвентаризации' : 'Незаконченная инвентаризация'} ${dr.edit ? dShort(dr.disp) : (dr.lbl || dShort(dr.date))}: ${prog}</div>
       <button class="btn pri" data-a="icont">Продолжить</button>
       <button class="btn sec" data-a="ifinish">Завершить сейчас</button>
@@ -1437,7 +1590,7 @@ V.icard = () => {
   const seller = isSeller();
   return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Выйти</button><button class="hdel" data-a="idocdel" aria-label="Удалить документ" title="Удалить документ">${ICON.trash}</button><div class="ibal" id="live">${liveHtml(p.id)}</div></div><div class="prog" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>
   <div class="wrap stack">
-    <div class="pmeta"><span class="no">№ ${dr.idx+1} из ${items.length}</span><span class="small muted">${dr.edit ? 'изменение ' + dShort(dr.disp) : (dr.lbl||'')}</span></div>
+    <div class="pmeta"><span class="no">№ ${dr.idx+1} из ${items.length}</span><span class="small muted">${dr.edit ? 'изменение' : 'инвентаризация'}</span>${dateBtn(dr.disp || addD(dr.date, -1), 'idrdate', 'Дата инвентаризации (вечер)').replace('margin-left:auto', '')}</div>
     <p class="pname">${esc(p.name)}</p>
     <div class="grid3">${cell(0,'kkm','ККМ блок')}${cell(1,'kkm','ККМ дона')}${inc(pr.kkm - pr.rkkm, 'kkm')}${cell(2,'om','Омбор блок')}${cell(3,'om','Омбор дона')}${inc(pr.om - pr.rom, 'om')}${seller ? '' : cell(4,'own',WORD)}${cell(5,'ret','Возврат')}${seller ? '<div></div><div></div>' : inc(pr.own - pr.rown, 'own')}</div>
     <div id="ost">${ostHtml(row, a, seller)}</div>
@@ -1446,13 +1599,18 @@ V.icard = () => {
   <div class="botbar wrap"><div class="in"><button class="btn sec" data-a="inav" data-v="-1" ${dr.idx===0?'disabled':''}>‹ Назад</button><button class="sbtn" data-a="ilist" aria-label="Список товаров">${ICON.list}<span style="font-size:15px;font-weight:700">Список</span></button><button class="btn pri" data-a="${isLast?'ifinish':'inav'}" data-v="1">${isLast?'Завершить':'Дальше ›'}</button></div></div>`;
 };
 /* Инвентаризация на компьютере — одной таблицей, как в Excel: Enter — вниз, Tab — вправо */
-const saveDraftSoon = () => { clearTimeout(saveDraftSoon.h); saveDraftSoon.h = setTimeout(() => { LOC.drafts = S.drafts; ls.set(LOC_KEY, LOC); }, 400); };
+const saveDraftSoon = () => { clearTimeout(saveDraftSoon.h); LOC.drafts = S.drafts; saveDraftSoon.h = setTimeout(() => { LOC.drafts = S.drafts; ls.set(LOC_KEY, LOC); }, 250); draftSoon(); };
 const ostCells = (r, seller) => { const n = i => r[i] || 0, f = r.some(x => x != null), k = n(0) + n(1) + n(2) + n(3); return `<td class="ost1">${f ? fmt(k) : ''}</td>${seller ? '' : `<td class="ost2">${f ? fmt(k + n(4)) : ''}</td>`}`; };
+function invBalOf(pid){   // баланс строки инвентаризации; пока строка пустая — как если бы ККМ и Омбор = 0, запас — как было (+ приход)
+  const dr = S.drafts.cig, prev = prevInvFor('cig', dr.date); if (!prev) return null;
+  const r = dr.rows[pid] || [], filled = r.some(x => x != null), a = prev.rows[pid] || Z, pr = prihodSum(pid, prev.date, dr.date), sug = (a[4]||0) + pr.own - pr.rown;
+  const now = [0, 1, 2, 3, 4, 5].map(i => i === 4 && r[4] == null ? Math.max(0, sug) : r[i] || 0);
+  return Object.assign(calc(pid, prev.rows[pid], now, prev.date, dr.date), {filled});
+}
 function igridBal(pid){
-  const dr = S.drafts.cig, prev = prevInvFor('cig', dr.date), r = dr.rows[pid];
-  if (!r || !r.some(x => x != null) || !prev) return ['', ''];
-  const c = calc(pid, prev.rows[pid], r.map(x => x || 0), prev.date, dr.date);
-  return [`<span class="${c.soldOff < 0 ? 'neg' : ''}">${c.soldOff}</span>`, `<span class="${c.sold < 0 ? 'neg' : ''}">${c.sold}</span>`];
+  const c = invBalOf(pid); if (!c) return ['', ''];
+  const cl = v => (c.filled ? '' : 'zz ') + (v < 0 ? 'neg' : ''), t = c.filled ? '' : ' title="Ещё не заполнено: баланс, если ничего не осталось"';
+  return [`<span class="${cl(c.soldOff)}"${t}>${c.soldOff}</span>`, `<span class="${cl(c.sold)}"${t}>${c.sold}</span>`];
 }
 V.igrid = () => {
   const dr = S.drafts.cig; if (!dr) return V.inv();
@@ -1464,8 +1622,9 @@ V.igrid = () => {
   const body = rows.map(({p, n}) => { const a = (prev && prev.rows[p.id]) || Z, pr = prihodSum(p.id, prev ? prev.date : '0000', dr.date), r = dr.rows[p.id] || [], b = igridBal(p.id);
     const inc = (pr.kkm - pr.rkkm) || (pr.om - pr.rom) || (!seller && (pr.own - pr.rown)) ? `<span class="gi">${[pr.kkm - pr.rkkm ? 'К+' + (pr.kkm - pr.rkkm) : '', pr.om - pr.rom ? 'О+' + (pr.om - pr.rom) : '', !seller && pr.own - pr.rown ? 'З+' + (pr.own - pr.rown) : ''].filter(Boolean).join(' ')}</span>` : '';
     return `<tr data-pid="${p.id}"><td class="num muted">${n}</td><td class="l g">${esc(p.name)}${inc}</td><td class="muted">${a[0]+a[1]} / ${a[2]+a[3]}${seller ? '' : ' / ' + (a[4]||0)}</td>${cols.map(([i, , c]) => ` <td class="gc ${c} ${({kkm:'ck', om:'co', own:'cz', ret:'cr'})[c]}"><input class="gin" data-in="ginv" data-pid="${p.id}" data-i="${i}" inputmode="numeric" value="${r[i] == null ? '' : r[i]}" placeholder="${i === 4 && !r.length && (a[4]||0) + pr.own - pr.rown > 0 ? (a[4]||0) + pr.own - pr.rown : ''}" autocomplete="off"></td>`).join('')}${ostCells(r, seller)}<td class="bo cof">${b[0]}</td>${seller ? '' : `<td class="bs csv">${b[1]}</td>`}</tr>`; }).join('');
-  return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Выйти</button><h1>Инвентаризация ${dr.edit ? '(изменение) ' : ''}${dShort(dr.disp)}</h1><span class="muted small">заполнено <b id="gfill">${filled}</b> из ${items.length}</span>
-    <div class="fabs"><div class="fabw"><button class="fab" data-a="ifinish">${ICON.check}<span class="fl">Завершить</span></button></div><div class="fabw"><button class="fab s del" data-a="idocdel">${ICON.trash}<span class="fl">Удалить документ</span></button></div><div class="fabw"><button class="fab s" data-a="iempty">${ICON.list}<span class="fl">${R.onlyEmpty ? 'Все товары' : 'Только незаполненные'}</span></button></div><div class="fabw"><button class="fab s" data-a="search">${ICON.search}<span class="fl">Найти</span></button></div></div></div></div>
+  return `<div class="hdr wrap"><div class="hrow"><button class="back" data-a="back">‹ Выйти</button><h1 style="flex:0 0 auto">Инвентаризация${dr.edit ? ' (изменение)' : ''}</h1>${dateBtn(dr.disp || addD(dr.date, -1), 'idrdate', 'Дата инвентаризации (вечер)').replace('class="datebtn"', 'class="datebtn" style="margin-left:0"')}<span class="muted small">заполнено <b id="gfill">${filled}</b> из ${items.length}</span>
+    </div></div>
+  ${toolBar([{a:'ifinish', i:'check', l:'Завершить', k:'Ctrl+S', pri:1}, {a:'idocdel', i:'trash', l:'Удалить документ', dang:1}, {a:'iempty', i:'list', l:R.onlyEmpty ? 'Все товары' : 'Только незаполненные'}, {a:'search', i:'search', l:'Найти', k:'Ctrl+F'}], '', {print:1})}
   ${sbar('Название или номер')}
   <div class="wrap stack" style="padding-top:10px">
     <div class="small muted">Пишите количество в пачках. <b>Enter</b> — вниз, <b>Tab</b> — вправо. «Было» — ККМ / Омбор${seller ? '' : ' / ' + WORD} прошлой инвентаризации; К+ О+${seller ? '' : ' З+'} — приход за неделю. Справа баланс: <b style="color:var(--accent)">офис</b>${seller ? '' : ', <b style="color:var(--kkm)">свой</b>'}. Незаполненные при завершении: ККМ и Омбор — 0${seller ? '' : ', ' + WORD.toLowerCase() + ' — как было'}.</div>
@@ -1507,8 +1666,8 @@ V.ijump = () => {
     ${!R.q ? `<div class="grid2"><button class="btn sec" data-a="ifirst">Первый незаполненный</button><button class="btn sec" data-a="ifinish">Завершить</button></div>
     <div class="small muted">Справа балансы: <b style="color:var(--accent)">офис</b>${own ? ' · <b style="color:var(--kkm)">свой</b>' : ''}. Под названием: ККМ · Омбор${own ? ' · ' + WORD : ''}. Нажмите на товар, чтобы перейти к нему.</div>` : ''}
     ${R.q ? '' : brandChips('cig', ordered('cig').map(p => p.id))}
-    <div class="list sep" id="plist">${prodRows('cig', R.q, pid => { const c = bal(pid); if (!c) return dr.rows[pid] && dr.rows[pid].some(x => x != null) ? '' : '<span class="small muted">не заполнен</span>';
-        return `<span class="mbal"><b class="off ${c.soldOff < 0 ? 'neg' : ''}">${c.soldOff}</b>${own ? `<b class="own2 ${c.sold < 0 ? 'neg' : ''}">${c.sold}</b>` : ''}</span>`; }, 'ijumpto',
+    <div class="list sep" id="plist">${prodRows('cig', R.q, pid => { const c = invBalOf(pid); if (!c) return '';
+        return `<span class="mbal ${c.filled ? '' : 'unf'}" title="${c.filled ? '' : 'не заполнен'}"><b class="off ${c.soldOff < 0 ? 'neg' : ''}">${c.soldOff}</b>${own ? `<b class="own2 ${c.sold < 0 ? 'neg' : ''}">${c.sold}</b>` : ''}</span>`; }, 'ijumpto',
       pid => { const r = dr.rows[pid]; if (!r || !r.some(x => x != null)) return ''; const k = (r[0]||0)+(r[1]||0), o = (r[2]||0)+(r[3]||0), b = r[4]||0; return `<div class="small muted">ККМ ${k} · Омбор ${o}${own ? ' · ' + WORD + ' ' + b : ''}</div>`; })}</div></div>`
     + fabs([{a:'search', i:'search', l:'Поиск', s:1}]);
 };
@@ -1520,7 +1679,7 @@ V.ginv = () => {
   const order = Object.keys(agg).sort((x,y) => Math.max(...agg[y].map(a=>a.ts)) - Math.max(...agg[x].map(a=>a.ts)));
   order.forEach(pid => total += agg[pid].reduce((a,x)=>a+x.qty,0) * curPrice(pid).sale);
   const counted = order.map(pid => { const q = agg[pid].reduce((a,x)=>a+x.qty,0); return `<button class="row" data-a="gopen" data-v="${pid}"><span class="nm">${esc(P(pid).name)}<div class="small muted">${agg[pid].map(x=>x.qty).join(' + ')}</div></span><span class="rt">${q}</span></button>`; }).join('');
-  return hdr('Товары', {sum:total, tag:`<span class="small muted" style="margin-left:auto">${dShort(dr.date)}</span>`, del:{a:'idocdel'}}) + sbar('Название товара') + `<div class="wrap stack">
+  return hdr('Товары', {sum:total, tag:dateBtn(dr.disp || addD(dr.date, -1), 'idrdate', 'Дата инвентаризации (вечер)'), del:{a:'idocdel'}}) + sbar('Название товара') + `<div class="wrap stack">
     ${R.q ? `<div class="sec-h">Найдено · нажмите, чтобы добавить</div><div class="list" id="plist">${goodsResults()}</div>` : `
       <div class="sec-h">Посчитано · ${order.length}</div>
       <div class="list">${counted || '<div class="empty-st">Пока пусто. Нажмите 🔍 внизу справа и начните писать название.</div>'}</div>
@@ -1548,6 +1707,12 @@ V.gitem = () => {
 
 /* Отчёты */
 const REPORTS = [
+  {id:'rost', t:'Остатки товара', s:'Сколько чего сейчас: инвентаризация + приход − продано', i:'stack', c:'--accent'},
+  {id:'rturn', t:'Товарооборот', s:'С — по: начальный остаток, приход, расход, конечный', i:'trend', c:'--kkm'},
+  {id:'rcp', t:'Отчёт контрагентов', s:'Долги клиентов и долг перед офисом за период', i:'ppl', c:'--om'},
+  {id:'rcashbal', t:'Остаток кассы', s:'Сколько наличных и на карте', i:'coin', c:'--goods'},
+  {id:'rcashrep', t:'Отчёт кассы', s:'С — по: начальный, приход, расход, конечный', i:'card', c:'--kkm'},
+  {id:'rjournal', t:'Журнал', s:'Все документы и действия: кто, когда; восстановить удалённое', i:'list', c:'--muted'},
   {id:'rstock', t:'Остатки по неделям', s:'Инвентаризация каждой недели: сколько чего было', i:'stack', c:'--accent'},
   {id:'rdays', t:'Неделя по дням', s:'Приход, возврат, касса, долги — по дням недели', i:'cal', c:'--kkm'},
   {id:'rsales', t:'Продажи за неделю', s:'Сколько продано, ошибки, прибыль', i:'chart', c:'--goods'},
@@ -1809,12 +1974,12 @@ V.rsw = () => {
     const tableH = `<div class="tbl-wrap scrolly2"><table class="tight wide"><tr><th class="stick l">Товар</th>${thS('total', 'Всего')}${ps.map((per, i) => thS('c' + i, invShort(per.to))).join('')}</tr>
       ${R.q ? '' : `<tr class="tot"><td class="stick l">Все товары</td><td>${fmt(tot.reduce((a, b) => a + b, 0))}</td>${tot.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`}${html.replace(/data-a="rprod"/g, 'data-a="swsel"').replace(new RegExp('data-v="' + (R.sel || '#') + '"'), '$& data-cur="1"')}</table></div>`;
     const side = selP ? (() => { const P_ = panelOf(V.rprod, {s:'rprod', id:selP.id}); return `<div class="panel"><div class="ph"><b style="font-size:15px">${esc(selP.name)}</b><span class="phb"><button data-a="swsel" data-v="">✕</button></span></div><div class="pb">${P_.html}</div></div>`; })() : '';
-    return hdr('Аналитика продаж') + sbar('Название товара') + `<div class="wrap stack" style="padding-top:12px">
-      <div class="toolbar">${catSeg()}<div class="range">${range.replace('<div class="range">', '').replace(/<\/div>$/, '')}</div></div>
+    return hdr('Аналитика продаж') + repBar(false, '', {search:1}) + sbar('Название товара') + `<div class="wrap stack" style="padding-top:12px">
+      <div class="toolbar">${catSeg()}</div>
       ${sortBar([['total','Всего'], ['last','Последняя неделя'], ['trend','Рост'], ['use','★ Частые'], ['num','По номеру'], ['name','По названию']])}${R.q ? '' : brandChips(R.cat, baseIds, {sort:false})}
       ${side ? `<div class="md rev"><div class="mdl">${tableH}</div><div class="mdr">${side}</div></div>` : tableH}
       <div class="small muted">Продано пачек по неделям, свежие слева. Нажмите на товар — справа откроется график и сравнение недель.</div></div>` + fabs([{a:'search', i:'search', l:'Найти товар', c:'Найти'}]); }
-  return hdr('Аналитика продаж') + sbar('Название товара') + `<div class="wrap stack">${R.q ? '' : catSeg() + range + (ps.length ? '' : '<div class="note info">В этом периоде нет недель — выберите другие даты.</div>') + sortBar([['total','Всего'], ['last','Последняя неделя'], ['trend','Рост'], ['use','★ Частые'], ['num','По номеру'], ['name','По названию']]) + brandChips(R.cat, baseIds, {sort:false})}
+  return hdr('Аналитика продаж') + repBar(false, '', {search:1}) + sbar('Название товара') + `<div class="wrap stack">${R.q ? '' : catSeg() + (ps.length ? '' : '<div class="note info">В этом периоде нет недель — выберите другие даты.</div>') + sortBar([['total','Всего'], ['last','Последняя неделя'], ['trend','Рост'], ['use','★ Частые'], ['num','По номеру'], ['name','По названию']]) + brandChips(R.cat, baseIds, {sort:false})}
     <div class="small muted">Продано ${R.cat === 'cig' ? 'пачек' : 'шт'} по неделям (свежие слева). Нажмите на товар — откроется график, на заголовок недели — сортировка по ней.</div>
     <div class="tbl-wrap"><table class="tight wide"><tr><th class="stick l">Товар</th>${thS('total', 'Всего')}${ps.map((per, i) => thS('c' + i, invShort(per.to))).join('')}</tr>
     ${R.q ? '' : `<tr class="tot"><td class="stick l">Все товары</td><td>${fmt(tot.reduce((a, b) => a + b, 0))}</td>${tot.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`}${html}</table></div></div>`
@@ -1843,21 +2008,22 @@ V.rpd = () => {
   R.to = R.to || TODAY; R.from = R.from || addD(R.to, -13); R.pt = R.pt || 'all'; R.cat = R.cat || 'cig'; if (!R.sort){ R.sort = 'total'; R.dir = -1; }
   if (R.pt === 'own' && !SHOW) R.pt = 'all';
   const days = []; for (let d = R.to; d >= R.from && days.length < 120; d = addD(d, -1)) days.push(d);
-  const okType = x => !isRet(x.type) && vis(x.type) && (R.pt === 'all' ? (R.cat === 'goods' ? x.type === 'g' : x.type !== 'g') : x.type === R.pt);
+  const dwh = {}; if (R.whf) S.docs.forEach(d => dwh[d.id] = d.wh || '');
+  const okType = x => !isRet(x.type) && vis(x.type) && (R.pt === 'all' ? (R.cat === 'goods' ? x.type === 'g' : x.type !== 'g') : x.type === R.pt) && (!R.whf || dwh[x.doc] === R.whf);
   const by = {}; S.prihod.forEach(x => { if (x.date >= R.from && x.date <= R.to && okType(x)){ (by[x.pid] = by[x.pid] || {})[x.date] = ((by[x.pid] || {})[x.date] || 0) + x.qty; } });
-  let rows = repProducts(R.cat).map((p, i) => ({p, i})).filter(r => by[r.p.id]).map(r => { const vals = days.map(d => by[r.p.id][d] || 0); const f = vals.findIndex(v => v);
+  let rows = repProducts(R.cat).map((p, i) => ({p, i})).filter(r => by[r.p.id] || (R.allp && !r.p.hidden)).map(r => { const vals = days.map(d => (by[r.p.id] || {})[d] || 0); const f = vals.findIndex(v => v);
     return Object.assign(r, {vals, sum: vals.reduce((a, b) => a + b, 0), cnt: vals.filter(v => v).length, recent: f < 0 ? 1e9 : f}); });
   const tot = days.map((d, k) => rows.reduce((s, r) => s + r.vals[k], 0));
   const baseIds = rows.map(r => r.p.id); rows = rows.filter(r => (!R.q || match(r.p.name, R.q)) && brandOk(r.p, R.cat));
   const kv = {total: r => r.sum, days: r => r.cnt, last: r => -r.recent, use: r => useScore()[r.p.id] || 0, num: r => r.i, name: () => 0}[R.sort] || (r => r.vals[+R.sort.slice(1)] || 0);
   const html = sortRows(rows, kv).map(r => `<tr class="rowtap" data-a="rpprod" data-v="${r.p.id}"><td class="stick nmc">${esc(r.p.name)}</td><td><b>${fmt(r.sum)}</b></td>${r.vals.map((v, i) => `<td class="${v ? '' : 'z'} ${R.sort === 'c' + i ? 'sorted' : ''}">${v ? fmt(v) : '·'}</td>`).join('')}</tr>`).join('');
   const kinds = [['all','Все'], ['kkm','ККМ'], ['om','Омбор']].concat(SHOW ? [['own', WORD]] : []);
-  const chips = R.cat === 'goods' ? '' : `<div class="chips">${kinds.map(([k, l]) => `<button class="chip ${R.pt === k ? 'on' : ''}" data-a="rpt" data-v="${k}">${l}</button>`).join('')}</div>`;
-  return hdr('Аналитика прихода') + sbar('Название товара') + `<div class="wrap stack">
-    ${R.q ? '' : `${catSeg()}<div class="range"><div class="field"><label for="pd_from">С какого дня</label><input type="date" id="pd_from" data-in="pdr" data-k="from" value="${R.from}" max="${TODAY}"></div><div class="field"><label for="pd_to">По какой</label><input type="date" id="pd_to" data-in="pdr" data-k="to" value="${R.to}" max="${TODAY}"></div></div>${chips}
+  const chips = `<div class="chips wrapc">${R.cat === 'goods' ? '' : kinds.map(([k, l]) => `<button class="chip ${R.pt === k ? 'on' : ''}" data-a="rpt" data-v="${k}">${l}</button>`).join('')}<span class="csep"></span>${[['', 'Все склады']].concat(Object.keys(WH).map(k => [k, k])).map(([k, l]) => `<button class="chip ${(R.whf || '') === k ? 'on' : ''}" data-a="rpwh" data-v="${k}" title="${k ? WH[k] : ''}">${l}</button>`).join('')}<span class="csep"></span><button class="chip ${R.allp ? 'on' : ''}" data-a="rpall" title="Показать и товары, которых за период не было">${R.allp ? '✓ ' : ''}Все товары, и без прихода</button></div>`;
+  return hdr('Аналитика прихода') + repBar(false, '', {search:1}) + sbar('Название товара') + `<div class="wrap stack">
+    ${R.q ? '' : `${catSeg()}${chips}
       ${sortBar([['total','Больше всего'], ['days','Чаще всего'], ['last','Недавние'], ['use','★ Частые'], ['num','По номеру'], ['name','По названию']])}${brandChips(R.cat, baseIds, {sort:false})}`}
     <div class="small muted">Сколько заказывали (пачек/шт) по дням, свежие слева. Нажмите на товар — откроется график, на заголовок дня — сортировка по нему. ${days.length >= 120 ? 'Показаны последние 120 дней периода.' : ''}</div>
-    ${rows.length ? `<div class="tbl-wrap"><table class="tight wide"><tr><th class="stick l">Товар</th>${thS('total', 'Всего')}${days.map((d, i) => thS('c' + i, wdShort(d) + ' ' + dShort(d))).join('')}</tr>
+    ${rows.length ? `<div class="tbl-wrap"><table class="tight wide xl"><tr><th class="stick l">Товар</th>${thS('total', 'Всего')}${days.map((d, i) => thS('c' + i, wdShort(d) + ' ' + dShort(d))).join('')}</tr>
     ${R.q ? '' : `<tr class="tot"><td class="stick l">Все товары</td><td>${fmt(tot.reduce((a, b) => a + b, 0))}</td>${tot.map(v => `<td>${v ? fmt(v) : '·'}</td>`).join('')}</tr>`}${html}</table></div>` : '<div class="card empty-st">За этот период приходов нет</div>'}
   </div>` + fabs([{a:'search', i:'search', l:'Найти товар для анализа', c:'Найти'}]);
 };
@@ -1995,7 +2161,7 @@ async function sendReports(inv, quiet){
 }
 const sendOffice = id => sendReports(S.inv.find(i => i.id === id));
 /* ---------- вход и пользователи ---------- */
-const SELLER_NO = {reports:1, settings:1, rstock:1, rweek:1, rdays:1, rsales:1, rsw:1, rprod:1, rpd:1, rpprod:1, rprice:1, rbal:1, sprod:1, sedit:1, users:1, uedit:1, posusers:1, puedit:1, bcbind:1, rpos:1};
+const SELLER_NO = {backup:1, rost:1, rturn:1, rturnp:1, rcp:1, rcpd:1, rcashbal:1, rcashrep:1, reports:1, settings:1, rstock:1, rweek:1, rdays:1, rsales:1, rsw:1, rprod:1, rpd:1, rpprod:1, rprice:1, rbal:1, sprod:1, sedit:1, users:1, uedit:1, posusers:1, puedit:1, bcbind:1, rpos:1};
 const ROLE_INFO = {'админ':'всё, включая пользователей', 'управляющий':'всё, кроме пользователей', 'продавец':'приход, возврат, касса, долги, инвентаризация — без отчётов и настроек'};
 V.login = () => `<div class="hdr wrap"><div class="hrow"><h1>Магазин Чорсу</h1></div></div><div class="wrap stack">
   <div class="card"><b style="font-size:22px">Вход</b><p class="muted" style="margin:6px 0 0">Введите свой логин и пароль. Их выдаёт Саидало.</p></div>
@@ -2058,6 +2224,7 @@ function dateSheetHtml(){
 }
 function applyDate(act, v){
   v = v > TODAY ? TODAY : v;
+  if (DATE_ACT[act]) return DATE_ACT[act](v);   // v18: дата внутри документов и отчётов
   if (act === 'cdate' && R.dirty) return askSave(() => { saveCash(); R.date = v; render(); }, () => { R.dirty = false; R.cd = null; R.date = v; render(); });
   if (act === 'rsnav'){ const ps = periods(R.cat || 'cig'); const i = perIndex(ps, v); R.pi = i; R.open = null; return render(); }
   if (act === 'rcnav' || act === 'rbnav'){ const o = dayPeriods(); R.di = Math.max(0, o.findIndex(x => x.from <= v && v <= x.to)); return render(); }
@@ -2159,7 +2326,7 @@ const npOver = n => NP.max != null && n > NP.max;   // больше допуст
 function npHtml(){
   const n = Number(NP.val||0), over = npOver(n);
   return `<div class="ov ${ANIM?'anim':''}"><div class="sheet" role="dialog" aria-label="${esc(NP.title)}">
-    <h2>${esc(NP.title)}</h2>${NP.sub ? `<div class="muted small" id="npsub">${NP.sub}</div>` : ''}
+    <h2>${esc(NP.title)}</h2>${NP.subFn || NP.sub ? `<div class="muted small" id="npsub">${NP.subFn ? NP.subFn() : NP.sub}</div>` : ''}
     <div class="disp ${NP.val?'':'empty'}" id="npdisp">${npDisp()}</div>
     <div class="npx ${over ? 'neg' : ''}" id="npx" role="status">${over ? esc(NP.maxMsg || '') : NP.extra ? NP.extra(n) : ''}</div>
     ${NP.fill ? `<button class="btn sec" data-a="npfill">${esc(NP.fill.l)} · ${fmt(NP.fill.v)}</button>` : ''}
@@ -2204,7 +2371,7 @@ const A = {
   dzero: () => { R.showZero = !R.showZero; render(); },
   dren: () => go('dnew', {id:R.id}),
   ddel: () => { const dd = S.debtors.find(x => x.id === R.id); if (!dd) return; const v = debtOf(dd.id), n = S.moves.filter(m => m.did === dd.id).length, what = `Должник «${esc(dd.name)}»: долг ${fmt(v)}, записей ${n}`;
-    confirmBox('Удалить должника вместе со всей историей?<br><b>' + what + '</b>', 'Удалить', () => setTimeout(() => pinGuard(what, () => { S.moves = S.moves.filter(m => m.did !== dd.id); S.debtors = S.debtors.filter(x => x.id !== dd.id); if (S.dinfo) delete S.dinfo[dd.id]; save(); HIST.length = 0; HIST.push({s:'home'}); R = {s:'debts'}; toast('Должник удалён'); }), 0)); },
+    confirmBox('Удалить должника вместе со всей историей?<br><b>' + what + '</b>', 'Удалить', () => setTimeout(() => pinGuard(what, () => { logAct('Удалён', 'Должник', dd.id, TODAY, '', `${dd.name}: долг ${fmt(v)}, записей ${n}`, v, {d:Object.assign({}, dd), moves:S.moves.filter(m => m.did === dd.id), info:(S.dinfo || {})[dd.id] || null}); S.moves = S.moves.filter(m => m.did !== dd.id); S.debtors = S.debtors.filter(x => x.id !== dd.id); if (S.dinfo) delete S.dinfo[dd.id]; save(); HIST.length = 0; HIST.push({s:'home'}); R = {s:'debts'}; toast('Должник удалён'); }), 0)); },
   ifirst: () => { const dr = S.drafts.cig, items = ordered('cig'); const i = items.findIndex(p => !dr.rows[p.id]); dr.idx = i < 0 ? items.length-1 : i; save(); HIST.length = 0; HIST.push({s:'home'}, {s:'inv', cat:'cig'}); R = {s:'icard', cat:'cig'}; render(); window.scrollTo(0,0); },
   gedit: d => { const dr = S.drafts.goods, x = dr.adds.find(a => a.id === d.v);
     openNP({title:P(x.pid).name, sub:'Исправить это добавление · сейчас ' + x.qty, val:String(x.qty), ok:'Сохранить', extra:qtyWarn,
@@ -2222,14 +2389,16 @@ const A = {
   aamt: () => { keepNote(); openNP({title:'Сумма изменения', money:true, val:R.aamt ? String(R.aamt) : '', ok:'Готово', onOk:n => { R.aamt = n; NP = null; render(); }}); },
   apf: d => { keepNote(); R.aamt = +d.v; render(); },
   asave: () => { keepNote(); const nm = (R.anote || '').trim(); if (!nm){ R.err = 'Напишите наименование'; return render(); } if (!R.aamt){ R.err = 'Введите сумму'; return render(); }
-    S.adj = S.adj || []; S.adj.push({id:uid(), date:R.adate, amt:R.asign * R.aamt, note:nm}); save(); doBack(); toast(R.asign > 0 ? 'Добавлено к долгу' : 'Долг убавлен'); },
+    S.adj = S.adj || []; const a = {id:uid(), date:R.adate, amt:R.asign * R.aamt, note:nm}; S.adj.push(a); logAct('Создан', 'Корректировка долга офиса', a.id, a.date, '', nm, a.amt); save(); doBack(); toast(R.asign > 0 ? 'Добавлено к долгу' : 'Долг убавлен'); },
   adel: d => { const a = S.adj.find(x => x.id === d.v); if (!a) return; const what = `${esc(adjNote(a.note))}: ${dShort(a.date)}, ${a.amt > 0 ? '+' : '−'}${fmt(Math.abs(a.amt))}`;
-    confirmBox('Удалить это изменение долга?<br><b>' + what + '</b>', 'Удалить', () => setTimeout(() => pinGuard(what, () => { S.adj = S.adj.filter(x => x.id !== d.v); save(); toast('Удалено'); }), 0)); },
+    confirmBox('Удалить это изменение долга?<br><b>' + what + '</b>', 'Удалить', () => setTimeout(() => pinGuard(what, () => { logAct('Удалён', 'Корректировка долга офиса', a.id, a.date, '', adjNote(a.note), a.amt, {a:Object.assign({}, a)}); S.adj = S.adj.filter(x => x.id !== d.v); save(); toast('Удалено'); }), 0)); },
   npdel: () => NP.onDel(),
   pnew: () => { TSHEET = true; ANIM = true; render(); },
   tsclose: () => { TSHEET = false; render(); },
-  pnewt: d => { TSHEET = false; S.wip = {docId:null, date:R.date || TODAY, type:d.v, items:[], dirty:false}; save(); go('pdoc'); },
-  popen: d => { const doc = S.docs.find(x => x.id === d.v); S.wip = {docId:doc.id, date:doc.date, type:doc.type, items:S.prihod.filter(x => x.doc === doc.id).map(x => ({pid:x.pid, qty:x.qty})), dirty:false, view:d.edit !== '1'}; save(); go('pdoc'); },
+  pnewt: d => { TSHEET = false; S.wip = {docId:null, date:(R.s === 'plist' && R.to) || R.date || TODAY, type:d.v, wh:ls.get('chorsu_lastwh_' + d.v, '') || '', items:[], dirty:false}; save(); go('pdoc'); },
+  popen: d => { const doc = S.docs.find(x => x.id === d.v); if (!doc) return toast('Документ не найден — возможно, удалён');
+    if (S.wip && S.wip.dirty && S.wip.docId !== doc.id) return confirmBox(`Есть несохранённый ${isRet(S.wip.type) ? 'возврат' : 'приход'} (${S.wip.items.length} поз.). Открыть другой документ? Несохранённое пропадёт.`, 'Открыть', () => { S.wip.dirty = false; A.popen(d); });
+    S.wip = {docId:doc.id, date:doc.date, type:doc.type, wh:doc.wh || '', items:S.prihod.filter(x => x.doc === doc.id).map(x => ({pid:x.pid, qty:x.qty})), dirty:false, view:d.edit !== '1'}; save(); if (R.s === 'pdoc') render(); else go('pdoc'); },
   padd: d => { const w = S.wip, pid = d.v, pr = priceAt(pid, w.date), already = w.items.filter(x => x.pid===pid).reduce((a,x)=>a+x.qty,0);
     openNP({title:P(pid).name, sub:`<span class="pill p-${TYPES[w.type].c}">${TYPES[w.type].full}</span> · цена ${fmt(pr.cost)}${already ? ' · уже в приходе: ' + already : ''}`, extra:n => 'Сумма: ' + fmt(n*pr.cost) + qtyWarn(n), ok:'Добавить',
       onOk:n => { const kb = DESK && (R.sOpen || R.q); w.items.push({pid, qty:n}); w.dirty = true; save(); NP = null; R.q = ''; R.sOpen = !!kb; toast('Добавлено: +' + n);
@@ -2240,10 +2409,12 @@ const A = {
     const one = isRet(w.type) ? 'возврат' : 'приход', doc = S.docs.find(x => x.id === w.docId), fromList = !!(d && d.v);
     if (!doc) return confirmBox(`Удалить весь этот ${one}?<br><b>${w.items.length} поз. — он ещё не сохранён, всё пропадёт.</b>`, 'Удалить документ', () => { S.wip = null; save(); doBack(); toast('Документ удалён'); });
     const what = `${one[0].toUpperCase() + one.slice(1)} ${dShort(doc.date)}, ${TYPES[doc.type].full}: ${S.prihod.filter(x => x.doc === doc.id).length} поз. на ${fmt(docSum(S.prihod.filter(x => x.doc === doc.id), doc.date))}`;
-    const del = () => { const id = doc.id; S.docs = S.docs.filter(x => x.id !== id); S.prihod = S.prihod.filter(x => x.doc !== id); if (!fromList){ S.wip = null; save(); doBack(); } else { R.sel = null; save(); } toast((one === 'возврат' ? 'Возврат' : 'Приход') + ' удалён'); };
+    const del = () => { const id = doc.id, ln = S.prihod.filter(x => x.doc === id);
+      logAct('Удалён', one === 'возврат' ? 'Возврат' : 'Приход', id, doc.date, docNo(doc), `${TYPES[doc.type].full}${doc.wh ? ' · ' + doc.wh : ''} · ${ln.length} поз.`, docSum(ln, doc.date), {doc:Object.assign({}, doc), lines:ln.map(x => ({id:x.id, pid:x.pid, qty:x.qty}))});
+      S.docs = S.docs.filter(x => x.id !== id); S.prihod = S.prihod.filter(x => x.doc !== id); if (!fromList){ S.wip = null; save(); doBack(); } else { R.sel = null; save(); } toast((one === 'возврат' ? 'Возврат' : 'Приход') + ' удалён'); };
     confirmBox('Удалить весь этот ' + one + '?<br><b>' + what + '</b>', 'Удалить', () => doc.date === TODAY ? del() : setTimeout(() => pinGuard(what, del), 0)); },
   idel: d => { const inv = S.inv.find(i => i.id === d.v); if (!inv) return; const what = `Инвентаризация ${inv.cat === 'cig' ? 'сигарет' : 'товаров'} за ${dShort(evDate(inv))}`;
-    confirmBox('Удалить всю инвентаризацию?<br><b>' + what + '</b><br>Остатки и продажи этой недели пересчитаются.', 'Удалить', () => setTimeout(() => pinGuard(what, () => { S.inv = S.inv.filter(i => i.id !== inv.id); save(); HIST.length = 0; HIST.push({s:'home'}); R = {s:'rstock', cat:inv.cat}; toast('Инвентаризация удалена'); }), 0)); },
+    confirmBox('Удалить всю инвентаризацию?<br><b>' + what + '</b><br>Остатки и продажи этой недели пересчитаются.', 'Удалить', () => setTimeout(() => pinGuard(what, () => { logInvDel(inv); S.inv = S.inv.filter(i => i.id !== inv.id); save(); HIST.length = 0; HIST.push({s:'home'}); R = {s:'rstock', cat:inv.cat}; toast('Инвентаризация удалена'); }), 0)); },
   pedit: () => { if (S.wip){ S.wip.view = false; save(); render(); } },
   cdate: d => { const f = () => { R.date = addD(R.date, +d.v); render(); }; if (R.dirty) askSave(() => { saveCash(); f(); }, () => { R.dirty = false; R.cd = null; f(); }); else f(); },
   cset: d => openNP({title: d.v==='t' ? 'Терминал' : 'Касса', sub: dLong(R.date) + (R.cd[d.v] ? ' · сейчас ' + fmt(R.cd[d.v]) : ''), money:true, allowZero:true, ok:'Готово', onOk:n => { R.cd[d.v] = n; R.dirty = true; NP = null; render(); }}),
@@ -2251,19 +2422,23 @@ const A = {
   dopen: d => go('debtor', {id:d.v}),
   dnew: () => go('dnew'),
   dcreate: () => { const n = document.getElementById('dname').value.trim(); if (!n) return toast('Введите имя');
-    if (R.id){ const dd = S.debtors.find(x => x.id === R.id); dd.name = n; save(); doBack(); return toast('Имя изменено'); }
-    const id = uid(); S.debtors.push({id, name:n, grp:'a', ts:Date.now()}); save(); R = {s:'debtor', id}; render(); toast('Должник добавлен'); },
+    if (R.id){ const dd = S.debtors.find(x => x.id === R.id); logAct('Изменён', 'Должник', dd.id, TODAY, '', `имя «${dd.name}» → «${n}»`, 0); dd.name = n; save(); doBack(); return toast('Имя изменено'); }
+    const id = uid(); S.debtors.push({id, name:n, grp:'a', ts:Date.now()}); logAct('Создан', 'Должник', id, TODAY, '', n, 0); save(); R = {s:'debtor', id}; render(); toast('Должник добавлен'); },
   dmove: d => { const s = +d.v, dd = S.debtors.find(x => x.id === R.id), inf = dInfo(R.id), lim = s > 0 && inf.limOn && inf.lim ? inf.lim : 0, cur = debtOf(R.id);
     if (lim && cur >= lim) return confirmBox(`Лимит долга ${fmt(lim)} уже достигнут (долг ${fmt(cur)}). В долг больше не даём.`, 'Открыть карточку', () => go('dcard', {id:R.id}));
-    openNP({title:(s>0 ? 'Дал в долг: ' : 'Вернул: ') + dd.name, sub:dLong(TODAY) + (lim ? ` · можно ещё <b>${fmt(lim - cur)}</b> (лимит ${fmt(lim)})` : ''), money:true,
+    MV = {date:TODAY, kassa:'cash', s};
+    openNP({title:(s>0 ? 'Дал в долг: ' : 'Вернул: ') + dd.name, subFn:() => `<span class="npopt"><button class="chip ${MV.date === TODAY ? '' : 'on'}" data-a="dpick" data-act="mvdate" data-v="${MV.date}" data-t="Дата записи">📅 ${MV.date === TODAY ? 'Сегодня' : wdShort(MV.date) + ' ' + dShort(MV.date)}</button>${s < 0 ? `<button class="chip ${MV.kassa === 'cash' ? 'on' : ''}" data-a="mvkassa" data-v="cash">Наличные</button><button class="chip ${MV.kassa === 'card' ? 'on' : ''}" data-a="mvkassa" data-v="card">Карта</button>` : ''}</span>` + (lim ? `<br>можно ещё <b>${fmt(lim - cur)}</b> (лимит ${fmt(lim)})` : ''), money:true,
       extra: n => lim && cur + n > lim ? `<span class="neg">Больше лимита на ${fmt(cur + n - lim)} — так нельзя</span>` : '', onOk:n => {
-      if (lim && cur + n > lim){ NP.val = ''; npUpdate(); document.getElementById('npsub').innerHTML = `<span class="neg">Лимит ${fmt(lim)}: можно дать не больше ${fmt(lim - cur)}</span>`; return; } S.moves.push({id:uid(), did:R.id, date:TODAY, amt:s*n, note: s>0 ? 'дал в долг' : 'вернул'}); save(); NP = null; toast(s>0 ? 'Долг добавлен' : 'Возврат записан'); }}); },
+      if (lim && cur + n > lim){ NP.val = ''; npUpdate(); document.getElementById('npsub').innerHTML = `<span class="neg">Лимит ${fmt(lim)}: можно дать не больше ${fmt(lim - cur)}</span>`; return; }
+      const m = {id:uid(), did:R.id, date:MV.date, amt:s*n, note: s>0 ? 'дал в долг' : 'вернул'}; if (s < 0 && MV.kassa === 'card') m.kassa = 'card'; S.moves.push(m); save();
+      logAct('Создан', 'Долг', m.id, m.date, '', `${dd.name}: ${s > 0 ? 'дал в долг' : 'вернул' + (m.kassa === 'card' ? ' (карта)' : '')}${m.date !== TODAY ? ' · за ' + dShort(m.date) : ''}`, m.amt);
+      NP = null; toast(s>0 ? 'Долг добавлен' : 'Возврат записан'); }}); },
   dcard: () => go('dcard', {id:R.id, dc:null}),
   dclim: () => { keepDc(); openNP({title:'Лимит долга', money:true, allowZero:true, val:String((R.dc && R.dc.lim) ?? dInfo(R.id).lim ?? ''), ok:'Готово', onOk:n => { R.dc = Object.assign(R.dc || {}, {lim:n}); NP = null; render(); }}); },
   dcsave: () => { keepDc(); S.dinfo = S.dinfo || {}; S.dinfo[R.id] = Object.assign({}, dInfo(R.id), R.dc); save(); doBack(); toast('Карточка сохранена'); },
   mdel: d => { const m = S.moves.find(x => x.id === d.v); if (!m) return;
     if (m.sale){ if (S.sales.some(x => x.id === m.sale)) return go('possale', {id:m.sale}); return toast('Это запись с кассы — отменить можно только чек на кассе'); } const dd = S.debtors.find(x => x.id === m.did), what = `${esc(dd ? dd.name : '')}: ${dShort(m.date)}, ${m.amt > 0 ? 'дал в долг +' : 'вернул '}${fmt(m.amt)}`;
-    const del = () => { S.moves = S.moves.filter(x => x.id !== d.v); save(); toast('Запись удалена'); };
+    const del = () => { logAct('Удалён', 'Долг', m.id, m.date, '', `${dd ? dd.name : ''}: ${m.amt > 0 ? 'дал в долг' : 'вернул'}`, m.amt, {m:Object.assign({}, m)}); S.moves = S.moves.filter(x => x.id !== d.v); save(); toast('Запись удалена'); };
     confirmBox('Удалить запись?<br><b>' + what + '</b>', 'Удалить', () => m.date === TODAY ? del() : setTimeout(() => pinGuard(what, del), 0)); },
   dgrp: () => { const dd = S.debtors.find(x => x.id === R.id); confirmBox(dd.grp === 'n' ? `Вернуть «${esc(dd.name)}» в должники?` : `Перенести «${esc(dd.name)}» в Несгор?`, dd.grp === 'n' ? 'Вернуть' : 'Перенести', () => A.dgrp2()); },
   dgrp2: () => { const dd = S.debtors.find(x => x.id === R.id); dd.grp = dd.grp === 'n' ? 'a' : 'n'; dd.ts = Date.now(); save(); toast(dd.grp==='n' ? 'Перенесено в Несгор' : 'Перенесено в должники'); },
@@ -2277,7 +2452,7 @@ const A = {
     const n = cat === 'goods' ? Object.keys(goodsAgg(dr)).length + (dr.extra || []).length : Object.keys(dr.rows).filter(id => dr.rows[id].some(x => x != null)).length;
     const leave = msg => { delete S.drafts[cat]; save(); HIST.length = 0; HIST.push({s:'home'}); R = {s:'inv', cat}; toast(msg); };
     if (dr.edit){ const inv = S.inv.find(i => i.id === dr.edit), what = `Инвентаризация ${cat === 'cig' ? 'сигарет' : 'товаров'} за ${dShort(dr.disp)}`;
-      CONF = {text:'Удалить документ?<br><b>' + what + '</b>', alt:{l:'Удалить всю инвентаризацию', c:'dang', f:() => setTimeout(() => pinGuard(what, () => { S.inv = S.inv.filter(i => i.id !== dr.edit); leave('Инвентаризация удалена'); }), 0)},
+      CONF = {text:'Удалить документ?<br><b>' + what + '</b>', alt:{l:'Удалить всю инвентаризацию', c:'dang', f:() => setTimeout(() => pinGuard(what, () => { if (inv) logInvDel(inv); S.inv = S.inv.filter(i => i.id !== dr.edit); leave('Инвентаризация удалена'); }), 0)},
         yes:{l:'Отменить изменения', c:'pri', f:() => leave('Изменения отменены, сохранённая инвентаризация не тронута')}, no:{l:'Нет', f:() => {}}};
       if (!inv) CONF.alt = null; ANIM = true; return render(); }
     confirmBox(`Удалить всю незаконченную инвентаризацию?<br><b>${cat === 'cig' ? 'Заполнено товаров: ' + n : 'Записано: ' + n} — всё пропадёт.</b>`, 'Удалить документ', () => leave('Инвентаризация удалена')); },
@@ -2295,7 +2470,11 @@ const A = {
         if (r && r.some(x => x)) rows[p.id] = r.map(x => x||0); });
       const orig = dr.edit && S.inv.find(i => i.id === dr.edit), on = new Set(ordered(cat).map(p => p.id));
       if (orig) Object.keys(orig.rows).forEach(pid => { if (!on.has(pid)) rows[pid] = orig.rows[pid].slice(); }); }
-    S.inv = S.inv.filter(i => !(i.cat === cat && i.date === dr.date)); S.inv.push(Object.assign({date:dr.date, disp:dr.disp || dr.date, eve:!!dr.eve, cat, rows}, extra ? {extra} : {})); delete S.drafts[cat]; save();
+    const exAt = dr.edit && S.inv.find(i => i.cat === cat && i.date === dr.date && i.id !== dr.edit); if (exAt) logInvDel(exAt);   // заменённая другая инвентаризация — в журнал, её можно восстановить
+    const old0 = (dr.edit && S.inv.find(i => i.id === dr.edit)) || S.inv.find(i => i.cat === cat && i.date === dr.date);
+    S.inv = S.inv.filter(i => !(i.cat === cat && i.date === dr.date) && !(dr.edit && i.id === dr.edit)); S.inv.push(Object.assign({date:dr.date, disp:dr.disp || dr.date, eve:!!dr.eve, cat, rows}, extra ? {extra} : {})); delete S.drafts[cat];
+    { const ni0 = S.inv[S.inv.length - 1], sm = invSums(ni0); logAct(old0 ? 'Изменён' : 'Создан', cat === 'cig' ? 'Инвентаризация сигарет' : 'Инвентаризация товаров', (cat === 'cig' ? 'i' : 'g') + dr.date.replace(/-/g, ''), dr.disp || dr.date, '', `${sm.n} товаров${old0 && old0.date !== dr.date ? ' · дата ' + dShort(evDate(old0)) + ' → ' + dShort(dr.disp || dr.date) : ''}`, cat === 'cig' ? sm.k + sm.o : sm.q, old0 ? {inv:old0} : null); }
+    save();
     HIST.length = 0; R = {s:'home'}; HIST.push(R); R = {s:'reports'}; go('rstock', {cat}); toast(dr.edit ? 'Изменения сохранены' : 'Инвентаризация сохранена');
     const ni = S.inv.find(i => i.cat === cat && i.date === dr.date); setTimeout(() => sendReports(cat === 'cig' ? ni : null, true), 2500); },
   gadd: d => { const pid = d.v, dr = S.drafts.goods, have = dr.adds.filter(x => x.pid===pid).reduce((a,x)=>a+x.qty,0), prev = prevInvFor('goods', dr.date), pq = prev && prev.rows[pid] ? prev.rows[pid][0] : 0;
@@ -2311,11 +2490,13 @@ const A = {
   rprod: d => go('rprod', {id:d.v, from:R.from, to:R.to}),
   rpprod: d => go('rpprod', {id:d.v, from:R.from, to:R.to}),
   rpt: d => { R.pt = d.v; render(); },
+  rpwh: d => { R.whf = d.v; render(); },
+  rpall: () => { R.allp = !R.allp; render(); },
   sidetog: () => { ls.set('chorsu_sidec', !ls.get('chorsu_sidec', false)); render(); },
-  sgo: d => { MSHEET = false; HIST.length = 0; if (d.v === 'home'){ R = {s:'home'}; } else { HIST.push({s:'home'}); R = {s:d.v}; if (d.v === 'rlist'){ R.kind = 'ret'; } } NP = null; render(); window.scrollTo(0,0); },
+  sgo: d => { MSHEET = false; HIST.length = 0; const [sv0, cat0] = String(d.v).split(':'); if (sv0 === 'home'){ R = {s:'home'}; } else { HIST.push({s:'home'}); R = {s:sv0}; if (cat0) R.cat = cat0; if (sv0 === 'rlist'){ R.kind = 'ret'; } } NP = null; render(); window.scrollTo(0,0); },
   menu: () => { MSHEET = true; ANIM = true; render(); },
   mclose: () => { MSHEET = false; render(); },
-  mgo: d => { MSHEET = false; go(d.v); },
+  mgo: d => { MSHEET = false; const [sv0, cat0] = String(d.v).split(':'); go(sv0, cat0 ? {cat:cat0} : (sv0 === 'rlist' ? {kind:'ret'} : {})); },
   week: d => { const p = {tab:d.v}; if (R.date && R.s !== 'home'){ const i = dayPeriods().findIndex(x => x.from <= R.date && R.date <= x.to); if (i >= 0) p.di = i; } go('week', p); },
   wtab: d => { R.tab = d.v; render(); },
   iempty: () => { R.onlyEmpty = !R.onlyEmpty; render(); },
@@ -2326,7 +2507,7 @@ const A = {
   helpclose: () => { HELP = false; render(); },
   help: () => { HELP = true; ANIM = true; render(); },
   dsel: d => { R.sel = d.v; render(); },
-  psel: d => { R.sel = d.v; render(); },
+  pdsel: d => { R.sel = d.v; render(); },   // v18: было «psel» — касса переопределяла его своим (выбор строки чека), второй документ не выбирался
   ssel: d => { R.sel = d.v; render(); },
   swsel: d => { R.sel = d.v || null; render(); },
   dpopen: d => { HIST.length = 0; HIST.push({s:'home'}); const doc = S.docs.find(x => x.id === d.v); R = {s:'plist', date:doc.date, kind:isRet(doc.type) ? 'ret' : 'in'}; A.popen(d); },
@@ -2406,14 +2587,14 @@ const A = {
       const p = P(R.id); p.name = name; const c = curPrice(p.id);
       if (blk !== null){ const dflt = p.cat === 'cig' ? 10 : 0, v = blk === '' ? null : (+blk.replace(/\D/g, '') || 0); if (v === null || (v === dflt && p.block == null)) delete p.block; else p.block = v; }
       if (grp !== null){ if (grp) p.group = grp; else delete p.group; }
-      if (c.cost !== cost || c.sale !== sale || (c.bsale || 0) !== bsale){ const from = document.getElementById('e_from').value || TODAY; S.prices = S.prices.filter(x => !(x.pid===p.id && x.from===from)); S.prices.push(Object.assign({pid:p.id, from, cost, sale}, bsale ? {bsale} : {})); }
+      if (c.cost !== cost || c.sale !== sale || (c.bsale || 0) !== bsale){ const from = document.getElementById('e_from').value || TODAY; logAct('Изменён', 'Цена товара', p.id, from, '', `${p.name}: ${fmt(c.cost)} / ${fmt(c.sale)} → ${fmt(cost)} / ${fmt(sale)} с ${dShort(from)}`, 0); S.prices = S.prices.filter(x => !(x.pid===p.id && x.from===from)); S.prices.push(Object.assign({pid:p.id, from, cost, sale}, bsale ? {bsale} : {})); }
       save(); doBack(); toast('Сохранено');
     }
   },
   smove: d => { const p = P(R.id), list = ordered(p.cat), i = list.findIndex(x => x.id === p.id), j = i + +d.v; if (j<0 || j>=list.length) return;
     const ai = S.products.indexOf(p), bi = S.products.indexOf(list[j]); [S.products[ai], S.products[bi]] = [S.products[bi], S.products[ai]]; save(); toast('Теперь № ' + numOf(p.id)); },
   shide: () => { const p = P(R.id); p.hidden = !p.hidden; save(); doBack(); toast(p.hidden ? 'Товар скрыт' : 'Товар снова в списке'); },
-  sbal: () => openNP({title:'Начальный долг на ' + dShort(S.bal0.date), money:true, allowZero:true, ok:'Сохранить', onOk:n => { S.bal0.amount = n; save(); NP = null; toast('Сохранено'); }}),
+  sbal: () => openNP({title:'Начальный долг на ' + dShort(S.bal0.date), money:true, allowZero:true, ok:'Сохранить', onOk:n => { logAct('Изменён', 'Настройки', 'bal0', S.bal0.date, '', 'Начальный долг перед офисом ' + fmt(S.bal0.amount) + ' → ' + fmt(n), n); S.bal0.amount = n; save(); NP = null; toast('Сохранено'); }}),
   npk: d => { const k = d.v; if (NP.fresh){ NP.fresh = false; if (k !== '⌫') NP.val = ''; } if (k === '⌫') NP.val = NP.val.slice(0,-1); else if (NP.val.length < 12) NP.val = NP.mask ? (NP.val + k).slice(0, 4) : (NP.val + k).replace(/^0+/, ''); npUpdate(); },
   npok: () => { const n = Number(NP.val||0); if (npOver(n)){ npUpdate(); posBeep(); return; } NP.onOk(n); },
   npfill: () => { NP.val = String(NP.fill.v); NP.fresh = false; npUpdate(); },
@@ -2434,9 +2615,9 @@ document.addEventListener('click', e => {
   const f = A[el.dataset.a]; if (f) f(el.dataset);
 });
 /* ---------- клавиатура (компьютер): как в Excel + горячие клавиши ---------- */
-const SAVE_ACT = {pdoc:'psave', adjnew:'asave', dnew:'dcreate', dcard:'dcsave', uedit:'usave', passwd:'pwsave', ifinish:'isave', icard:'ifinish', sedit:'ssave'};
-const NEW_ACT = {plist:'pnew', debts:'dnew', users:'unew'};
-const NAV_ACT = {plist:'pdate', cash:'rcnav', week:'rdnav', rsales:'rsnav', rweek:'rwnav', rbal:'rbnav', adjnew:'adate'};
+const SAVE_ACT = {pdoc:'psave', adjnew:'asave', dnew:'dcreate', dcard:'dcsave', uedit:'usave', passwd:'pwsave', ifinish:'isave', icard:'ifinish', sedit:'ssave', cdoc:'csave', cash:'csave'};
+const NEW_ACT = {plist:'pnew', debts:'dnew', users:'unew', cash:'cnew'};
+const NAV_ACT = {plist:'pershift', cash:'pershift', week:'rdnav', rsales:'rsnav', rweek:'rwnav', rbal:'rbnav', adjnew:'adate', rost:'pershift', rturn:'pershift', rcp:'pershift', rcashbal:'pershift', rcashrep:'pershift', rjournal:'pershift', rturnp:'pershift', rcpd:'pershift'};
 const NAV_SIDE = ['home', 'plist', 'rlist', 'cash', 'debts', 'inv', 'rstock', 'rsales', 'settings'];
 let HELP = false;
 function helpHtml(){ const m = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl', k = s => `<kbd>${s}</kbd>`;
@@ -2625,22 +2806,22 @@ async function exportWeek(){
 
 const MQ = window.matchMedia ? matchMedia('(min-width:900px)') : {matches:false};
 let DESK = MQ.matches; try { MQ.addEventListener('change', e => { DESK = e.matches; render(); }); } catch(e){}
-const WIDE = {rsw:1, rpd:1};
-const SIDE_ON = {home:'home', plist:'plist', pdoc:'plist', rlist:'rlist', cash:'cash', debts:'debts', debtor:'debts', dnew:'debts', inv:'inv', icard:'inv', ijump:'inv', ifinish:'inv', ginv:'inv', gitem:'inv', reports:'reports', settings:'settings', sprod:'settings', sedit:'settings', users:'settings', uedit:'settings', me:'me', passwd:'me', week:'home'};
+const WIDE = {rsw:1, rpd:1, rturn:1, rost:1, rjournal:1};
+const REP_TB = {rstock:1, rweek:1, rsales:1, rprice:1, rpitem:1, rbal:1, rpos:1, week:1, rprod:1, rpprod:1};
+const SIDE_ON = {cdoc:'cash', backup:'backup', home:'home', plist:'plist', pdoc:'plist', rlist:'rlist', cash:'cash', debts:'debts', debtor:'debts', dnew:'debts', inv:'inv', icard:'inv', ijump:'inv', ifinish:'inv', ginv:'inv', gitem:'inv', reports:'reports', settings:'settings', sprod:'settings', sedit:'settings', users:'settings', uedit:'settings', me:'me', passwd:'me', week:'home'};
 function renderSide(){
   const el = document.getElementById('side'); if (!el) return;
   const on = CFG && DB && !NEEDLOGIN; document.body.classList.toggle('noside', !on);
   if (!on){ el.innerHTML = ''; return; }
-  const cur = ({rweek:'rstock', rprod:'rsw', rpprod:'rpd', rdays:'week'})[R.s] || (R.s.match(/^r(stock|sales|sw|pd|price|bal)$/) || R.s === 'week' ? R.s : SIDE_ON[R.s] || (R.s[0] === 'r' ? 'reports' : ''));
-  const it = (to, ic, col, l) => `<button class="it ${cur === to ? 'on' : ''}" data-a="sgo" data-v="${to}" title="${esc(l)}"><i style="color:var(${col});background:color-mix(in srgb, var(${col}) 14%, transparent)">${ICON[ic]}</i><span class="tx">${esc(l)}</span></button>`;
-  const [sc, st] = statusText(), m = MENU().filter(x => x[0] !== 'me');
-  const rep = isSeller() ? '' : `<div class="grp">Отчёты</div>${[['rstock','stack','--accent','Остатки по неделям'], ['week','cal','--kkm','Неделя по дням'], ['rsales','chart','--goods','Продажи за неделю'], ['rsw','trend','--goods','Аналитика продаж'], ['rpd','trend','--kkm','Аналитика прихода'], ['rprice','coin','--om','Прайс-лист'], ['rbal','lock','--accent','Баланс с офисом']].map(x => it(...x)).join('')}`;
+  const cur = ({rweek:'rstock', rprod:'rsw', rpprod:'rpd', rdays:'week', cdoc:'cash', rturnp:'rturn', rcpd:'rcp', pdoc:R.kind === 'ret' ? 'rlist' : 'plist', plist:R.kind === 'ret' ? 'rlist' : 'plist', sprod:'sprod:' + (R.cat || 'cig'), sedit:'sprod:' + (R.cat || 'cig'), puedit:'posusers', uedit:'users'})[R.s] || (R.s.match(/^r(stock|sales|sw|pd|price|bal|ost|turn|cp|cashbal|cashrep|journal|pos)$/) || R.s === 'week' ? R.s : SIDE_ON[R.s] || (R.s[0] === 'r' ? 'reports' : ''));
+  const it = (to, ic, col, l) => `<button class="it ${cur === to ? 'on' : ''}" data-a="sgo" data-v="${to}" title="${esc(l)}"><i style="color:var(${col});background:color-mix(in srgb, var(${col}) 14%, transparent)">${ICON[ic] || ic}</i><span class="tx">${esc(l)}</span></button>`;
+  const [sc, st] = statusText(), closed = ls.get('chorsu_sidegrp', {});
+  const grp = (k, title, items) => items.length ? `<button class="grp gtog ${closed[k] ? 'off' : ''}" data-a="sgrp" data-v="${k}" aria-expanded="${!closed[k]}">${title}<span>${closed[k] ? '▸' : '▾'}</span></button>${closed[k] ? (items.some(x => x[0] === cur) ? it(...items.find(x => x[0] === cur)) : '') : items.map(x => it(...x)).join('')}` : '';
   document.body.classList.toggle('sidec', !!ls.get('chorsu_sidec', false));
   el.innerHTML = `<div class="brand"><img src="icon-192.png?v=2" alt=""><div><b>Магазин Чорсу</b><span>${dLong(TODAY)}</span></div><button class="tog" data-a="sidetog" title="Свернуть / развернуть меню">${ls.get('chorsu_sidec', false) ? '»' : '«'}</button></div>
     ${it('home', 'chart', '--accent', 'Сегодня')}
-    <div class="grp">Работа</div>${m.filter(x => !['reports','settings'].includes(x[0])).map(x => it(...x)).join('')}
-    ${rep}
-    <div class="foot">${m.some(x => x[0] === 'settings') ? it('settings', 'gear', '--muted', 'Настройки') : ''}
+    ${MENU_GROUPS().map(([k, t, items]) => grp(k, t, items)).join('')}
+    <div class="foot">${!isSeller() ? it('settings', 'gear', '--muted', 'Настройки') : ''}
       ${isSeller() ? '' : `<button class="it" data-a="eye" title="${SHOW ? 'Скрыть' : 'Показать всё'}"><i style="color:var(--own);background:var(--own-soft)">${ICON[SHOW ? 'eye' : 'eyeoff']}</i><span class="tx">${SHOW ? 'Скрыть' : 'Показать всё'}</span></button>`}
       <button class="it" data-a="help" title="Горячие клавиши (?)"><i style="color:var(--muted);background:var(--sunk)">⌨</i><span class="tx">Горячие клавиши <kbd>?</kbd></span></button>
       <button class="sync ${sc}" data-a="syncnow">${esc(st)}</button>
@@ -2655,6 +2836,7 @@ function render(){
   if (!DB){ app.innerHTML = V.loading(); return; }
   if (isSeller() && SELLER_NO[R.s]){ HIST.length = 0; R = {s:'home'}; }
   let h = (V[R.s] || V.home)();
+  if (R.s !== 'pos') h = critBar() + h;
   if (NP) h += npHtml();
   if (CONF) h += confHtml();
   if (TSHEET) h += typeSheetHtml();
@@ -2666,9 +2848,14 @@ function render(){
   const keep = ae && ae.classList && ae.classList.contains('gin') ? {sel:['in', 'pid', 'i', 'd', 'k'].filter(k => ae.dataset[k] != null).map(k => `[data-${k}="${ae.dataset[k]}"]`).join(''), v:ae.value, s:ae.selectionStart, e:ae.selectionEnd, dirty:ae.dataset.dirty} : null;
   app.innerHTML = h; ANIM = false;
   if (keep){ const el = app.querySelector('input.gin' + keep.sel); if (el){ if (keep.dirty){ el.value = keep.v; el.dataset.dirty = '1'; el.dataset.raw = keep.v.replace(/\D/g, ''); } el.focus({preventScroll:true}); try { el.setSelectionRange(keep.s, keep.e); } catch(e){} } }
-  if (DESK){ const f = app.querySelector(':scope > .fabs'), hr = app.querySelector('.hdr .hrow'); if (f && hr) hr.appendChild(f); app.querySelectorAll('tr.rowtap').forEach(tr => tr.tabIndex = 0); }
+  if (REP_TB[R.s] && !app.querySelector('.tbar')){ const hd = app.querySelector('.hdr'); if (hd) hd.insertAdjacentHTML('afterend', toolBar([], '', {xls:1, print:1, refresh:1})); }   // v18: у всех отчётов — панель (Excel, печать)
+  if (DESK){ const f = app.querySelector(':scope > .fabs'), hr = app.querySelector('.hdr .hrow'), tb = app.querySelector('.tbar');
+    if (f && tb) f.querySelectorAll('.fabw').forEach(w => { const b = w.querySelector('[data-a]'); if (b && tb.querySelector(`[data-a="${b.dataset.a}"]`)) w.remove(); });   // на компьютере кнопки — в панели инструментов
+    if (f && hr && f.children.length) hr.appendChild(f); else if (f) f.remove();
+    app.querySelectorAll('tr.rowtap').forEach(tr => tr.tabIndex = 0); }
   if (!isText(document.activeElement)) document.body.classList.remove('kb');
   if (q){ const el = document.getElementById('q'); if (el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
+  else restoreKFocus();
   syncHist();
 }
 /* =====================================================================
@@ -2696,7 +2883,7 @@ let POSU = null;                       // кто сейчас за кассой 
 const NOTES = [5000, 10000, 20000, 50000, 100000, 200000];
 const POS = {grp:'*', q:'', all:false, osk:false, lay:'ru', sel:-1, pay:null, ov:null, price:false, msg:'', chg:null, docsDate:null, docsTab:'all', cq:'', bind:null, mul:0, act:0};
 LOC.pos = LOC.pos || {cur:null, held:[]};
-const posKeep = () => ls.set(LOC_KEY, LOC);
+const posKeep = () => { ls.set(LOC_KEY, LOC); if (typeof draftSoon === 'function') draftSoon(); };
 const newPosDoc = () => ({id:'s' + uid() + uid(), ts:Date.now(), lines:[], did:'', note:''});
 function posCur(){ if (!LOC.pos.cur) LOC.pos.cur = newPosDoc(); return LOC.pos.cur; }
 const posHasUsers = () => (S.posusers || []).some(u => u.active);
@@ -2753,6 +2940,8 @@ function writeSale(d, withLines){
   const i = S.sales.findIndex(x => x.id === d.id); if (i >= 0) S.sales[i] = d; else S.sales.push(d);
   if (!POSDEV().name && d.dev === devName()) setPosDev({name:d.dev});   // имя по умолчанию закрепляется с первым чеком: номера и буква не меняются
   SALEV++; queue(ops); schedulePush();
+  if (typeof logAct === 'function' && d.status === 'cancel'){ const nm = {sale:'Чек: продажа', ret:'Чек: возврат', pay:'Чек: погашение долга'}[d.kind] || 'Чек';
+    logAct(d.status === 'cancel' ? 'Отменён' : 'Создан', nm, d.id, d.date, saleNo(d), `${d.lines.length ? d.lines.length + ' строк · ' : ''}${d.cash ? 'нал ' + fmt(d.cash) + ' ' : ''}${d.card ? 'карта ' + fmt(d.card) + ' ' : ''}${d.debt ? 'в долг ' + fmt(d.debt) + ' ' : ''}${d.cname ? '· ' + d.cname : ''}`.trim(), d.total, null, d.seller); }
 }
 /* журнал кассы (лист «Журнал_кассы»): удалённые строки, возвращённые строки, очищенные чеки */
 const LOGA = {del:'Удалил строку', undo:'Вернул строку', clear:'Очистил чек'};
@@ -3423,6 +3612,558 @@ body.posmode #app>.pos-login{max-width:480px}
 .npx.neg{color:var(--bad);font-weight:700}#npok.off{background:var(--sunk);color:var(--muted)}
 </style>`);
 
+/* =====================================================================
+   v18 (26.10.2026): кассовые документы, склад в приходе, дата внутри документов, журнал действий,
+   отчёты как в Logix (остатки, товарооборот, контрагенты, остаток и отчёт кассы), панели инструментов,
+   группы меню, защита от потерь (черновики в базе, снимки на устройстве, предупреждения).
+   ===================================================================== */
+const DEVID = (() => { let v = ls.get('chorsu_devid', ''); if (!v){ v = 'D' + uid() + uid(); ls.set('chorsu_devid', v); } return v; })();
+const whoAmI = () => CFG && CFG.user ? CFG.user.name : (POSU ? POSU.name : devName());
+let MV = {date:TODAY, kassa:'cash', s:1}, NEW_VER = false, KBMODE = false, KFOC = null;
+
+/* ---------- журнал действий (лист «Журнал»): кто, когда, что сделал; удалённое хранится, чтобы восстановить ---------- */
+function logAct(act, doc, docId, docDate, no, desc, sum, data, who){
+  if (!DB) return;
+  const now = Date.now(), x = {id:'g' + uid() + uid(), date:TODAY, time:hhmm(now), ts:now, who:who || whoAmI(), dev:devName(), act, doc, docId:docId || '', docDate:docDate || '', no:String(no || ''), desc:desc || '', sum:Math.round(sum || 0), data:data == null ? '' : typeof data === 'string' ? data : JSON.stringify(data)};
+  if (x.data.length > 45000) x.data = '';   // ячейка Таблицы — до 50 000 знаков
+  const r = [x.id, x.date, x.time, x.ts, x.who, x.dev, x.act, x.doc, x.docId, x.docDate, x.no, x.desc, x.sum, x.data];
+  SDB.actlog[x.id] = r; persistRow('actlog', x.id); S.actlog.push(x); queue([{t:'actlog', id:x.id, row:r}]); schedulePush();
+}
+function logInvDel(inv){ const sm = invSums(inv); logAct('Удалён', inv.cat === 'cig' ? 'Инвентаризация сигарет' : 'Инвентаризация товаров', inv.id, evDate(inv), '', sm.n + ' товаров', inv.cat === 'cig' ? sm.k + sm.o : sm.q, {inv:JSON.parse(JSON.stringify(inv))}); }
+let LGX = null, LGXK = '';
+function logIdx(){ const k = S.actlog.length + '|' + DATAV; if (LGXK === k && LGX) return LGX; LGX = {}; S.actlog.forEach(x => { if (!x.docId) return; const o = LGX[x.docId] = LGX[x.docId] || {first:null, last:null, n:0}; if (!o.first) o.first = x; o.last = x; o.n++; }); LGXK = k; return LGX; }
+const fmtTs = ts => { if (!ts) return ''; const d = new Date(ts); return dShort(iso(d)) + ' ' + hhmm(ts); };
+function docMeta(id){ const o = logIdx()[id]; if (!o) return '';
+  return `<div class="dmeta small muted">Создал: <b>${esc(o.first.who)}</b> ${fmtTs(o.first.ts)}${o.n > 1 ? ` · изменил: <b>${esc(o.last.who)}</b> ${fmtTs(o.last.ts)}` : ''} · <button class="lnk" data-a="jdoc" data-v="${esc(id)}">история (${o.n})</button></div>`; }
+
+/* ---------- панели инструментов: одна для документов, одна для отчётов (как «Панель управления» Logix) ---------- */
+function toolBar(btns, mid, opt = {}){
+  const b = x => `<button class="tb ${x.pri ? 'pri' : ''} ${x.dang ? 'dang' : ''} ${x.dirty ? 'dirty' : ''}" data-a="${x.a}" ${x.v != null ? `data-v="${x.v}"` : ''} ${x.dis ? 'disabled' : ''} title="${esc(x.l)}${x.k ? ' (' + x.k + ')' : ''}">${ICON[x.i] || `<span class="ti">${x.i}</span>`}<span class="tl">${esc(x.l)}</span></button>`;
+  const tail = (opt.search ? [{a:'search', i:'search', l:'Найти', k:'Ctrl+F'}] : []).concat(opt.refresh ? [{a:'syncnow', i:'⟳', l:'Обновить'}] : []).concat(opt.xls ? [{a:'xlsx', i:'⬇', l:'Excel'}] : []).concat(opt.print ? [{a:'print', i:'🖨', l:'Печать', k:'Ctrl+P'}] : []);
+  return `<div class="tbar wrap"><div class="tbin">${btns.map(b).join('')}${mid ? `<span class="tmid">${mid}</span>` : ''}${tail.length ? `<span class="tsp"></span>${tail.map(b).join('')}` : ''}</div></div>`;
+}
+const PERQ = [['today', 'Сегодня'], ['yest', 'Вчера'], ['week', '7 дней'], ['month', 'Месяц']];
+function periodCtl(single){
+  if (single) return `<span class="tper"><button class="tarr" data-a="pershift" data-v="-1" aria-label="Раньше">‹</button><input type="date" data-in="per" data-k="date" value="${R.date}" max="${TODAY}" aria-label="Дата"><button class="tarr" data-a="pershift" data-v="1" aria-label="Позже" ${R.date >= TODAY ? 'disabled' : ''}>›</button></span><span class="tq">${PERQ.slice(0, 2).map(([k, l]) => `<button class="chip" data-a="perq" data-v="${k}">${l}</button>`).join('')}</span>`;
+  return `<span class="tper"><button class="tarr" data-a="pershift" data-v="-1" aria-label="Раньше">‹</button><input type="date" data-in="per" data-k="from" value="${R.from}" max="${TODAY}" aria-label="С"><span class="muted">—</span><input type="date" data-in="per" data-k="to" value="${R.to}" max="${TODAY}" aria-label="По"><button class="tarr" data-a="pershift" data-v="1" aria-label="Позже" ${R.to >= TODAY ? 'disabled' : ''}>›</button></span><span class="tq">${PERQ.map(([k, l]) => `<button class="chip" data-a="perq" data-v="${k}">${l}</button>`).join('')}</span>`;
+}
+const repBar = (single, extra, opt) => toolBar([], periodCtl(single) + (extra || ''), Object.assign({xls:1, print:1, refresh:1}, opt || {}));
+const daysIn = (a, b) => Math.round((pd(b) - pd(a)) / 864e5) + 1;
+function setPer(k){
+  if (k === 'today'){ R.from = R.to = R.date = TODAY; }
+  else if (k === 'yest'){ R.from = R.to = R.date = addD(TODAY, -1); }
+  else if (k === 'week'){ R.to = TODAY; R.from = addD(TODAY, -6); R.date = TODAY; }
+  else if (k === 'month'){ R.to = TODAY; R.from = TODAY.slice(0, 8) + '01'; R.date = TODAY; }
+}
+
+/* ---------- касса: документы «Приход в кассу» и «Расход из кассы» (v18, вместо «Терминал и касса») ---------- */
+function legacyCash(){   // записи «Терминал и касса» до v18 — показываются как документы того же дня
+  const out = []; Object.keys(S.cash).forEach(d => { const c = S.cash[d];
+    if (c.t) out.push({id:'L' + d + 't', date:d, dir:'out', kind:'term', kassa:'card', amt:c.t, note:'запись до v18', legacy:'t', ts:0});
+    if (c.k) out.push({id:'L' + d + 'k', date:d, dir:'out', kind:'office', kassa:'cash', amt:c.k, note:'запись до v18', legacy:'k', ts:0}); });
+  return out;
+}
+const allCashDocs = () => (S.cashdocs || []).concat(legacyCash());
+const cdocById = id => allCashDocs().find(c => c.id === id);
+const cashName = c => (CKIND[c.kind] || {}).n || c.kind;
+const cash0 = () => S.cash0 || {date:CASH0_DATE, cash:0, card:0};
+// все движения денег: документы кассы, чеки POS (наличные/карта), погашения долга в «Долгах»
+function cashOps(from, to, opt = {}){
+  const c0 = cash0().date, ops = [], ok = d => d >= from && d <= to && d >= c0;
+  allCashDocs().forEach(c => { if (ok(c.date)) ops.push({date:c.date, ts:c.ts || 0, kassa:c.kassa, amt:c.dir === 'in' ? c.amt : -c.amt, kind:cashName(c), desc:c.note || '', src:'cdoc', ref:c.id, who:c.author || ''}); });
+  const pos = {}; (S.sales || []).forEach(s => { if (s.status === 'cancel' || !ok(s.date)) return; const sg = s.kind === 'ret' ? -1 : 1, nm = s.kind === 'sale' ? 'Продажа (касса)' : s.kind === 'ret' ? 'Возврат по чеку' : 'Погашение долга (касса)';
+    [['cash', s.cash], ['card', s.card]].forEach(([k, v]) => { if (!v) return;
+      if (opt.bySale || s.kind !== 'sale') ops.push({date:s.date, ts:s.ts, kassa:k, amt:sg * v, kind:nm, desc:'Чек ' + saleNo(s) + (s.cname ? ' · ' + s.cname : ''), src:'sale', ref:s.id, who:s.seller});
+      else { const key = s.date + k, o = pos[key] = pos[key] || {date:s.date, ts:s.ts, kassa:k, amt:0, kind:nm, n:0, src:'posday', ref:s.date}; o.amt += v; o.n++; o.ts = Math.max(o.ts, s.ts); } }); });
+  Object.values(pos).forEach(o => { o.desc = o.n + ' ' + plural(o.n, 'чек', 'чека', 'чеков'); ops.push(o); });
+  const dn = {}; S.debtors.forEach(d => dn[d.id] = d.name);
+  S.moves.forEach(m => { if (m.amt < 0 && !m.sale && ok(m.date)) ops.push({date:m.date, ts:0, kassa:m.kassa || 'cash', amt:-m.amt, kind:'Погашение долга', desc:dn[m.did] || '', src:'move', ref:m.did}); });
+  return ops.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.ts || 0) - (b.ts || 0));
+}
+function cashBal(date){   // остаток вечером дня: {cash, card} или null, если день раньше начала учёта кассы
+  const c0 = cash0(); if (date < c0.date) return null;
+  const r = {cash:c0.cash || 0, card:c0.card || 0}; cashOps(c0.date, date).forEach(o => r[o.kassa] += o.amt); return r;
+}
+const kassaPill = k => `<span class="pill ${k === 'card' ? 'p-kkm' : 'p-g'}">${KASSA[k]}</span>`;
+V.cash = () => {
+  if (!R.from || !R.to){ const o = dayPeriods().slice(-1)[0]; if (R.date){ R.from = R.to = R.date; } else { R.from = o ? o.from : addD(TODAY, -6); R.to = TODAY; } }
+  perInit(); R.ct = R.ct || 'docs';
+  const tabs = `<div class="seg seg5 tseg" style="--n:2">${[['docs', 'Документы'], ['days', 'По дням']].map(([k, l]) => `<button class="${R.ct === k ? 'on' : ''}" data-a="ctab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const kf = `<div class="chips tchips">${[['', 'Все'], ['cash', 'Наличные'], ['card', 'Карта']].map(([k, l]) => `<button class="chip ${(R.kf || '') === k ? 'on' : ''}" data-a="ckf" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const bar = toolBar([{a:'cnew', v:'in', i:'plus', l:'Приход', pri:1, k:'N'}, {a:'cnew', v:'out', i:'−', l:'Расход'}], periodCtl() + tabs + kf, {xls:1, print:1});
+  const ops = cashOps(R.from, R.to).filter(o => !R.kf || o.kassa === R.kf);
+  const docs = allCashDocs().filter(c => c.date >= R.from && c.date <= R.to && (!R.kf || c.kassa === R.kf)).sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : (b.ts || 0) - (a.ts || 0));
+  const inS = docs.filter(c => c.dir === 'in').reduce((s, c) => s + c.amt, 0), outS = docs.filter(c => c.dir === 'out').reduce((s, c) => s + c.amt, 0);
+  const bal = cashBal(R.to), head = hdr('Касса', {right:bal ? `<span class="hsum2 small">нал ${fmt(bal.cash)} · карта ${fmt(bal.card)}</span>` : ''});
+  const c0note = R.from < cash0().date ? `<div class="small muted">Остаток кассы ведётся с ${dShort(cash0().date)}.${cash0().date > R.from ? ' Раньше — только документы.' : ''}</div>` : '';
+  if (R.ct === 'days'){
+    const days = []; for (let d = R.to; d >= R.from && days.length < 120; d = addD(d, -1)) days.push(d);
+    const by = {}; days.forEach(d => by[d] = {sale:0, inother:0, term:0, office:0, outother:0, auto:0});
+    docs.forEach(c => { if (by[c.date]) by[c.date][c.kind] = (by[c.date][c.kind] || 0) + c.amt; });
+    ops.forEach(o => { if (o.src !== 'cdoc' && by[o.date]) by[o.date].auto += o.amt; });
+    const T = {sale:0, inother:0, term:0, office:0, outother:0, auto:0}; days.forEach(d => Object.keys(T).forEach(k => T[k] += by[d][k]));
+    const cell = (d, k) => `<td class="rowcell"><button class="cbtn ${by[d][k] ? '' : 'e'}" data-a="cday" data-v="${d}|${k}">${by[d][k] ? fmt(by[d][k]) : '—'}</button></td>`;
+    const body = `<table class="tight cash xl"><tr><th class="l">День</th><th>Продажа за день</th><th>Касса-POS и долги</th><th>Прочий приход</th><th>Терминал</th><th>Сдано в офис</th><th>Прочий расход</th><th>Остаток нал / карта</th></tr>
+      ${days.map(d => { const b = cashBal(d); return `<tr class="${d === TODAY ? 'today' : ''}"><td class="l"><b>${wdShort(d)}</b> ${dShort(d)}</td>${cell(d, 'sale')}<td>${by[d].auto ? fmt(by[d].auto) : '—'}</td>${cell(d, 'inother')}${cell(d, 'term')}${cell(d, 'office')}${cell(d, 'outother')}<td class="small">${b ? fmt(b.cash) + ' / ' + fmt(b.card) : ''}</td></tr>`; }).join('')}
+      <tr class="tot"><td class="l">Итого</td><td>${fmt(T.sale)}</td><td>${fmt(T.auto)}</td><td>${fmt(T.inother)}</td><td>${fmt(T.term)}</td><td>${fmt(T.office)}</td><td>${fmt(T.outother)}</td><td></td></tr></table>`;
+    return head + bar + `<div class="wrap stack" style="padding-top:12px">${c0note}<div class="tbl-wrap">${body}</div><p class="small muted">Нажмите на сумму — откроется документ этого дня (или новый, если его нет). «Терминал» и «Сдано в офис» уменьшают долг перед офисом.</p></div>`;
+  }
+  const row = c => `<tr class="rowtap ${R.csel === c.id ? 'cur' : ''}" data-a="csel" data-v="${c.id}"><td class="l"><b>${wdShort(c.date)}</b> ${dShort(c.date)}</td><td class="l g">${c.dir === 'in' ? '<span class="pill p-good">Приход</span>' : '<span class="pill p-bad">Расход</span>'} ${esc(cashName(c))}${c.note && !c.legacy ? `<div class="small muted">${esc(c.note)}</div>` : c.legacy ? '<div class="small muted">запись до v18</div>' : ''}</td><td class="l">${kassaPill(c.kassa)}</td><td class="${c.dir === 'in' ? 'pos' : 'neg0'}"><b>${c.dir === 'in' ? '+' : '−'}${fmt(c.amt)}</b></td></tr>`;
+  const autos = ops.filter(o => o.src !== 'cdoc');
+  const autoRows = autos.length ? `<tr class="gh"><td class="l" colspan="4">Сами из программы · ${autos.length}</td></tr>${autos.slice().reverse().map(o => `<tr class="rowtap" data-a="cauto" data-v="${o.src}|${o.ref}"><td class="l"><b>${wdShort(o.date)}</b> ${dShort(o.date)}</td><td class="l g muted">${esc(o.kind)}<div class="small">${esc(o.desc)}</div></td><td class="l">${kassaPill(o.kassa)}</td><td class="${o.amt >= 0 ? 'pos' : 'neg0'}">${o.amt >= 0 ? '+' : '−'}${fmt(Math.abs(o.amt))}</td></tr>`).join('')}` : '';
+  const list = `<table class="tight xl">${docs.map(row).join('') || `<tr><td class="l muted" colspan="4">За этот период документов нет. «+ Приход» или «− Расход» — создать.</td></tr>`}${autoRows}<tr class="tot"><td class="l" colspan="2">Документы: приход ${fmt(inS)} · расход ${fmt(outS)}</td><td></td><td>${fmt(inS - outS)}</td></tr></table>`;
+  if (DESK){
+    const sel = R.cd ? null : docs.find(c => c.id === R.csel) || null;
+    if (!R.cd && sel){ R.cd = Object.assign({}, sel); R.cedit = false; }
+    const right = R.cd ? `<div class="panel"><div class="ph"><b style="font-size:16px">${R.cd.id ? (R.cd.dir === 'in' ? 'Приход в кассу' : 'Расход из кассы') : 'Новый документ'}</b><span class="phb">${R.cd.id ? '' : ''}</span></div><div class="pb">${cdocForm()}</div></div>` : '<div class="panel"><div class="empty-st">Выберите документ слева или создайте новый</div></div>';
+    return head + bar + `<div class="wrap stack" style="padding-top:12px">${c0note}${mdLayout(`<div class="panel"><div class="tbl-wrap scrolly">${list}</div></div>`, right)}</div>`;
+  }
+  return head + bar + `<div class="wrap stack">${c0note}<div class="tbl-wrap">${list}</div></div>` + fabs([{a:'cnew', v:'in', i:'plus', l:'Приход в кассу', c:'Приход'}]);
+};
+function cdocForm(){
+  const c = R.cd, ed = !c.id || R.cedit, kinds = Object.keys(CKIND).filter(k => CKIND[k].dir === c.dir);
+  if (!ed) return `<div class="cview">
+      <div class="sumrow"><span>Дата</span><b>${dLong(c.date)}</b></div>
+      <div class="sumrow"><span>${c.dir === 'in' ? 'Приход' : 'Расход'}</span><b>${esc(cashName(c))}</b></div>
+      <div class="sumrow"><span>Касса</span><b>${KASSA[c.kassa]}</b></div>
+      <div class="sumrow"><span>Сумма</span><b style="font-size:24px">${c.dir === 'in' ? '+' : '−'}${fmt(c.amt)}</b></div>
+      ${c.note ? `<div class="sumrow"><span>Примечание</span><b>${esc(c.note)}</b></div>` : ''}
+      ${c.legacy ? '<div class="note info">Запись «Терминал и касса» до v18. Если изменить — станет обычным документом, долг перед офисом не изменится.</div>' : docMeta(c.id)}
+      ${toolBar([{a:'cedit', i:'✏️', l:'Изменить', k:'Ctrl+E', pri:1}, {a:'cdel', i:'trash', l:'Удалить', k:'Ctrl+D', dang:1}], '', {}).replace('tbar wrap', 'tbar inl')}</div>`;
+  return `<div class="cform">
+    <div class="seg"><button class="${c.dir === 'in' ? 'on' : ''}" data-a="cdir" data-v="in">+ Приход в кассу</button><button class="${c.dir === 'out' ? 'on' : ''}" data-a="cdir" data-v="out">− Расход из кассы</button></div>
+    <div class="flex">${dateBtn(c.date, 'cddate', 'Дата документа').replace('class="datebtn"', 'class="datebtn big"')}<span class="small muted">${dLong(c.date)}</span></div>
+    <div class="lbl">Вид</div><div class="chips wrapc">${kinds.map(k => `<button class="chip ${c.kind === k ? 'on' : ''}" data-a="ckind" data-v="${k}">${CKIND[k].n}</button>`).join('')}</div>
+    <div class="lbl">Касса</div><div class="chips">${['cash', 'card'].map(k => `<button class="chip ${c.kassa === k ? 'on' : ''}" data-a="ckassa" data-v="${k}">${KASSA[k]}</button>`).join('')}</div>
+    <button class="money" data-a="camt"><span class="lbl">Сумма</span><b>${c.amt ? fmt(c.amt) : '—'}</b></button>
+    <div class="field txt"><label for="cd_note">Примечание${c.kind === 'outother' || c.kind === 'inother' ? ' (за что)' : ''}</label><input id="cd_note" value="${esc(c.note || '')}" autocomplete="off" placeholder="${c.kind === 'outother' ? 'аренда, свет, взяли себе…' : ''}"></div>
+    ${c.kind === 'sale' && (S.sales || []).some(s => s.date === c.date && s.kind === 'sale' && s.status !== 'cancel') ? '<div class="note warn">В этот день уже есть чеки кассы-POS. «Продажа за день» добавится к ним — не задвоено?</div>' : ''}
+    ${R.cerr ? `<div class="note warn">${esc(R.cerr)}</div>` : ''}
+    ${toolBar([{a:'csave', i:'check', l:'Сохранить', k:'Ctrl+S', pri:1}, {a:'ccancel', i:'✕', l:'Отменить', k:'Esc'}].concat(c.id ? [{a:'cdel', i:'trash', l:'Удалить', dang:1}] : []), '', {}).replace('tbar wrap', 'tbar inl')}</div>`;
+}
+V.cdoc = () => { if (!R.cd) return V.cash(); const c = R.cd;
+  return hdr(c.id ? (c.dir === 'in' ? 'Приход в кассу' : 'Расход из кассы') : 'Новый документ кассы') + `<div class="wrap stack nar">${cdocForm()}</div>`; };
+const keepCd = () => { const el = document.getElementById('cd_note'); if (el && R.cd) R.cd.note = el.value; };
+function saveCdoc(){
+  keepCd(); const c = R.cd; if (!c) return; R.cerr = '';
+  if (!(c.amt > 0)){ R.cerr = 'Введите сумму'; return render(); }
+  if ((c.kind === 'outother' || c.kind === 'inother') && !(c.note || '').trim()){ R.cerr = 'Напишите в примечании, за что'; return render(); }
+  const old = c.id ? cdocById(c.id) : null;
+  if (old && old.legacy && SRV_V < 18){ R.cerr = 'Старую запись «Терминал и касса» можно изменить только после обновления Code.gs до v18 (иначе другие устройства увидят неверный долг перед офисом).'; return render(); }
+  const doIt = () => {
+    const now = Date.now(); let doc;
+    if (old && old.legacy){ S.cash[old.date] = Object.assign({t:0, k:0}, S.cash[old.date], {[old.legacy]:0}); }
+    if (old && !old.legacy){ doc = S.cashdocs.find(x => x.id === old.id); Object.assign(doc, {date:c.date, dir:c.dir, kind:c.kind, kassa:c.kassa, amt:c.amt, note:(c.note || '').trim(), upd:now}); }
+    else { doc = {id:'c' + uid() + uid(), date:c.date, dir:c.dir, kind:c.kind, kassa:c.kassa, amt:c.amt, note:(c.note || '').trim(), ts:now, author:whoAmI(), dev:devName(), upd:now}; S.cashdocs.push(doc); }
+    const ch = old ? [old.date !== doc.date ? 'дата ' + dShort(old.date) + ' → ' + dShort(doc.date) : '', old.amt !== doc.amt ? 'сумма ' + fmt(old.amt) + ' → ' + fmt(doc.amt) : '', old.kind !== doc.kind ? cashName(old) + ' → ' + cashName(doc) : '', old.kassa !== doc.kassa ? KASSA[old.kassa] + ' → ' + KASSA[doc.kassa] : ''].filter(Boolean) : [];
+    logAct(old ? 'Изменён' : 'Создан', 'Касса', doc.id, doc.date, '', `${doc.dir === 'in' ? 'Приход' : 'Расход'}: ${cashName(doc)} · ${KASSA[doc.kassa]}${doc.note ? ' · ' + doc.note : ''}${ch.length ? ' · ' + ch.join(', ') : ''}${old && old.legacy ? ' · из записи до v18' : ''}`, doc.dir === 'in' ? doc.amt : -doc.amt);
+    save(); R.cd = null; R.cedit = false; if (R.s === 'cdoc') doBack();
+    if (R.s === 'cash'){ R.csel = doc.id; R.cd = null; if (R.from && (doc.date < R.from || doc.date > R.to)){ R.from = R.to = doc.date; } }
+    render(); toast('Сохранено');
+  };
+  if (old && old.date < TODAY && (old.amt !== c.amt || old.date !== c.date)) return confirmBox(`Изменить документ кассы за ${dShort(old.date)}?<br><b>${fmt(old.amt)} → ${fmt(c.amt)}${old.date !== c.date ? ', дата ' + dShort(old.date) + ' → ' + dShort(c.date) : ''}</b>`, 'Изменить', doIt);
+  doIt();
+}
+// для кнопки «Записать в Терминал» в итоге дня кассы: один документ «Терминал» на день
+function setTermDay(date, amt){
+  if (SRV_V < 18){ S.cash[date] = Object.assign({t:0, k:0}, S.cash[date] || {}, {t:amt}); return save(); }   // старый Code.gs: как в v17
+  const term = S.cashdocs.filter(c => c.date === date && c.kind === 'term'), leg = S.cash[date] && S.cash[date].t;
+  if (leg) S.cash[date] = Object.assign({t:0, k:0}, S.cash[date], {t:0});
+  if (term.length){ term.slice(1).forEach(c => { logAct('Удалён', 'Касса', c.id, c.date, '', 'Лишний «Терминал» дня — заменён итогом дня кассы', -c.amt, {cd:Object.assign({}, c)}); S.cashdocs = S.cashdocs.filter(x => x !== c); }); Object.assign(term[0], {amt, upd:Date.now()}); logAct('Изменён', 'Касса', term[0].id, date, '', 'Расход: Терминал · по итогу дня кассы', -amt); }
+  else { const doc = {id:'c' + uid() + uid(), date, dir:'out', kind:'term', kassa:'card', amt, note:'по итогу дня кассы', ts:Date.now(), author:whoAmI(), dev:devName(), upd:Date.now()}; S.cashdocs.push(doc); logAct('Создан', 'Касса', doc.id, date, '', 'Расход: Терминал · по итогу дня кассы', -amt); }
+  save();
+}
+
+/* ---------- остатки и товарооборот (как отчёты Logix) ---------- */
+// состояние товара утром дня D: последняя инвентаризация не позже D + приход − возврат − продано по кассе
+function stockAt(pid, D, own){
+  const p = P(pid); if (!p) return null; const inv = invList(p.cat).filter(i => i.date <= D).slice(-1)[0];
+  const r = inv ? inv.rows[pid] : null, from = inv ? inv.date : '0000', pr = prihodSum(pid, from, D), sold = posSold(pid, from, D);
+  if (p.cat === 'goods'){ const b = (r || [0])[0] || 0; return {inv, k:b, o:0, z:0, base:b, inc:pr.g, ret:pr.rg, sold, end:b + pr.g - pr.rg - sold}; }
+  const k = r ? r[0] + r[1] : 0, o = r ? r[2] + r[3] : 0, z = own && r ? r[4] || 0 : 0;
+  const inc = pr.kkm + pr.om + (own ? pr.own : 0), ret = pr.rkkm + pr.rom + (own ? pr.rown : 0);
+  return {inv, k, o, z, base:k + o + z, inc, ret, sold, end:k + o + z + inc - ret - sold};
+}
+const catTabs = () => `<div class="seg tseg" style="max-width:260px"><button class="${R.cat === 'cig' ? 'on' : ''}" data-a="rcat" data-v="cig">Сигареты</button><button class="${R.cat === 'goods' ? 'on' : ''}" data-a="rcat" data-v="goods">Товары</button></div>`;
+const zf = n => n ? fmt(n) : '<span class="zz">·</span>';
+V.rost = () => {
+  R.cat = R.cat || 'cig'; R.date = R.date || TODAY; if (R.date > TODAY) R.date = TODAY; const own = vis('own'), cig = R.cat === 'cig', D = addD(R.date, 1);
+  const base = repProducts(R.cat).map(p => ({p, st:stockAt(p.id, D, own), pr:priceAt(p.id, R.date)})).filter(r => r.st && (r.st.base || r.st.inc || r.st.ret || r.st.sold || r.st.end));
+  const rows = byUse(base.filter(r => (!R.q || match(r.p.name, R.q)) && brandOk(r.p, R.cat)), r => r.p.id);
+  const inv = (rows[0] || base[0] || {st:{}}).st.inv, price = r => cig ? r.pr.cost : r.pr.sale;
+  const T = {base:0, inc:0, ret:0, sold:0, end:0, sum:0}; rows.forEach(r => { ['base', 'inc', 'ret', 'sold', 'end'].forEach(k => T[k] += r.st[k]); T.sum += r.st.end * price(r); });
+  const body = `<table class="tight wide xl"><tr><th class="num">№</th><th class="stick l">Товар</th>${cig ? `<th class="ck">ККМ</th><th class="co">Омбор</th>${own ? `<th class="cz">${WORD}</th>` : ''}` : '<th>Было</th>'}<th>+ Приход</th><th class="cr">− Возврат</th><th>− Продано (касса)</th><th class="cof">= Остаток</th><th>Цена</th><th>Сумма</th></tr>
+    ${rows.map(r => `<tr class="rowtap" data-a="rtprod" data-v="${r.p.id}"><td class="num muted">${repNum(r.p.id)}</td><td class="stick l">${esc(r.p.name)}</td>${cig ? `<td class="ck">${zf(r.st.k)}</td><td class="co">${zf(r.st.o)}</td>${own ? `<td class="cz">${zf(r.st.z)}</td>` : ''}` : `<td>${zf(r.st.base)}</td>`}<td>${zf(r.st.inc)}</td><td class="cr">${zf(r.st.ret)}</td><td>${zf(r.st.sold)}</td><td class="cof ${r.st.end < 0 ? 'neg' : ''}"><b>${fmt(r.st.end)}</b></td><td>${fmt(price(r))}</td><td>${fmt(r.st.end * price(r))}</td></tr>`).join('')}
+    <tr class="tot"><td></td><td class="stick l">Итого · ${rows.length}</td>${cig ? `<td colspan="${own ? 3 : 2}">${fmt(T.base)}</td>` : `<td>${fmt(T.base)}</td>`}<td>${fmt(T.inc)}</td><td>${fmt(T.ret)}</td><td>${fmt(T.sold)}</td><td>${fmt(T.end)}</td><td></td><td>${fmt(T.sum)}</td></tr></table>`;
+  return hdr('Остатки товара', {right:`<span class="hsum2">${fmt(T.sum)}</span>`}) + repBar(true, catTabs(), {search:1}) + sbar('Название товара') + `<div class="wrap stack" style="padding-top:12px">
+    <div class="small muted">Остаток вечером ${dLong(R.date)}: ${inv ? `инвентаризация <b>${invShort(inv)}</b>` : 'инвентаризаций ещё не было'} + приход − возврат офису − продано по кассе. ${cig && !own ? 'Без запаса.' : ''} Сумма — ${cig ? 'по себестоимости' : 'по цене продажи'}. Нажмите на товар — все операции.</div>
+    ${R.q ? '' : brandChips(R.cat, base.map(r => r.p.id))}
+    <div class="panel"><div class="tbl-wrap scrolly2">${body}</div></div></div>`;
+};
+function turnover(pid, F, T, own){
+  const s0 = stockAt(pid, F, own), s1 = stockAt(pid, addD(T, 1), own); if (!s0) return null;
+  const pr = prihodSum(pid, F, addD(T, 1)), p = P(pid), cig = p.cat === 'cig';
+  const inc = cig ? pr.kkm + pr.om + (own ? pr.own : 0) : pr.g, ret = cig ? pr.rkkm + pr.rom + (own ? pr.rown : 0) : pr.rg, sold = posSold(pid, F, addD(T, 1));
+  return {start:s0.end, inc, ret, sold, adj:s1.end - (s0.end + inc - ret - sold), end:s1.end};
+}
+V.rturn = () => {
+  R.cat = R.cat || 'cig'; if (!R.to) R.to = TODAY; if (!R.from){ const o = dayPeriods().slice(-1)[0]; R.from = o ? o.from : addD(TODAY, -6); } perInit();
+  const own = vis('own'), cig = R.cat === 'cig', pc = (pid, d) => cig ? priceAt(pid, d).cost : priceAt(pid, d).sale;
+  const base = repProducts(R.cat).map(p => ({p, t:turnover(p.id, R.from, R.to, own)})).filter(r => r.t && (r.t.start || r.t.inc || r.t.ret || r.t.sold || r.t.adj || r.t.end));
+  const rows = byUse(base.filter(r => (!R.q || match(r.p.name, R.q)) && brandOk(r.p, R.cat)), r => r.p.id);
+  const K = ['start', 'inc', 'ret', 'sold', 'adj', 'end'], T = {}, TS = {}; K.forEach(k => { T[k] = 0; TS[k] = 0; });
+  rows.forEach(r => { const c0 = pc(r.p.id, R.from), c1 = pc(r.p.id, R.to); K.forEach(k => { T[k] += r.t[k]; TS[k] += r.t[k] * (k === 'start' ? c0 : c1); }); });
+  const body = `<table class="tight wide xl"><tr><th class="stick l" rowspan="2">Товар</th><th colspan="2">Начальный остаток<br><span class="small">утро ${dShort(R.from)}</span></th><th colspan="2">Приход</th><th colspan="3">Расход</th><th colspan="2">± Инвентаризация</th><th colspan="2" class="cof">Конечный остаток<br><span class="small">вечер ${dShort(R.to)}</span></th></tr>
+    <tr><th>кол.</th><th>сумма</th><th>кол.</th><th>сумма</th><th class="cr">возврат</th><th>продано (касса)</th><th>сумма</th><th>кол.</th><th>сумма</th><th class="cof">кол.</th><th class="cof">сумма</th></tr>
+    ${rows.map(r => { const c0 = pc(r.p.id, R.from), c1 = pc(r.p.id, R.to), t = r.t; return `<tr class="rowtap" data-a="rtprod" data-v="${r.p.id}"><td class="stick l">${esc(r.p.name)}</td><td>${zf(t.start)}</td><td>${zf(t.start * c0)}</td><td>${zf(t.inc)}</td><td>${zf(t.inc * c1)}</td><td class="cr">${zf(t.ret)}</td><td>${zf(t.sold)}</td><td>${zf((t.ret + t.sold) * c1)}</td><td class="${t.adj < 0 ? 'neg' : ''}">${zf(t.adj)}</td><td class="${t.adj < 0 ? 'neg' : ''}">${zf(t.adj * c1)}</td><td class="cof"><b>${fmt(t.end)}</b></td><td class="cof">${fmt(t.end * c1)}</td></tr>`; }).join('')}
+    <tr class="tot"><td class="stick l">Итого · ${rows.length}</td><td>${fmt(T.start)}</td><td>${fmt(TS.start)}</td><td>${fmt(T.inc)}</td><td>${fmt(TS.inc)}</td><td>${fmt(T.ret)}</td><td>${fmt(T.sold)}</td><td>${fmt(TS.ret + TS.sold)}</td><td>${fmt(T.adj)}</td><td>${fmt(TS.adj)}</td><td>${fmt(T.end)}</td><td>${fmt(TS.end)}</td></tr></table>`;
+  return hdr('Товарооборот') + repBar(false, catTabs(), {search:1}) + sbar('Название товара') + `<div class="wrap stack" style="padding-top:12px">
+    <div class="small muted">Начальный остаток утром «с» + приход − возврат офису − продано по кассе ± разница при инвентаризации = конечный остаток вечером «по». ${cig && !own ? 'Без запаса. ' : ''}Пока продажи пробиваются не все, недостача при инвентаризации — это продажи без кассы. Сумма — ${cig ? 'по себестоимости' : 'по цене'}. Нажмите на товар — все операции.</div>
+    ${R.q ? '' : brandChips(R.cat, base.map(r => r.p.id))}
+    <div class="panel"><div class="tbl-wrap scrolly2">${body}</div></div></div>`;
+};
+V.rturnp = () => {   // товар: все операции периода с остатком после каждой
+  const p = P(R.id); if (!p) return V.rturn(); if (!R.to) R.to = R.date || TODAY; if (!R.from) R.from = addD(R.to, -6); perInit();
+  const own = vis('own'), cig = p.cat === 'cig', F = R.from, Tn = addD(R.to, 1);
+  let bal = stockAt(p.id, F, own).end; const out = [{d:F, txt:'Начальный остаток (утро)', q:null, bal}];
+  const pl = S.prihod.filter(x => x.pid === p.id && x.date >= F && x.date < Tn && vis(x.type) && (cig ? x.type !== 'g' && x.type !== 'rg' : x.type === 'g' || x.type === 'rg'));
+  const sales = (salesIdx().by[p.id] || []).filter(x => x.date >= F && x.date < Tn), invs = invList(p.cat).filter(i => i.date > F && i.date <= Tn);
+  const dmap = {}; S.docs.forEach(d => dmap[d.id] = d);
+  for (let d = F; d <= Tn; d = addD(d, 1)){
+    invs.filter(i => i.date === d).forEach(i => { const r = i.rows[p.id], cnt = cig ? (r ? r[0] + r[1] + r[2] + r[3] + (own ? r[4] || 0 : 0) : 0) : ((r || [0])[0] || 0), df = cnt - bal; bal = cnt; out.push({d:evDate(i), txt:`Инвентаризация ${invShort(i)}: посчитано ${cnt}`, q:df, bal, inv:1}); });
+    if (d === Tn) break;
+    pl.filter(x => x.date === d).forEach(x => { const sg = isRet(x.type) ? -1 : 1, dd = dmap[x.doc]; bal += sg * x.qty; out.push({d, txt:`${isRet(x.type) ? 'Возврат' : 'Приход'} № ${dd ? docNo(dd) : '?'} · ${TYPES[x.type].full}${dd && dd.wh ? ' · ' + dd.wh : ''}`, q:sg * x.qty, bal, doc:x.doc}); });
+    const sq = sales.filter(x => x.date === d).reduce((a, x) => a + x.packs, 0); if (sq){ bal -= sq; out.push({d, txt:'Продано по кассе', q:-sq, bal}); }
+  }
+  return hdr(esc(p.name)) + repBar(false, '', {}) + `<div class="wrap stack nar3" style="padding-top:12px">
+    <div class="tbl-wrap"><table class="tight xl"><tr><th class="l">День</th><th class="l">Операция</th><th>Кол-во</th><th>Остаток</th></tr>${out.map(o => `<tr class="${o.doc ? 'rowtap' : ''} ${o.inv ? 'chg' : ''}" ${o.doc ? `data-a="docgo" data-v="${o.doc}"` : ''}><td class="l">${wdShort(o.d)} ${dShort(o.d)}</td><td class="l">${esc(o.txt)}</td><td class="${o.q < 0 ? 'neg' : ''}">${o.q == null ? '' : (o.q > 0 ? '+' : '') + fmt(o.q)}</td><td><b>${fmt(o.bal)}</b></td></tr>`).join('')}</table></div>
+    <p class="small muted">Инвентаризация ставит остаток в посчитанное число; разница — недостача или излишек (сюда же попадают продажи без кассы).</p></div>`;
+};
+
+/* ---------- отчёт контрагентов: должники и офис ---------- */
+function officeTurn(F, T){
+  if (!S.bal0 || T < S.bal0.date) return null; const from = F < S.bal0.date ? S.bal0.date : F;
+  let inc = 0, dec = 0; for (let d = from; d <= T; d = addD(d, 1)){ const p = dayPrihod(d), c = cashOf(d), a = adjOn(d); inc += p.kkm + p.om + (a > 0 ? a : 0); dec += p.rkkm + p.rom + c.t + c.k + (a < 0 ? -a : 0); }
+  return {start:balanceStart(from), inc, dec, end:balanceEnd(T)};
+}
+V.rcp = () => {
+  if (!R.to) R.to = TODAY; if (!R.from){ const o = dayPeriods().slice(-1)[0]; R.from = o ? o.from : addD(TODAY, -6); } perInit();
+  const F = R.from, T = R.to, rows = [];
+  S.debtors.forEach(d => { const ms = S.moves.filter(m => m.did === d.id); let st = 0, inc = 0, dec = 0; ms.forEach(m => { if (m.date < F) st += m.amt; else if (m.date <= T){ if (m.amt > 0) inc += m.amt; else dec -= m.amt; } });
+    if (st || inc || dec) rows.push({id:d.id, name:d.name, grp:d.grp, st, inc, dec, end:st + inc - dec}); });
+  const list = rows.filter(r => !R.q || match(r.name, R.q)).sort((a, b) => (a.grp === 'n') - (b.grp === 'n') || b.end - a.end);
+  const tot = {st:0, inc:0, dec:0, end:0}; list.forEach(r => Object.keys(tot).forEach(k => tot[k] += r[k]));
+  const off = (!needPin() || UNLOCK) && !isSeller() ? officeTurn(F, T) : null;
+  const tr = r => `<tr class="rowtap" data-a="rcpopen" data-v="${r.id}"><td class="l g">${esc(r.name)}${r.grp === 'n' ? ' <span class="pill p-om" style="font-size:11px">Несгор</span>' : ''}</td><td>${fmt(r.st)}</td><td style="color:var(--bad)">${r.inc ? '+' + fmt(r.inc) : '·'}</td><td style="color:var(--good)">${r.dec ? '−' + fmt(r.dec) : '·'}</td><td><b>${fmt(r.end)}</b></td></tr>`;
+  return hdr('Отчёт контрагентов') + repBar(false, '', {search:1}) + sbar('Имя') + `<div class="wrap stack" style="padding-top:12px">
+    <div class="small muted">Долг на утро ${dShort(F)}, сколько добавилось и убавилось за период, долг вечером ${dShort(T)}. Нажмите на строку — все операции.</div>
+    ${off ? `<div class="panel"><div class="ph"><b>Офис (наш долг перед офисом)</b></div><div class="tbl-wrap"><table class="tight xl"><tr><th class="l">Контрагент</th><th>Начальный</th><th>Увеличение</th><th>Уменьшение</th><th>Конечный</th></tr><tr class="rowtap" data-a="rcpopen" data-v="office"><td class="l g"><b>Офис</b><div class="small muted">приход ККМ и Омбор, ручные «+» / возвраты, терминал, сдано в офис, ручные «−»</div></td><td>${fmt(off.start)}</td><td style="color:var(--bad)">+${fmt(off.inc)}</td><td style="color:var(--good)">−${fmt(off.dec)}</td><td><b>${fmt(off.end)}</b></td></tr></table></div></div>` : ''}
+    <div class="panel"><div class="ph"><b>Клиенты (долги нам) · ${list.length}</b><b>${fmt(tot.end)}</b></div><div class="tbl-wrap scrolly2"><table class="tight xl"><tr><th class="l">Контрагент</th><th>Начальный</th><th>Увеличение<br><span class="small">дал в долг</span></th><th>Уменьшение<br><span class="small">вернул</span></th><th>Конечный</th></tr>${list.map(tr).join('') || '<tr><td class="l muted" colspan="5">Нет движений</td></tr>'}
+      <tr class="tot"><td class="l">Итого</td><td>${fmt(tot.st)}</td><td>${fmt(tot.inc)}</td><td>${fmt(tot.dec)}</td><td>${fmt(tot.end)}</td></tr></table></div></div></div>`;
+};
+V.rcpd = () => {
+  if (!R.to) R.to = TODAY; if (!R.from) R.from = addD(R.to, -6); perInit(); const F = R.from, T = R.to;
+  if (R.id === 'office'){ if (isSeller() || (needPin() && !UNLOCK)) return hdr('Офис') + lockScreen();
+    const days = []; for (let d = F < S.bal0.date ? S.bal0.date : F; d <= T; d = addD(d, 1)) days.push(d);
+    return hdr('Офис: операции') + repBar(false, '', {}) + `<div class="wrap stack nar2" style="padding-top:12px"><div class="tbl-wrap"><table class="tight xl"><tr><th class="l">День</th><th>Приход</th><th>Возврат</th><th>Терминал</th><th>Сдано в офис</th><th>± Вручную</th><th>Долг вечером</th></tr>
+      <tr class="gh"><td class="l" colspan="6">Утро ${dShort(days[0] || F)}</td><td>${days.length ? fmt(balanceStart(days[0])) : ''}</td></tr>
+      ${days.map(d => { const p = dayPrihod(d), c = cashOf(d), a = adjOn(d); return `<tr class="rowtap" data-a="dayp" data-v="${d}"><td class="l">${wdShort(d)} ${dShort(d)}</td><td>${zf(p.kkm + p.om)}</td><td>${zf(p.rkkm + p.rom)}</td><td>${zf(c.t)}</td><td>${zf(c.k)}</td><td>${a ? (a > 0 ? '+' : '') + fmt(a) : '·'}</td><td><b>${fmt(balanceEnd(d))}</b></td></tr>`; }).join('')}</table></div></div>`; }
+  const dd = S.debtors.find(x => x.id === R.id); if (!dd) return V.rcp();
+  const ms = S.moves.filter(m => m.did === dd.id).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  let bal = ms.filter(m => m.date < F).reduce((a, m) => a + m.amt, 0); const rows = [`<tr class="gh"><td class="l" colspan="3">Долг на утро ${dShort(F)}</td><td>${fmt(bal)}</td></tr>`];
+  ms.filter(m => m.date >= F && m.date <= T).forEach(m => { bal += m.amt; rows.push(`<tr class="rowtap" data-a="dopen" data-v="${dd.id}"><td class="l">${wdShort(m.date)} ${dShort(m.date)}</td><td class="l">${m.sale ? '🧾 ' : ''}${esc(m.note || '')}${m.kassa === 'card' ? ' · карта' : ''}</td><td style="color:var(${m.amt > 0 ? '--bad' : '--good'})">${m.amt > 0 ? '+' : '−'}${fmt(Math.abs(m.amt))}</td><td><b>${fmt(bal)}</b></td></tr>`); });
+  return hdr(esc(dd.name)) + repBar(false, '', {}) + `<div class="wrap stack nar2" style="padding-top:12px"><div class="tbl-wrap"><table class="tight xl"><tr><th class="l">День</th><th class="l">Операция</th><th>Сумма</th><th>Долг</th></tr>${rows.join('')}</table></div></div>`;
+};
+
+/* ---------- остаток кассы и отчёт кассы ---------- */
+V.rcashbal = () => {
+  R.date = R.date || TODAY; const b = cashBal(R.date), c0 = cash0();
+  const last = cashOps(c0.date, R.date).slice(-12).reverse();
+  return hdr('Остаток кассы') + repBar(true, '', {}) + `<div class="wrap stack nar2" style="padding-top:12px">
+    ${b ? `<div class="tiles"><div class="stat"><span class="lbl">Наличные</span><b>${fmt(b.cash)}</b></div><div class="stat"><span class="lbl">Карта</span><b>${fmt(b.card)}</b></div><div class="stat"><span class="lbl">Всего</span><b>${fmt(b.cash + b.card)}</b></div></div>
+      <div class="small muted">Вечер ${dLong(R.date)}. Начальный остаток на ${dShort(c0.date)}: наличные ${fmt(c0.cash)}, карта ${fmt(c0.card)}.</div>`
+    : `<div class="note info">Остаток кассы ведётся с ${dLong(c0.date)}.</div>`}
+    ${isSeller() ? '' : `<div class="grid2"><button class="btn sec" data-a="cash0">Начальный остаток…</button><button class="btn sec" data-a="cash0date">С какого дня вести: ${dShort(c0.date)}</button></div>`}
+    <div class="sec-h">Последние операции</div>
+    <div class="tbl-wrap"><table class="tight xl"><tr><th class="l">День</th><th class="l">Операция</th><th class="l">Касса</th><th>Сумма</th></tr>${last.map(o => `<tr class="rowtap" data-a="cauto" data-v="${o.src}|${o.ref}"><td class="l">${wdShort(o.date)} ${dShort(o.date)}</td><td class="l">${esc(o.kind)}<div class="small muted">${esc(o.desc || '')}</div></td><td class="l">${kassaPill(o.kassa)}</td><td class="${o.amt < 0 ? 'neg' : ''}">${o.amt > 0 ? '+' : '−'}${fmt(Math.abs(o.amt))}</td></tr>`).join('') || '<tr><td class="l muted" colspan="4">Операций нет</td></tr>'}</table></div></div>`;
+};
+V.rcashrep = () => {
+  if (!R.to) R.to = TODAY; if (!R.from) R.from = addD(TODAY, -6); perInit();
+  const c0 = cash0(), F = R.from < c0.date ? c0.date : R.from, T = R.to;
+  if (T < c0.date) return hdr('Отчёт кассы') + repBar(false, '', {}) + `<div class="wrap stack"><div class="note info">Остаток кассы ведётся с ${dLong(c0.date)}. Выберите период позже.</div></div>`;
+  const st = cashBal(addD(F, -1)) || {cash:c0.cash, card:c0.card}, ops = cashOps(F, T, {bySale:!!R.bySale});
+  const sum = {cash:{in:0, out:0}, card:{in:0, out:0}}; ops.forEach(o => sum[o.kassa][o.amt >= 0 ? 'in' : 'out'] += Math.abs(o.amt));
+  const run = {cash:st.cash, card:st.card}, kf = R.kf || '';
+  const rows = ops.filter(o => !kf || o.kassa === kf).map(o => { run[o.kassa] += o.amt; return `<tr class="rowtap" data-a="cauto" data-v="${o.src}|${o.ref}"><td class="l">${wdShort(o.date)} ${dShort(o.date)}</td><td class="l">${kassaPill(o.kassa)}</td><td class="l g">${esc(o.kind)}<div class="small muted">${esc(o.desc || '')}</div></td><td>${o.amt > 0 ? fmt(o.amt) : ''}</td><td>${o.amt < 0 ? fmt(-o.amt) : ''}</td><td><b>${fmt(run[o.kassa])}</b></td></tr>`; });
+  const kfc = `<div class="chips tchips">${[['', 'Все кассы'], ['cash', 'Наличные'], ['card', 'Карта']].map(([k, l]) => `<button class="chip ${kf === k ? 'on' : ''}" data-a="ckf" data-v="${k}">${l}</button>`).join('')}<button class="chip ${R.bySale ? 'on' : ''}" data-a="cbysale">По чекам</button></div>`;
+  const line = k => `<tr><td class="l"><b>${KASSA[k]}</b></td><td>${fmt(st[k])}</td><td style="color:var(--good)">+${fmt(sum[k].in)}</td><td style="color:var(--bad)">−${fmt(sum[k].out)}</td><td><b>${fmt(st[k] + sum[k].in - sum[k].out)}</b></td></tr>`;
+  return hdr('Отчёт кассы') + repBar(false, kfc, {}) + `<div class="wrap stack" style="padding-top:12px">
+    ${R.from < c0.date ? `<div class="small muted">Остаток кассы ведётся с ${dShort(c0.date)} — отчёт с этого дня.</div>` : ''}
+    <div class="panel"><div class="tbl-wrap"><table class="tight xl"><tr><th class="l">Касса</th><th>Начальный<br><span class="small">утро ${dShort(F)}</span></th><th>Приход</th><th>Расход</th><th>Конечный<br><span class="small">вечер ${dShort(T)}</span></th></tr>${line('cash')}${line('card')}
+      <tr class="tot"><td class="l">Всего</td><td>${fmt(st.cash + st.card)}</td><td>+${fmt(sum.cash.in + sum.card.in)}</td><td>−${fmt(sum.cash.out + sum.card.out)}</td><td>${fmt(st.cash + st.card + sum.cash.in + sum.card.in - sum.cash.out - sum.card.out)}</td></tr></table></div></div>
+    <div class="sec-h">Операции · остаток после каждой</div>
+    <div class="panel"><div class="tbl-wrap scrolly2"><table class="tight xl"><tr><th class="l">День</th><th class="l">Касса</th><th class="l">Операция</th><th>Приход</th><th>Расход</th><th>Остаток</th></tr>${rows.join('') || '<tr><td class="l muted" colspan="6">Операций нет</td></tr>'}</table></div></div></div>`;
+};
+
+/* ---------- журнал: все документы и все действия ---------- */
+const JTYPES = [['', 'Все'], ['Приход', 'Приход'], ['Возврат', 'Возврат'], ['Касса', 'Касса'], ['Инвентаризация', 'Инвентаризация'], ['Долг', 'Долги'], ['Чек', 'Чеки'], ['other', 'Прочее']];
+const jType = doc => /^Инвентаризация/.test(doc) ? 'Инвентаризация' : /^Чек/.test(doc) ? 'Чек' : ['Приход', 'Возврат', 'Касса', 'Долг'].includes(doc) ? doc : 'other';
+const SELLER_HIDE_DOC = /^(Цена товара|Настройки|Корректировка долга офиса|Черновик)/;
+const jVisible = x => !isSeller() || !(SELLER_HIDE_DOC.test(x.doc) || /Запас/.test(x.desc));
+function journalDocs(F, T){
+  const out = [], L = logIdx(), add = (date, doc, id, no, desc, sum, open, extra) => { const o = L[id]; out.push(Object.assign({date, doc, id, no, desc, sum, open, by:o ? o.first.who : '', at:o ? o.first.ts : 0, mby:o && o.n > 1 ? o.last.who : '', mat:o && o.n > 1 ? o.last.ts : 0}, extra || {})); };
+  S.docs.forEach(d => { if (d.date < F || d.date > T || !vis(d.type)) return; const ln = docLines(d.id); add(d.date, isRet(d.type) ? 'Возврат' : 'Приход', d.id, docNo(d), TYPES[d.type].full + (d.wh ? ' · ' + d.wh : '') + ' · ' + ln.length + ' поз.', docSum(ln, d.date), 'docgo'); });
+  allCashDocs().forEach(c => { if (c.date < F || c.date > T) return; add(c.date, 'Касса', c.id, '', (c.dir === 'in' ? 'Приход: ' : 'Расход: ') + cashName(c) + ' · ' + KASSA[c.kassa] + (c.note && !c.legacy ? ' · ' + c.note : ''), c.dir === 'in' ? c.amt : -c.amt, 'cauto', c.legacy ? {by:'(до v18)'} : {by:c.author || (L[c.id] ? L[c.id].first.who : ''), at:c.ts || 0}); });
+  S.inv.forEach(i => { const d = evDate(i); if (d < F || d > T) return; const sm = invSums(i); add(d, i.cat === 'cig' ? 'Инвентаризация сигарет' : 'Инвентаризация товаров', i.id, '', sm.n + ' товаров', i.cat === 'cig' ? sm.k + sm.o : sm.q, 'rweek'); });
+  const dn = {}; S.debtors.forEach(d => dn[d.id] = d.name);
+  S.moves.forEach(m => { if (m.date < F || m.date > T || m.sale) return; add(m.date, 'Долг', m.id, '', (dn[m.did] || '?') + ': ' + (m.amt > 0 ? 'дал в долг' : 'вернул') + (m.kassa === 'card' ? ' (карта)' : ''), m.amt, 'dopen', {ref:m.did}); });
+  if (!isSeller()) (S.adj || []).forEach(a => { if (a.date < F || a.date > T) return; add(a.date, 'Корректировка долга офиса', a.id, '', adjNote(a.note), a.amt, 'rbal'); });
+  (S.sales || []).forEach(s => { if (s.date < F || s.date > T) return; add(s.date, s.kind === 'sale' ? 'Чек: продажа' : s.kind === 'ret' ? 'Чек: возврат' : 'Чек: погашение долга', s.id, saleNo(s), (s.status === 'cancel' ? 'ОТМЕНЁН · ' : '') + (s.cname || '') + (s.lines.length ? ' · ' + s.lines.length + ' строк' : ''), s.total, 'possale', {by:s.seller, at:s.ts}); });
+  return out.sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : (b.at || 0) - (a.at || 0));
+}
+V.rjournal = () => {
+  if (!R.to) R.to = TODAY; if (!R.from) R.from = addD(TODAY, -6); perInit(); R.jt = R.jt || 'docs'; const tf = R.jf || '';
+  const tabs = `<div class="seg seg5 tseg" style="--n:2">${[['docs', 'Документы'], ['acts', 'Действия']].map(([k, l]) => `<button class="${R.jt === k ? 'on' : ''}" data-a="jtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const tchips = `<div class="chips tchips">${JTYPES.map(([k, l]) => `<button class="chip ${tf === k ? 'on' : ''}" data-a="jf" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const q = (R.q || '').trim(), fq = x => !q || match([x.doc, x.desc, x.by, x.who, x.no].join(' '), q);
+  let body;
+  if (R.jt === 'docs'){
+    const list = journalDocs(R.from, R.to).filter(x => jVisible(x) && (!tf || jType(x.doc) === tf) && fq(x));
+    body = `<table class="tight xl"><tr><th class="l">Дата</th><th class="l">Документ</th><th class="l">Описание</th><th>Сумма</th><th class="l">Создал</th><th class="l">Изменил</th></tr>${list.map(x => `<tr class="rowtap" data-a="jopen" data-v="${x.open}|${x.ref || x.id}"><td class="l">${wdShort(x.date)} ${dShort(x.date)}</td><td class="l"><b>${esc(x.doc)}</b>${x.no ? ' № ' + esc(x.no) : ''}</td><td class="l g">${esc(x.desc)}</td><td>${fmt(x.sum)}</td><td class="l small">${esc(x.by || '—')}${x.at ? '<br><span class="muted">' + fmtTs(x.at) + '</span>' : ''}</td><td class="l small">${x.mby ? esc(x.mby) + '<br><span class="muted">' + fmtTs(x.mat) + '</span>' : ''}</td></tr>`).join('') || '<tr><td class="l muted" colspan="6">Нет документов</td></tr>'}</table>`;
+    body = `<div class="small muted">${list.length} док. «Создал / Изменил» — из журнала (ведётся с v18; у старых документов пусто).</div><div class="panel"><div class="tbl-wrap scrolly2">${body}</div></div>`;
+  } else {
+    const list = S.actlog.filter(x => jVisible(x) && (R.jid ? x.docId === R.jid : x.date >= R.from && x.date <= R.to) && (!tf || jType(x.doc) === tf) && fq(x)).slice().reverse();
+    const restored = new Set(S.actlog.filter(x => x.act === 'Восстановлен').map(x => x.data));
+    body = `<div class="panel"><div class="tbl-wrap scrolly2"><table class="tight xl"><tr><th class="l">Когда</th><th class="l">Кто</th><th class="l">Действие</th><th class="l">Документ</th><th class="l">Описание</th><th>Сумма</th><th></th></tr>${list.map(x => `<tr><td class="l small">${dShort(x.date)} ${x.time}</td><td class="l small">${esc(x.who)}<div class="muted">${esc(x.dev)}</div></td><td class="l"><span class="pill ${x.act === 'Удалён' || x.act === 'Отменён' ? 'p-bad' : x.act === 'Создан' ? 'p-good' : 'p-om'}">${esc(x.act)}</span></td><td class="l"><b>${esc(x.doc)}</b>${x.no ? ' № ' + esc(x.no) : ''}${x.docDate ? '<div class="small muted">за ' + dShort(x.docDate) + '</div>' : ''}</td><td class="l g small">${esc(x.desc)}</td><td>${x.sum ? fmt(x.sum) : ''}</td><td>${x.act === 'Удалён' && x.data && !restored.has(x.id) && !isSeller() ? `<button class="chip" data-a="jrestore" data-v="${x.id}">Восстановить</button>` : ''}</td></tr>`).join('') || '<tr><td class="l muted" colspan="7">За этот период действий нет</td></tr>'}</table></div></div>`;
+  }
+  const jidc = R.jid ? `<button class="chip on" data-a="jidx">Один документ ✕</button>` : '';
+  return hdr('Журнал') + repBar(false, tabs + tchips + jidc, {search:1}) + sbar('Поиск: документ, имя, кто') + `<div class="wrap stack" style="padding-top:12px">${body}</div>`;
+};
+function restoreFromLog(id){
+  const x = S.actlog.find(y => y.id === id); if (!x || !x.data) return;
+  let d; try { d = JSON.parse(x.data); } catch(e){ return toast('Нет данных для восстановления'); }
+  const done = msg => { logAct('Восстановлен', x.doc, x.docId, x.docDate, x.no, 'из журнала: ' + x.desc, x.sum, x.id); save(); render(); toast(msg); };   // в «Данные» — id записи об удалении: второй раз кнопки нет
+  if (d.lines && d.doc){ if (S.docs.some(z => z.id === d.doc.id)) return toast('Этот документ уже есть'); const doc = Object.assign({}, d.doc); if (!doc.wh) delete doc.wh; S.docs.push(doc); d.lines.forEach(l => S.prihod.push({id:l.id || uid(), doc:doc.id, date:doc.date, pid:l.pid, type:doc.type, qty:l.qty})); return done('Документ восстановлен'); }
+  if (d.cd){ const c = Object.assign({}, d.cd); if (c.legacy){ S.cash[c.date] = Object.assign({t:0, k:0}, S.cash[c.date], {[c.legacy]:c.amt}); } else { if (S.cashdocs.some(z => z.id === c.id)) return toast('Этот документ уже есть'); S.cashdocs.push(c); } return done('Документ кассы восстановлен'); }
+  if (d.m){ if (!S.debtors.some(z => z.id === d.m.did)) return toast('Сначала восстановите должника'); if (S.moves.some(z => z.id === d.m.id)) return toast('Запись уже есть'); S.moves.push(Object.assign({}, d.m)); return done('Запись долга восстановлена'); }
+  if (d.a){ if ((S.adj || []).some(z => z.id === d.a.id)) return toast('Запись уже есть'); S.adj.push(Object.assign({}, d.a)); return done('Корректировка восстановлена'); }
+  if (d.inv){ const i = d.inv; if (S.inv.some(z => z.cat === i.cat && z.date === i.date)) return confirmBox('На эту дату уже есть инвентаризация. Заменить восстановленной?', 'Заменить', () => { S.inv = S.inv.filter(z => !(z.cat === i.cat && z.date === i.date)); S.inv.push(i); done('Инвентаризация восстановлена'); }); S.inv.push(i); return done('Инвентаризация восстановлена'); }
+  if (d.d){ if (S.debtors.some(z => z.id === d.d.id)) return toast('Должник уже есть'); S.debtors.push(d.d); (d.moves || []).forEach(m => S.moves.push(m)); if (d.info){ S.dinfo = S.dinfo || {}; S.dinfo[d.d.id] = d.info; } return done('Должник восстановлен'); }
+  toast('Этот вид записи восстановить нельзя');
+}
+
+/* ---------- меню по группам (как НСИ / Документы / Отчёты в Logix) ---------- */
+const REP18 = [['rost','stack','--accent','Остатки товара'], ['rturn','trend','--kkm','Товарооборот'], ['rcp','ppl','--om','Отчёт контрагентов'], ['rcashbal','coin','--goods','Остаток кассы'], ['rcashrep','card','--kkm','Отчёт кассы'], ['rjournal','list','--muted','Журнал']];
+function MENU_GROUPS(){
+  const staff = !isSeller();
+  return [
+    ['docs', 'Документы', [['pos','cart','--goods','Продажа'], ['plist','box','--accent','Приход'], ['rlist','ret','--coral','Возврат'], ['cash','card','--kkm','Касса'], ['debts','ppl','--om','Долги'], ['inv','list','--own','Инвентаризация']]],
+    ['ref', 'Справочники', staff ? [['sprod:cig','box','--accent','Сигареты'], ['sprod:goods','box','--goods','Прочие товары'], ['debts:ref','ppl','--om','Клиенты (должники)'], ['posusers','ppl','--muted','Кассиры'], ['bcbind','search','--muted','Штрихкоды']].concat(isAdmin() ? [['users','lock','--muted','Пользователи']] : []) : []],
+    ['rep', 'Отчёты', staff ? REP18.concat([['rstock','stack','--accent','Остатки по неделям'], ['week','cal','--kkm','Неделя по дням'], ['rsales','chart','--goods','Продажи за неделю'], ['rsw','trend','--goods','Аналитика продаж'], ['rpd','trend','--kkm','Аналитика прихода'], ['rprice','coin','--om','Прайс-лист'], ['rpos','cart','--goods','Касса: итог дня'], ['rbal','lock','--accent','Баланс с офисом']]) : [['rjournal','list','--muted','Журнал']]],
+    ['svc', 'Сервис', staff ? [['backup','lock','--good','Резервные копии']] : []]
+  ];
+}
+
+/* ---------- защита данных: черновики в базе, снимки на устройстве, предупреждения ---------- */
+const DRAFT = {h:null, last:null};
+const DKIND = {'inv-cig':'Инвентаризация сигарет', 'inv-goods':'Инвентаризация товаров', prihod:'Приход / возврат', pos:'Открытый чек'};
+function draftSnapshot(){
+  const out = {};
+  if (S.drafts && S.drafts.cig) out['inv-cig'] = {date:S.drafts.cig.disp || S.drafts.cig.date, data:S.drafts.cig};
+  if (S.drafts && S.drafts.goods) out['inv-goods'] = {date:S.drafts.goods.disp || S.drafts.goods.date, data:S.drafts.goods};
+  if (S.wip && !S.wip.view && S.wip.items && S.wip.items.length && (S.wip.dirty || !S.wip.docId)) out.prihod = {date:S.wip.date, data:S.wip};
+  const pc = LOC.pos && LOC.pos.cur; if (pc && pc.lines && pc.lines.length) out.pos = {date:TODAY, data:pc};
+  return out;
+}
+function draftPushNow(){
+  clearTimeout(DRAFT.h); DRAFT.h = null; if (!DB || !CFG) return;
+  if (!DRAFT.last){ DRAFT.last = {}; Object.keys(SDB.draftbk || {}).forEach(id => { if (id.indexOf(DEVID + '|') === 0) DRAFT.last[id.slice(DEVID.length + 1)] = Sx(SDB.draftbk[id][6]); }); }
+  const snap = draftSnapshot(), ops = [];
+  Object.keys(snap).forEach(k => { const j = JSON.stringify(snap[k].data); if (DRAFT.last[k] === j) return; DRAFT.last[k] = j; const id = DEVID + '|' + k, r = [id, devName(), whoAmI(), k, snap[k].date || '', Date.now(), j]; SDB.draftbk[id] = r; persistRow('draftbk', id); ops.push({t:'draftbk', id, row:r}); });
+  Object.keys(DRAFT.last).forEach(k => { if (!snap[k] && DRAFT.last[k] != null){ DRAFT.last[k] = null; const id = DEVID + '|' + k; delete SDB.draftbk[id]; persistRow('draftbk', id); ops.push({t:'draftbk', id, del:1}); } });
+  if (ops.length){ queue(ops); schedulePush(); }
+}
+const draftSoon = () => { if (!DRAFT.h) DRAFT.h = setTimeout(draftPushNow, 20000); };
+function flushAll(){ try { LOC.drafts = S.drafts; LOC.wip = S.wip; ls.set(LOC_KEY, LOC); } catch(e){} try { draftPushNow(); } catch(e){} try { if (PERS.h){ clearTimeout(PERS.h); flushPersist(); } } catch(e){} }
+const dirtyInput = () => !!document.querySelector('#app input[data-dirty="1"]') || (isText(document.activeElement) && document.activeElement.id !== 'q');
+function safeToReload(){ return !NP && !CONF && !DSHEET && !TSHEET && !(S.wip && S.wip.dirty) && !(R.cd && (R.cedit || !R.cd.id)) && !dirtyInput() && !['icard', 'igrid', 'ginv', 'pdoc', 'cdoc', 'pos', 'adjnew', 'sedit', 'dcard'].includes(R.s); }
+window.addEventListener('beforeunload', e => {   // закрывают вкладку с несохранённым — браузер переспросит
+  flushAll();
+  if ((S.wip && S.wip.dirty) || dirtyInput() || (R.cd && (R.cedit || !R.cd.id) && R.cd.amt) || (OUT.length && !navigator.onLine)){ e.preventDefault(); e.returnValue = ''; return ''; }
+});
+window.addEventListener('pagehide', flushAll);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushAll(); });
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(p => { if (!p) navigator.storage.persist().catch(() => {}); }).catch(() => {}); } catch(e){}
+async function dailySnapshot(){   // раз в день — снимок всей базы на устройстве, хранится 7 дней
+  try { if (!DB) return; const k = 'snap|' + TODAY; if (await IDB.get(k)) return;
+    await IDB.write([[k, {ts:Date.now(), rev:DB.rev, t:DB.t, s:{sales:SDB.sales, poslog:SDB.poslog, actlog:SDB.actlog}, loc:{drafts:LOC.drafts, wip:LOC.wip, pos:LOC.pos}, out:OUT}]], []);
+    const keys = (await IDB.keys('snap|')).sort(); if (keys.length > 7) await IDB.write([], keys.slice(0, keys.length - 7));
+  } catch(e){}
+}
+setTimeout(() => whenIdle(dailySnapshot), 8000);
+function critBar(){
+  const out = [];
+  if (STORE_ERR) out.push(['bad', STORE_ERR]);
+  if (Math.abs(SKEW) > 10 * 60000) out.push(['bad', `Часы устройства ${SKEW > 0 ? 'отстают' : 'спешат'} на ${Math.round(Math.abs(SKEW) / 60000)} мин. Проверьте дату и время — иначе записи уйдут не тем днём.`]);
+  const old = OUT.length ? Math.min(...OUT.map(o => o.at || Date.now())) : 0;
+  if (OUT.length && Date.now() - old > 15 * 60000 && SYNC.state !== 'busy') out.push(['warn', `${OUT.length} ${plRec(OUT.length)} не отправлены в базу с ${hhmm(old)}${old < Date.now() - 864e5 ? ' ' + dShort(iso(new Date(old))) : ''}. Проверьте интернет.`, 'syncnow', 'Отправить']);
+  if (NEW_VER) out.push(['info', 'Вышла новая версия программы — обновится, когда закончите ввод.', 'reloadnow', 'Обновить сейчас']);
+  if (SRV_V < 18 && SYNC.last) out.push(['warn', 'В Google Таблице старый Code.gs. Склад, касса, журнал и черновики ждут на устройстве — обновите Code.gs (инструкция «v18 — что нового»).']);
+  return out.length ? `<div class="crit">${out.map(([c, t, a, l]) => `<div class="cb ${c}"><span>${esc(t)}</span>${a ? `<button data-a="${a}">${l}</button>` : ''}</div>`).join('')}</div>` : '';
+}
+function paintBanners(){ const el = document.querySelector('#app > .crit'), h = critBar(); if (el) el.outerHTML = h || ''; else if (h && R.s !== 'pos'){ const app = document.getElementById('app'); app.insertAdjacentHTML('afterbegin', h); } }
+setInterval(() => { if (document.visibilityState === 'visible' && DB) paintBanners(); }, 60000);
+
+/* «Резервные копии»: копии Таблицы на Диске, снимки на устройстве, черновики в базе */
+let BKINFO = null;
+async function loadBk(){ try { const r = await api('POST', Object.assign(AUTH(), {action:'backups'})); BKINFO = r && r.ok ? r : (r && r.error === 'action' ? 'old' : 'err'); } catch(e){ BKINFO = 'err'; } if (R.s === 'backup') render(); }
+V.backup = () => {
+  if (needPin() && !UNLOCK) return hdr('Резервные копии') + lockScreen();
+  if (BKINFO === null){ BKINFO = 'wait'; loadBk(); }
+  if (!R.snaps){ R.snaps = 'wait'; IDB.keys('snap|').then(k => { R.snaps = k.sort().reverse(); if (R.s === 'backup') render(); }).catch(() => { R.snaps = []; }); }
+  const b = BKINFO, drafts = (S.draftbk || []).slice().sort((x, y) => y.upd - x.upd);
+  const srv = b === 'wait' ? 'Проверяю…' : b === 'old' ? '<b style="color:var(--warn)">В Таблице старый Code.gs</b> — обновите до v18, потом запустите installBackups.' : b === 'err' || !b ? 'Нет связи с базой.'
+    : b.on ? `Включены: каждую ночь около 3:00, хранятся 30 последних. Последняя копия: <b>${b.last ? new Date(b.last).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—'}</b>${b.count ? ' · копий: ' + b.count : ''}.${b.url ? ` <a href="${esc(b.url)}" target="_blank" rel="noopener">Открыть папку на Диске</a>` : ''}`
+    : '<b style="color:var(--warn)">Ещё не включены.</b> В Google Таблице: Расширения → Apps Script → вверху выберите функцию <b>installBackups</b> → «Выполнить» → разрешите доступ. Сразу появится первая копия в папке «Chorsu — копии».';
+  return hdr('Резервные копии') + `<div class="wrap stack nar2">
+    <div class="sec-h">Копии всей Google Таблицы (на Диске)</div><div class="card small">${srv}</div>
+    <div class="sec-h">Снимки на этом устройстве (7 дней)</div>
+    <div class="list">${Array.isArray(R.snaps) ? R.snaps.map(k => `<div class="row"><span class="nm">${dLong(k.slice(5))}</span><button class="chip" data-a="snapdl" data-v="${k}">⬇ Скачать</button></div>`).join('') || '<div class="empty-st small">Снимков пока нет — первый появится сегодня</div>' : '<div class="empty-st small">…</div>'}</div>
+    <div class="grid2"><button class="btn sec" data-a="dbxls">⬇ Вся база в Excel</button><button class="btn sec" data-a="dbjson">⬇ Вся база файлом (JSON)</button></div>
+    <div class="sec-h">Черновики в базе (незаконченное на устройствах)</div>
+    <div class="list">${drafts.map(x => `<div class="row"><span class="nm"><b>${DKIND[x.kind] || esc(x.kind)}</b>${x.date ? ' · ' + dShort(x.date) : ''}<div class="small muted">${esc(x.dev)} · ${esc(x.who)} · ${fmtTs(x.upd)}${x.id.indexOf(DEVID + '|') === 0 ? ' · это устройство' : ''}</div></span>${x.id.indexOf(DEVID + '|') === 0 ? '' : `<button class="chip" data-a="draftrest" data-v="${esc(x.id)}">Восстановить сюда</button>`}</div>`).join('') || '<div class="empty-st small">Незаконченных документов нет</div>'}</div>
+    <div class="sec-h">Очередь отправки</div>
+    <div class="card small">${OUT.length ? `${OUT.length} ${plRec(OUT.length)} ждут отправки (самая старая — ${fmtTs(Math.min(...OUT.map(o => o.at || Date.now())))}).` : 'Всё отправлено в базу.'}${REJ.length ? `<br>${REJ.length} ${plRec(REJ.length)} ждут нового Code.gs или прав.` : ''}</div>
+    <div class="grid2"><button class="btn sec" data-a="syncnow">Отправить сейчас</button><button class="btn sec" data-a="outdl">⬇ Скачать очередь</button></div>
+  </div>`;
+};
+const dlBlob = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); };
+const dlJson = (obj, name) => dlBlob(new Blob([JSON.stringify(obj)], {type:'application/json'}), name);
+const TBL_RU = {products:'Товары', prices:'Цены', docs:'Приходы', prihod:'Приход_строки', inv:'Инвентаризации', invlines:'Инвент_строки', extra:'Вне_списка', cash:'Касса', adj:'Корректировки', debtors:'Должники', moves:'Долги', settings:'Настройки', dinfo:'Карточки_должников', barcodes:'Штрихкоды', posusers:'Кассиры', cashdocs:'Касса_документы', sales:'Чеки', salelines:'Чек_строки', poslog:'Журнал_кассы', actlog:'Журнал', draftbk:'Черновики'};
+
+/* ---------- экспорт текущего экрана в Excel и печать ---------- */
+function screenTables(){ return [...document.querySelectorAll('#app table.xl, #app .tbl-wrap table')].filter((t, i, a) => a.indexOf(t) === i && t.offsetParent !== null && !t.closest('.ov')); }
+const cellVal = td => { const t = td.innerText.replace(/\s+/g, ' ').trim(); if (/^[−+\-]?\d[\d   ]*$/.test(t)){ const n = Number(t.replace(/[   ]/g, '').replace('−', '-')); if (isFinite(n)) return n; } return t === '·' || t === '—' ? '' : t; };
+async function exportScreen(){
+  const tabs = screenTables(); if (!tabs.length) return toast('На экране нет таблицы');
+  toast('Готовлю файл…'); try { await loadXLSX(); } catch(e){ return toast('Нет интернета — файл сделать нельзя'); }
+  const title = ((document.querySelector('#app .hdr h1') || {}).textContent || 'Отчёт').trim(), per = R.from && R.to ? ` ${dShort(R.from)}-${dShort(R.to)}` : R.date ? ' ' + dShort(R.date) : '';
+  const wb = XLSX.utils.book_new();
+  tabs.forEach((t, i) => { const aoa = [...t.rows].map(tr => { const row = []; [...tr.cells].forEach(td => { row.push(cellVal(td)); for (let k = 1; k < (td.colSpan || 1); k++) row.push(''); }); return row; });
+    const ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = (aoa[0] || []).map((h, j) => ({wch: Math.min(48, Math.max(8, ...aoa.slice(0, 200).map(r => String(r[j] == null ? '' : r[j]).length + 1)))}));
+    XLSX.utils.book_append_sheet(wb, ws, (tabs.length > 1 ? (i + 1) + '. ' : '') + title.slice(0, 26).replace(/[\\/?*\[\]:]/g, ' ')); });
+  dlBlob(new Blob([XLSX.write(wb, {bookType:'xlsx', type:'array'})], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), `Chorsu ${title}${per}.xlsx`); toast('Файл Excel скачан');
+}
+
+/* ---------- клавиатура: строка под курсором видна, после окна количества курсор возвращается на неё ---------- */
+document.addEventListener('keydown', e => { if (['ArrowDown', 'ArrowUp', 'Tab', 'Enter'].includes(e.key)) KBMODE = true; }, true);
+document.addEventListener('pointerdown', () => { KBMODE = false; }, true);
+document.addEventListener('focusin', e => { const el = e.target; if (el && el.matches && el.matches('#app .row[data-a], #app tr.rowtap[data-a]') && KBMODE){ KFOC = {s:R.s, a:el.dataset.a, v:el.dataset.v}; document.querySelectorAll('#app .kcur').forEach(x => x.classList.remove('kcur')); el.classList.add('kcur'); } });
+function restoreKFocus(){
+  if (!KFOC || !KBMODE || KFOC.s !== R.s || NP || CONF || DSHEET || TSHEET || MSHEET) return;
+  const ae = document.activeElement; if (ae && ae !== document.body && document.getElementById('app').contains(ae)) return;
+  const el = document.querySelector(`#app [data-a="${KFOC.a}"][data-v="${CSS.escape(KFOC.v || '')}"]`); if (el && el.offsetParent !== null){ el.focus({preventScroll:true}); el.classList.add('kcur'); el.scrollIntoView({block:'nearest'}); }
+}
+
+/* ---------- даты внутри документов и отчётов ---------- */
+const DATE_ACT = {
+  wipdate: v => { const w = S.wip; if (!w || w.date === v) return render(); const was = w.date; w.date = v; if (w.view){ w.view = false; } w.dirty = true; save(); render(); toast('Дата документа: ' + dShort(was) + ' → ' + dShort(v) + '. Не забудьте «Сохранить»'); },
+  cddate: v => { keepCd(); if (R.cd){ R.cd.date = v; if (R.cd.id && !R.cedit) R.cedit = true; } render(); },
+  mvdate: v => { MV.date = v; render(); },
+  idrdate: v => { const cat = R.cat || 'cig', dr = S.drafts[cat]; if (!dr || (dr.disp || dr.date) === v) return render();
+    const nd = addD(v, 1), ex = S.inv.find(i => i.cat === cat && i.date === nd && i.id !== dr.edit);
+    confirmBox(`Поменять дату инвентаризации ${dShort(dr.disp || addD(dr.date, -1))} → <b>${dShort(v)}</b>?<br>Приход недели и балансы пересчитаются.${ex ? '<br><b>На эту дату уже есть инвентаризация — при сохранении она заменится.</b>' : ''}`, 'Поменять', () => { dr.disp = v; dr.date = nd; dr.lbl = dShort(v); save(); toast('Дата инвентаризации: ' + dShort(v)); }); },
+};
+
+/* ---------- действия v18 ---------- */
+Object.assign(A, {
+  pview: d => { R.pv = d.v; render(); },
+  pwhf: d => { R.wh = d.v; render(); },
+  pwh: d => { const w = S.wip; if (!w) return; w.wh = w.wh === d.v ? '' : d.v; if (w.view) w.view = false; w.dirty = true; save(); render(); },
+  pcancel: () => { const w = S.wip; if (!w) return;
+    if (!w.docId){ if (!w.items.length){ S.wip = null; save(); return doBack(); } return confirmBox(`Отменить новый ${isRet(w.type) ? 'возврат' : 'приход'}? ${w.items.length} поз. пропадут.`, 'Отменить', () => { S.wip = null; save(); doBack(); }); }
+    const go2 = () => { A.popen({v:w.docId}); toast('Изменения отменены'); }; if (w.dirty) return confirmBox('Отменить изменения? Документ останется как был.', 'Отменить изменения', () => { w.dirty = false; go2(); }); go2(); },
+  perq: d => { setPer(d.v); render(); },
+  pershift: d => { const s = +d.v;
+    if (R.s === 'rost' || R.s === 'rcashbal'){ R.date = addD(R.date || TODAY, s); if (R.date > TODAY) R.date = TODAY; return render(); }
+    const n = daysIn(R.from, R.to); let f = addD(R.from, s * n), t = addD(R.to, s * n); if (t > TODAY){ t = TODAY; f = addD(t, -(n - 1)); } R.from = f; R.to = t; R.date = t; render(); },
+  xlsx: () => exportScreen(),
+  print: () => { window.print(); },
+  reloadnow: () => { flushAll(); location.reload(); },
+  sgrp: d => { const c = ls.get('chorsu_sidegrp', {}); c[d.v] = !c[d.v]; ls.set('chorsu_sidegrp', c); renderSide(); },
+  mgrp: d => { const c = ls.get('chorsu_menugrp', {ref:1}); c[d.v] = !c[d.v]; ls.set('chorsu_menugrp', c); render(); },
+  mvkassa: d => { MV.kassa = d.v; const s = document.getElementById('npsub'); if (s && NP && NP.subFn) s.innerHTML = NP.subFn(); },
+  // касса
+  ctab: d => { R.ct = d.v; render(); },
+  ckf: d => { R.kf = d.v; render(); },
+  cbysale: () => { R.bySale = !R.bySale; render(); },
+  cnew: d => { const dir = d.v === 'out' ? 'out' : 'in', kind = dir === 'in' ? 'sale' : 'term'; R.cerr = ''; R.cd = {date:R.to && R.to <= TODAY ? R.to : TODAY, dir, kind, kassa:CKIND[kind].kassa || 'cash', amt:0, note:''}; R.cedit = true; R.csel = null; if (!DESK || R.s !== 'cash') go('cdoc', {cd:R.cd, cedit:true}); else render(); },
+  csel: d => { const c = cdocById(d.v); if (!c) return; keepCd();
+    if (R.cd && (R.cedit || !R.cd.id) && R.cd.amt && R.cd.id !== c.id && !d.force) return askSave(() => { saveCdoc(); }, () => { R.cd = null; R.cedit = false; A.csel({v:d.v, force:1}); }); R.csel = c.id; R.cd = Object.assign({}, c); R.cedit = false; R.cerr = ''; if (!DESK || R.s !== 'cash') go('cdoc', {cd:R.cd, cedit:false}); else render(); },
+  cedit: () => { if (R.cd){ R.cedit = true; render(); } },
+  cdir: d => { keepCd(); const c = R.cd; c.dir = d.v; if (CKIND[c.kind].dir !== c.dir){ c.kind = c.dir === 'in' ? 'sale' : 'term'; c.kassa = CKIND[c.kind].kassa || c.kassa; } render(); },
+  ckind: d => { keepCd(); R.cd.kind = d.v; if (CKIND[d.v].kassa) R.cd.kassa = CKIND[d.v].kassa; R.cerr = ''; render(); },
+  ckassa: d => { keepCd(); R.cd.kassa = d.v; render(); },
+  camt: () => { keepCd(); openNP({title:cashName(R.cd) + ' · ' + KASSA[R.cd.kassa], sub:dLong(R.cd.date), money:true, val:R.cd.amt ? String(R.cd.amt) : '', ok:'Готово', onOk:n => { R.cd.amt = n; R.cerr = ''; NP = null; render(); }}); },
+  csave: () => { if (R.cd && (R.cedit || !R.cd.id)) saveCdoc(); },
+  ccancel: () => { const c = R.cd; if (!c) return; if (!c.id){ R.cd = null; if (R.s === 'cdoc') return doBack(); return render(); } R.cd = Object.assign({}, cdocById(c.id)); R.cedit = false; R.cerr = ''; render(); },
+  cdel: () => { const c = R.cd && cdocById(R.cd.id); if (!c) return; if (c.legacy && SRV_V < 18) return toast('Сначала обновите Code.gs до v18'); const what = `${c.dir === 'in' ? 'Приход' : 'Расход'}: ${cashName(c)} · ${KASSA[c.kassa]} · ${dShort(c.date)} · ${fmt(c.amt)}`;
+    const del = () => { logAct('Удалён', 'Касса', c.id, c.date, '', what, c.dir === 'in' ? c.amt : -c.amt, {cd:Object.assign({}, c)});
+      if (c.legacy) S.cash[c.date] = Object.assign({t:0, k:0}, S.cash[c.date], {[c.legacy]:0}); else S.cashdocs = S.cashdocs.filter(x => x.id !== c.id);
+      save(); R.cd = null; R.csel = null; if (R.s === 'cdoc') doBack(); else render(); toast('Документ кассы удалён'); };
+    confirmBox('Удалить документ кассы?<br><b>' + what + '</b>', 'Удалить', () => c.date === TODAY ? del() : setTimeout(() => pinGuard(what, del), 0)); },
+  cday: d => { const [day, k] = d.v.split('|'), list = allCashDocs().filter(c => c.date === day && c.kind === k);
+    if (list.length === 1) return A.csel({v:list[0].id});
+    if (!list.length){ R.cd = {date:day, dir:CKIND[k].dir, kind:k, kassa:CKIND[k].kassa || 'cash', amt:0, note:''}; R.cedit = true; R.cerr = ''; R.ct = 'docs'; if (!DESK) return go('cdoc', {cd:R.cd, cedit:true}); return render(); }
+    R.from = R.to = day; R.ct = 'docs'; render(); },
+  cauto: d => { const [src, ref] = d.v.split('|');
+    if (src === 'cdoc'){ if (R.s === 'cash') return A.csel({v:ref}); return go('cash', {from:(cdocById(ref) || {}).date, to:(cdocById(ref) || {}).date, csel:ref}); }
+    if (src === 'sale') return go('possale', {id:ref}); if (src === 'posday') return go('rpos', {date:ref}); if (src === 'move') return go('debtor', {id:ref}); },
+  cash0: () => { const c0 = cash0(); CONF = null;
+    openNP({title:'Начальный остаток: наличные', sub:`На утро ${dLong(c0.date)}. Сколько наличных было в кассе.`, money:true, allowZero:true, val:c0.cash ? String(c0.cash) : '', ok:'Дальше', onOk:n1 => {
+      openNP({title:'Начальный остаток: карта', sub:`На утро ${dLong(c0.date)}.`, money:true, allowZero:true, val:c0.card ? String(c0.card) : '', ok:'Сохранить', onOk:n2 => { NP = null; logAct('Изменён', 'Настройки', 'cash0', c0.date, '', `Начальный остаток кассы на ${dShort(c0.date)}: нал ${fmt(n1)}, карта ${fmt(n2)}`, n1 + n2); S.cash0 = {date:c0.date, cash:n1, card:n2}; save(); toast('Сохранено'); }}); }}); },
+  cash0date: () => { DSHEET = {act:'cash0d', v:cash0().date, title:'С какого дня вести остаток кассы'}; ANIM = true; render(); },
+  pterm: d => { const z = dayTotals(d.v), c = cashOf(d.v), set = () => { setTermDay(d.v, z.cardAll); toast('Терминал за ' + dShort(d.v) + ': ' + fmt(z.cardAll)); };
+    if (c.t && c.t !== z.cardAll) CONF = {text:`Заменить терминал за ${dShort(d.v)}?<br><b>было ${fmt(c.t)} → станет ${fmt(z.cardAll)}</b>`, yes:{l:'Заменить', c:'pri', f:set}, no:{l:'Нет', f:() => {}}}; else set(); render(); },
+  // отчёты
+  rtprod: d => go('rturnp', {id:d.v, from:R.s === 'rost' ? addD(R.date || TODAY, -13) : R.from, to:R.s === 'rost' ? R.date || TODAY : R.to}),
+  rcpopen: d => go('rcpd', {id:d.v, from:R.from, to:R.to}),
+  jtab: d => { R.jt = d.v; render(); },
+  jidx: () => { R.jid = null; render(); },
+  jf: d => { R.jf = d.v; render(); },
+  jopen: d => { const [a, id] = d.v.split('|'); if (a === 'docgo') return A.docgo({v:id}); if (a === 'cauto') return A.cauto({v:'cdoc|' + id}); if (a === 'rweek') return go('rweek', {id}); if (a === 'dopen') return go('debtor', {id}); if (a === 'rbal') return go('rbal'); if (a === 'possale') return go('possale', {id}); },
+  jdoc: d => go('rjournal', {jt:'acts', q:'', from:addD(TODAY, -365), to:TODAY, jid:d.v}),
+  jrestore: d => { const x = S.actlog.find(y => y.id === d.v); if (!x) return; confirmBox(`Восстановить из журнала?<br><b>${esc(x.doc)}: ${esc(x.desc)}</b>`, 'Восстановить', () => restoreFromLog(d.v)); },
+  // резервные копии
+  snapdl: async d => { try { const s = await IDB.get(d.v); if (!s) return toast('Снимок не найден'); dlJson(s, `Chorsu снимок ${d.v.slice(5)}.json`); } catch(e){ toast('Не получилось прочитать снимок'); } },
+  dbjson: () => { dlJson({ts:Date.now(), rev:DB.rev, t:DB.t, s:SDB, loc:{drafts:LOC.drafts, wip:LOC.wip, pos:LOC.pos}, out:OUT}, `Chorsu база ${TODAY}.json`); },
+  outdl: () => dlJson({ts:Date.now(), out:OUT, rej:REJ}, `Chorsu очередь ${TODAY}.json`),
+  dbxls: async () => { toast('Готовлю файл…'); try { await loadXLSX(); } catch(e){ return toast('Нет интернета — файл сделать нельзя'); }
+    const wb = XLSX.utils.book_new(), all = Object.assign({}, DB.t, SDB);
+    Object.keys(all).forEach(k => { const rows = Object.values(all[k] || {}); if (!rows.length) return; XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), (TBL_RU[k] || k).slice(0, 30)); });
+    dlBlob(new Blob([XLSX.write(wb, {bookType:'xlsx', type:'array'})], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), `Chorsu база ${TODAY}.xlsx`); toast('Файл Excel скачан'); },
+  draftrest: d => { const x = (S.draftbk || []).find(y => y.id === d.v); if (!x) return; let data; try { data = JSON.parse(x.data); } catch(e){ return toast('Черновик повреждён'); }
+    const put = () => { if (x.kind === 'inv-cig') S.drafts.cig = data; else if (x.kind === 'inv-goods') S.drafts.goods = data; else if (x.kind === 'prihod') S.wip = Object.assign(data, {dirty:true}); else if (x.kind === 'pos'){ LOC.pos.cur = data; posKeep(); }
+      save(); draftPushNow(); logAct('Восстановлен', 'Черновик', x.id, x.date, '', `${DKIND[x.kind] || x.kind} с устройства ${x.dev}`, 0); toast('Черновик восстановлен на это устройство'); render(); };
+    const has = x.kind === 'inv-cig' ? S.drafts.cig : x.kind === 'inv-goods' ? S.drafts.goods : x.kind === 'prihod' ? S.wip : (LOC.pos.cur && LOC.pos.cur.lines.length);
+    confirmBox(`Восстановить «${DKIND[x.kind] || x.kind}» с устройства ${esc(x.dev)} (${fmtTs(x.upd)})?${has ? '<br><b>На этом устройстве уже есть такой незаконченный документ — он заменится.</b>' : ''}`, 'Восстановить', put); },
+});
+DATE_ACT.cash0d = v => { const c0 = cash0(); logAct('Изменён', 'Настройки', 'cash0', v, '', 'Остаток кассы ведётся с ' + dShort(v), 0); S.cash0 = {date:v, cash:c0.cash, card:c0.card}; save(); render(); };
+// черновики уходят в базу через 20 с после изменения (и сразу при сворачивании программы)
+{ const save0 = save; save = function(){ save0(); draftSoon(); }; }
+
+document.addEventListener('change', e => {   // период в панели отчётов и документов
+  const el = e.target; if (el.dataset.in !== 'per' || !el.value) return;
+  const v = el.value > TODAY ? TODAY : el.value, k = el.dataset.k;
+  if (k === 'date'){ R.date = v; return render(); }
+  R[k] = v; if (R.from > R.to){ if (k === 'from') R.to = R.from; else R.from = R.to; } R.date = R.to; render();
+});
+document.addEventListener('keydown', e => {   // Ctrl+E — изменить, Ctrl+D — удалить (как в Logix)
+  if (!(e.ctrlKey || e.metaKey) || e.altKey || NP || CONF || !DB) return; const k = e.key.toLowerCase();
+  if (k === 'e' || k === 'у'){ const a = R.s === 'pdoc' ? 'pedit' : (R.s === 'cash' || R.s === 'cdoc') && R.cd && R.cd.id ? 'cedit' : null; if (a){ e.preventDefault(); A[a]({}); } }
+  if (k === 'd' || k === 'в'){ const a = R.s === 'pdoc' ? 'pdocdel' : (R.s === 'cash' || R.s === 'cdoc') && R.cd && R.cd.id ? 'cdel' : R.s === 'plist' && R.sel ? 'pdocdel' : null; if (a){ e.preventDefault(); A[a](R.s === 'plist' ? {v:R.sel} : {}); } }
+}, true);
+
 /* устройство-касса: сразу открыть продажу (и после первой загрузки базы, и после входа) */
 function startScreen(){ HIST.length = 0; if (POSDEV().on){ HIST.push({s:'home'}); R = {s:'pos'}; } else R = {s:'home'}; }
 if (POSDEV().on && R.s === 'home') startScreen();
@@ -3466,7 +4207,7 @@ else if (CFG && !DB){ render(); window.splashHold = loadLocal().then(x => { if (
 else { render(); window.splashHold = CFG ? sync() : null; }
 if (window.splashHold === undefined) window.splashHold = null;
 if ('serviceWorker' in navigator){ const had = !!navigator.serviceWorker.controller; navigator.serviceWorker.register('sw.js').then(r => { try { r.update(); } catch(e){} }).catch(() => {});
-  let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && !reloaded && !(S.wip && S.wip.dirty) && !NP){ reloaded = true; location.reload(); } }); }   // вышла новая версия — открыть её сразу
+  let reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (!had || reloaded) return; if (safeToReload()){ reloaded = true; flushAll(); location.reload(); } else { NEW_VER = true; paintBanners(); } }); }   // вышла новая версия — открыть её, когда ничего не вводится (v18)
 window.addEventListener('hashchange', () => { if (location.hash.includes('connect=')) tryConnect(location.hash); });
 </script>
 
