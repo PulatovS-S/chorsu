@@ -8,6 +8,11 @@
  *      Запуск от имени: «Я», Доступ: «Все» → Начать развертывание → разрешить доступ.
  *   3. Нажать на «URL веб-приложения». Откроется страница с QR-кодом и ссылкой
  *      для телефонов (её видит только владелец таблицы).
+ *
+ * Изменения v17 (касса, 25.10.2026) — совместимо со старыми листами и старыми версиями приложения:
+ *   • новый лист «Журнал_кассы» (удалённые строки и очищенные чеки на кассе) — создаётся сам, только дописывается;
+ *   • роль «продавец» может записывать листы «Штрихкоды» и «Журнал_кассы» (привязку на кассе делает управляющий по ПИН);
+ *   • push возвращает rejected: [{t, id}] — записи, не принятые по правам роли (старые приложения это поле не читают).
  */
 
 // Адрес приложения на GitHub Pages
@@ -19,7 +24,7 @@ const TABLES = {
   products: 'Товары', prices: 'Цены', docs: 'Приходы', prihod: 'Приход_строки',
   inv: 'Инвентаризации', invlines: 'Инвент_строки', extra: 'Вне_списка', cash: 'Касса',
   adj: 'Корректировки', debtors: 'Должники', moves: 'Долги', settings: 'Настройки', dinfo: 'Карточки_должников',
-  sales: 'Чеки', salelines: 'Чек_строки', barcodes: 'Штрихкоды', posusers: 'Кассиры'
+  sales: 'Чеки', salelines: 'Чек_строки', barcodes: 'Штрихкоды', posusers: 'Кассиры', poslog: 'Журнал_кассы'
 };
 // Заголовки листов, которые создаются сами, если их нет (новые таблицы приложения)
 const HEADERS = {
@@ -27,18 +32,20 @@ const HEADERS = {
   sales: ['id', '№', 'Дата', 'Время', 'Вид', 'Статус', 'Продавец', 'Касса', 'Клиент id', 'Клиент', 'Сумма', 'Наличные', 'Карта', 'В долг', 'Сдача', 'Заметка', 'Основание', 'Отменил', 'ts', 'rev', 'del'],
   salelines: ['id', 'Чек', 'Дата', 'Товар id', 'Товар', 'Ед.', 'Кол-во', 'Пачек', 'Цена', 'Сумма', 'rev', 'del'],
   barcodes: ['Штрихкод', 'Товар id', 'Товар', 'Ед.', 'rev', 'del'],
-  posusers: ['id', 'Имя', 'Роль', 'ПИН (хэш)', 'Активен', 'rev', 'del']
+  posusers: ['id', 'Имя', 'Роль', 'ПИН (хэш)', 'Активен', 'rev', 'del'],
+  poslog: ['id', 'Чек', 'Дата', 'Время', 'Кассир', 'Касса', 'Действие', 'Товар', 'Кол-во', 'Сумма', 'rev', 'del']   // v17
 };
 // Новые столбцы в старых листах: добавляются сами перед «rev»
 const EXTRA_COLS = {products: ['Штук в блоке', 'Группа'], prices: ['Цена блока'], moves: ['Чек']};
 // Листы, в которые строки только дописываются (чеки): при записи читается только столбец id
-const APPEND_ONLY = {sales: 1, salelines: 1};
+const APPEND_ONLY = {sales: 1, salelines: 1, poslog: 1};
 // Колонки, которые всегда хранятся как текст (id, даты, названия) — чтобы Таблица не превращала их в даты/числа
 const TEXT_COLS = {
   products: [0, 2, 3, 4], prices: [0, 1, 2, 3], docs: [0, 1, 2], prihod: [0, 1, 2, 3, 4, 5],
   inv: [0, 1, 2, 3], invlines: [0, 1, 2, 3, 4], extra: [0, 1, 2], cash: [0, 1], adj: [0, 1, 3],
   debtors: [0, 1, 2], moves: [0, 1, 2, 3, 5, 6], settings: [0, 1], dinfo: [0, 1, 2, 3, 4, 5, 7],
-  sales: [0, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17], salelines: [0, 1, 2, 3, 4, 5], barcodes: [0, 1, 2, 3], posusers: [0, 1, 2, 3, 4]
+  sales: [0, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17], salelines: [0, 1, 2, 3, 4, 5], barcodes: [0, 1, 2, 3], posusers: [0, 1, 2, 3, 4],
+  poslog: [0, 1, 2, 3, 4, 5, 6, 7, 8]
 };
 TEXT_COLS.products = TEXT_COLS.products.concat([6]);
 const COLS_OK_ = {};
@@ -159,7 +166,7 @@ function handle_(p) {
  * Пароли не хранятся — только хэш. Вход выдаёт личный токен телефона; «Активен: нет» — вход и токены перестают работать.
  */
 const USERS_SHEET = 'Пользователи', ROLES = ['админ', 'управляющий', 'продавец'];
-const SELLER_TABLES = {docs: 1, prihod: 1, inv: 1, invlines: 1, extra: 1, cash: 1, debtors: 1, moves: 1, dinfo: 1, sales: 1, salelines: 1};
+const SELLER_TABLES = {docs: 1, prihod: 1, inv: 1, invlines: 1, extra: 1, cash: 1, debtors: 1, moves: 1, dinfo: 1, sales: 1, salelines: 1, barcodes: 1, poslog: 1};   // v17: + штрихкоды и журнал кассы
 function usersSheet_() {
   const ss = SpreadsheetApp.getActive();
   let sh = ss.getSheetByName(USERS_SHEET);
@@ -281,10 +288,14 @@ function push_(ops, role) {
     const ss = SpreadsheetApp.getActive(), p = props_();
     let rev = Number(p.getProperty('REV') || 0);
     // keep only the last change of each record
-    const last = {};
+    const last = {}, rejected = [];
     ops.forEach((o, i) => { last[o.t + '\u0001' + o.id] = i; });
     const byTable = {};
-    ops.forEach((o, i) => { if (last[o.t + '\u0001' + o.id] === i && (role !== 'продавец' || SELLER_TABLES[o.t])) (byTable[o.t] = byTable[o.t] || []).push(o); });
+    ops.forEach((o, i) => {
+      if (last[o.t + '\u0001' + o.id] !== i) return;
+      if (role === 'продавец' && !SELLER_TABLES[o.t]) { rejected.push({t: o.t, id: o.id}); return; }   // не по правам — сообщаем приложению, а не молча
+      (byTable[o.t] = byTable[o.t] || []).push(o);
+    });
     Object.keys(byTable).forEach(t => {
       if (!TABLES[t]) return;
       const sh = sheet_(ss, t); if (!sh) return;
@@ -320,7 +331,7 @@ function push_(ops, role) {
       p.setProperty('R.' + t, String(rev));
     });
     p.setProperty('REV', String(rev));
-    return {ok: true, rev};
+    return rejected.length ? {ok: true, rev, rejected} : {ok: true, rev};
   } finally {
     lock.releaseLock();
   }
