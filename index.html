@@ -710,7 +710,11 @@ let CFG = ls.get(CFG_KEY, null);
 let DB = splitRows(ls.get(DB_KEY, null));   // {rev, t:{table:{id:[cells]}}}
 let OUT = ls.get(OUT_KEY, []);          // unsent changes [{s, t, id, row|del}]
 const REJ_KEY = 'chorsu_rejected';
-let REJ = ls.get(REJ_KEY, []);          // не принятые сервером по правам роли (видно админу в Настройках)
+let REJ = ls.get(REJ_KEY, []);          // не принятые сервером по правам роли или ждущие нового Code.gs (видно админу в Настройках)
+let SRV_OLD = ls.get('chorsu_srvold', false);   // в таблице Code.gs старше v17: не знает «Журнал_кассы», не принимает «Штрихкоды» от продавца
+const oldSrvDrops = o => o.t === 'poslog' || (o.t === 'barcodes' && isSeller());   // такие записи старый сервер молча отбрасывает
+const rejKey = o => o.t + '\u0001' + o.id;
+function rejAdd(list){ const ks = new Set(list.map(rejKey)); REJ = REJ.filter(o => !ks.has(rejKey(o))).concat(list); ls.set(REJ_KEY, REJ); }
 const LOC = ls.get(LOC_KEY, {drafts:{}, wip:null});
 let SEQ = OUT.reduce((m, o) => Math.max(m, o.s||0), 0);
 const TABLES = ['products','prices','docs','prihod','inv','invlines','extra','cash','adj','debtors','moves','settings','dinfo','barcodes','posusers'];
@@ -846,13 +850,14 @@ async function api(method, payload){
   return r.json();
 }
 async function push(){
+  if (SRV_OLD){ const hold = OUT.filter(oldSrvDrops);   // старый Code.gs: не отправлять в пустоту, а держать в «Не сохранено»
+    if (hold.length){ rejAdd(hold.map(o => Object.assign({}, o, {old:1}))); OUT = OUT.filter(o => !oldSrvDrops(o)); ls.set(OUT_KEY, OUT); } }
   while (OUT.length){
     const batch = OUT.slice(0, 400), sent = new Set(batch.map(o => o.s));
     const j = await api('POST', Object.assign(AUTH(), {action:'push', ops:batch.map(o => o.del ? {t:o.t, id:o.id, del:1} : {t:o.t, id:o.id, row:o.row})}));
     if (!j || !j.ok) throw new Error(j && (j.error === 'key' || j.error === 'login') ? j.error : (j && j.error) || 'push');
     if (j.rejected && j.rejected.length){   // сервер не принял по правам роли — не теряем молча, а откладываем в «Не сохранено»
-      const bad = new Set(j.rejected.map(x => x.t + '\u0001' + x.id)), key = o => o.t + '\u0001' + o.id;
-      REJ = REJ.filter(o => !bad.has(key(o))).concat(batch.filter(o => bad.has(key(o)))); ls.set(REJ_KEY, REJ); }
+      const bad = new Set(j.rejected.map(rejKey)); rejAdd(batch.filter(o => bad.has(rejKey(o)))); }
     OUT = OUT.filter(o => !sent.has(o.s)); ls.set(OUT_KEY, OUT);
   }
 }
@@ -864,6 +869,9 @@ async function pull(full){
   if (since === -1){ DB = {rev:0, t:{}}; TABLES.forEach(k => DB.t[k] = {}); SDB = emptySDB(); PERS.all = true; }
   let changed = since === -1; const ch = new Set();
   SRV_DINFO = 'dinfo' in j.tables;
+  const old = !('poslog' in j.tables);   // новый Code.gs отдаёт ключ каждого своего листа, даже пустого
+  if (old !== SRV_OLD){ SRV_OLD = old; ls.set('chorsu_srvold', old);
+    if (!old && REJ.some(o => o.old)){ queue(REJ.filter(o => o.old).map(o => o.del ? {t:o.t, id:o.id, del:1} : {t:o.t, id:o.id, row:o.row})); REJ = REJ.filter(o => !o.old); ls.set(REJ_KEY, REJ); schedulePush(); } }   // сервер обновили — отложенное уходит само
   for (const k in j.tables){
     const tb = tbl(k);
     j.tables[k].forEach(row => { const id = Sx(row[0]), del = row[row.length - 1] === 'x', nr = row.slice(0, row.length - 2);
@@ -872,7 +880,7 @@ async function pull(full){
       changed = true; if (ROWT[k]) persistRow(k, id); else ch.add(k); });
   }
   OUT.forEach(applyOut);
-  const old = addD(TODAY, -120); for (const id in SDB.salelines){ if (Sx(SDB.salelines[id][2]) < old){ delete SDB.salelines[id]; persistRow('salelines', id); } }
+  const old120 = addD(TODAY, -120); for (const id in SDB.salelines){ if (Sx(SDB.salelines[id][2]) < old120){ delete SDB.salelines[id]; persistRow('salelines', id); } }
   DB.rev = j.rev; persistDB([...ch]);
   return changed;
 }
@@ -906,6 +914,7 @@ function statusText(){
   const n = OUT.length, t = SYNC.last ? new Date(SYNC.last).toTimeString().slice(0,5) : '';
   if (SYNC.state === 'busy') return ['busy', 'Сохраняю в базу…'];
   if (SYNC.state === 'key') return ['bad', 'Телефон не подключён к базе: ключ не подходит. Откройте ссылку подключения ещё раз.'];
+  if (SRV_OLD) return ['warn', 'Сервер базы старой версии — обновите Code.gs' + (REJ.length ? ` · ${REJ.length} ${plRec(REJ.length)} не сохранено` : '')];
   if (REJ.length) return ['warn', `${REJ.length} ${plRec(REJ.length)} не сохранено: нет прав`];
   if (n && SYNC.state === 'offline') return ['warn', `Нет интернета · ${n} ${plWait(n)} отправки`];
   if (n && SYNC.state === 'err') return ['warn', `Нет связи с базой · ${n} ${plWait(n)}, отправится само`];
@@ -2100,7 +2109,8 @@ V.settings = () => {
     <div class="field txt"><label for="posnewlim">Лимит долга, который продавец ставит новому клиенту без ПИН (на этом устройстве)</label><input id="posnewlim" data-in="posnewlim" inputmode="numeric" value="${fmt(posNewLim())}" autocomplete="off"></div>
     <div class="sec-h">База (Google Таблица)</div>
     <div class="card small"><div>${statusText()[1]}</div><div class="muted" style="margin-top:4px">Неотправленных записей: ${OUT.length}</div></div>
-    ${REJ.length ? `<div class="note warn"><b>Не сохранено в базе: ${REJ.length} ${plRec(REJ.length)}</b> — сервер не принял их по правам входа (${[...new Set(REJ.map(o => o.t))].map(esc).join(', ')}). Войдите как админ и отправьте снова.</div>
+    ${SRV_OLD ? `<div class="note warn"><b>В Google Таблице старый Code.gs.</b> Журнал кассы и штрихкоды с устройства «продавец» он не сохраняет — они ждут на этом устройстве. Обновите сервер (шаг 1 инструкции запуска кассы): Расширения → Apps Script → вставить новый Code.gs → Сохранить → Начать развертывание → Управление развертываниями → Новая версия. После этого записи уйдут сами.</div>` : ''}
+    ${REJ.length ? `<div class="note warn"><b>Не сохранено в базе: ${REJ.length} ${plRec(REJ.length)}</b> (${[...new Set(REJ.map(o => o.t))].map(esc).join(', ')}) — ${REJ.some(o => o.old) ? 'ждут нового Code.gs' : 'сервер не принял их по правам входа. Войдите как админ и отправьте снова'}.</div>
       <div class="grid2"><button class="btn sec" data-a="rejretry">Отправить снова</button><button class="btn dang ghost" data-a="rejdrop">Убрать из списка</button></div>` : ''}
     <button class="btn sec" data-a="syncnow">Обновить сейчас</button>
     <div class="sec-h">Отчёты в Google Таблице</div>
@@ -2469,9 +2479,9 @@ document.addEventListener('keydown', e => {
     const it = navItems().filter(x => !x.matches('input')), i = it.indexOf(ae), n = it[i + (k === 'ArrowDown' ? 1 : -1)];
     if (n) return navFocus(n); if (k === 'ArrowUp'){ const q = document.getElementById('q'); if (q){ q.focus(); q.select(); } } return; }
   if (NP && !inText){   // сканер (быстрая серия + Enter) окно не меняет и не подтверждает
-    if (/^[0-9]$/.test(k)){ e.preventDefault(); kbTrack(k, () => ({val:NP.val, fresh:NP.fresh})); A.npk({v:k}); }
+    if (/^[0-9]$/.test(k)){ e.preventDefault(); kbTrack(e, () => ({val:NP.val, fresh:NP.fresh})); A.npk({v:k}); }
     else if (k === 'Backspace'){ e.preventDefault(); A.npk({v:'⌫'}); }
-    else if (k === 'Enter'){ e.preventDefault(); if (kbIsScan()) return npScanned(); kbDone(); const b = document.getElementById('npok'); if (b && !b.disabled) A.npok(); }
+    else if (k === 'Enter'){ e.preventDefault(); if (kbIsScan(e)) return npScanned(); kbDone(); const b = document.getElementById('npok'); if (b && !b.disabled) A.npok(); }
     return; }
   if (ae && ae.classList && ae.classList.contains('gin') && !e.altKey && !mod){   // ячейки таблиц ввода
     const dir = {Enter:e.shiftKey ? 'up' : 'down', ArrowDown:'down', ArrowUp:'up', ArrowLeft:'left', ArrowRight:'right'}[k];
@@ -2677,7 +2687,7 @@ function barcodesOf(pid){   // обратный индекс «товар → ш
 }
 const POSDEV = () => ls.get('chorsu_posdev', {on:false, name:''});
 const setPosDev = o => ls.set('chorsu_posdev', Object.assign(POSDEV(), o));
-const devName = () => (POSDEV().name || '').trim() || (POSDEV().on ? 'Касса' : DESK ? 'Компьютер' : 'Телефон');
+const devName = () => (POSDEV().name || '').trim() || (POSDEV().on ? 'Касса' : DESK ? 'ПК' : 'Телефон');   // по умолчанию буквы разные: К, П, Т
 const posNewLim = () => { const v = POSDEV().newlim; return v == null ? 500000 : v; };   // лимит, который продавец ставит новому клиенту без ПИН
 let POSU = null;                       // кто сейчас за кассой {id, name, role}
 const NOTES = [5000, 10000, 20000, 50000, 100000, 200000];
@@ -2720,16 +2730,15 @@ function dayTotals(date){
     else if (s.kind === 'pay'){ z.pn++; z.pcash += s.cash; z.pcard += s.card; } });
   z.drawer = z.cash + z.pcash - z.rcash; z.cardAll = z.card + z.pcard - z.rcard; return z;   // возврат «в счёт долга» наличных в кассе не уменьшает
 }
-/* буква устройства в номере чека: «К-12» — касса, «Т-3» — телефон; совпали первые буквы — «К2-…» (по порядку появления) */
-let DEVT = {k:'', m:{}};
-function devTags(){
-  const k = DATAV + '|' + SALEV + '|' + devName(); if (DEVT.k === k) return DEVT.m;
-  const first = {}; (S.sales || []).forEach(s => { if (s.dev && !(s.dev in first)) first[s.dev] = s.ts; }); if (!(devName() in first)) first[devName()] = Infinity;
-  const m = {}, used = {};
-  Object.keys(first).sort((a, b) => first[a] === first[b] ? 0 : first[a] < first[b] ? -1 : 1).forEach(n => { const L = (n.trim()[0] || '?').toUpperCase(); used[L] = (used[L] || 0) + 1; m[n] = used[L] > 1 ? L + used[L] : L; });
-  DEVT = {k, m}; return m;
+/* буква устройства в номере чека — только из его имени: «К-12» — «Касса», «П-5» — «ПК», «Т-3» — «Телефон»; цифра в конце имени
+   добавляется к букве («Касса 2» → «К2-…»). От чеков других устройств буква не зависит — номер не меняется задним числом. */
+const devTag = n => { n = String(n || '').trim(); return (n[0] || '?').toUpperCase() + ((n.match(/\d+$/) || [''])[0]); };
+const saleNo = s => s.dev ? devTag(s.dev) + '-' + s.no : String(s.no);   // старые чеки без имени устройства — как раньше
+function devTagOwner(name){   // другое известное устройство (по чекам) с той же буквой
+  const tg = devTag(name), seen = new Set();
+  for (const s of S.sales || []) if (s.dev && s.dev !== name && !seen.has(s.dev)){ seen.add(s.dev); if (devTag(s.dev) === tg) return s.dev; }
+  return '';
 }
-const saleNo = s => s.dev ? devTags()[s.dev] + '-' + s.no : String(s.no);   // старые чеки без имени устройства — как раньше
 
 /* ---------- запись чека в базу (по одному, без полного сравнения) ---------- */
 const saleRow = d => [d.id, d.no, d.date, d.time, SKINDn[d.kind], SSTn[d.status], d.seller || '', d.dev || '', d.did || '', d.cname || '', d.total, d.cash || 0, d.card || 0, d.debt || 0, d.change || 0, d.note || '', d.ref || '', d.canc || '', d.ts];
@@ -2863,7 +2872,7 @@ function lockTick(){ clearInterval(lockTick.h); lockTick.h = setInterval(() => {
 async function pinUser(v, roles){ for (const u of (S.posusers || []).filter(x => x.active && (!roles || roles.includes(x.role)))) if (u.pin && u.pin === await pinHash(u.id, v)) return u; return null; }
 function posLogin(){
   const lk = pinLocked();
-  return `<div class="pos-login"><div class="muted">Касса · ${esc(devName())}</div><h1>Введите свой ПИН-код</h1><div class="disp" id="plpin">${'•'.repeat((POS.pin || '').length) || '&nbsp;'}</div>
+  return `<div class="pos-login"><div class="muted">Касса${devName() === 'Касса' ? '' : ' · ' + esc(devName())}</div><h1>Введите свой ПИН-код</h1><div class="disp" id="plpin">${'•'.repeat((POS.pin || '').length) || '&nbsp;'}</div>
     ${lk || POS.pinErr ? `<p class="neg" id="plerr" role="status">${esc(lk ? lockText() : POS.pinErr)}</p>` : ''}
     <div class="keys ${lk ? 'off' : ''}">${['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k => `<button data-a="plk" data-v="${k}" ${k === '⌫' ? 'aria-label="Стереть"' : k === 'C' ? 'aria-label="Очистить"' : ''}>${k}</button>`).join('')}</div>
     <button class="btn sec" data-a="pexit">В программу</button></div>`;
@@ -2911,7 +2920,7 @@ function posOverlay(){
   if (o.k === 'bind') return wrap('Неизвестный штрихкод', bindHtml(o), true);
   return '';
 }
-const devNameField = () => `<div class="field txt"><label for="pdevname">Имя устройства (в номере чека: «${esc(devTags()[devName()] || '')}-12»)</label><input id="pdevname" data-in="pdevname" value="${esc(devName())}" autocomplete="off"></div>`;
+const devNameField = () => `<div class="field txt"><label for="pdevname">Имя устройства (в номере чека: «${esc(devTag(devName()))}-12»)</label><input id="pdevname" data-in="pdevname" value="${esc(devName())}" autocomplete="off"></div><p class="small neg" id="pdevmsg" role="status"></p>`;
 function clientPickHtml(){
   const q = POS.cq.trim(), list = S.debtors.filter(d => !q || match(d.name, q) || (dInfo(d.id).ph || '').replace(/\D/g, '').includes(q.replace(/\D/g, '') || '§'))
     .sort((a, b) => (a.grp === 'n') - (b.grp === 'n') || b.ts - a.ts).slice(0, 80), cur = posCur().did, curD = cur ? S.debtors.find(d => d.id === cur) : null;
@@ -3267,18 +3276,23 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => { const el = e.target, k = el.dataset && el.dataset.in;
   if (k === 'pdev'){ setPosDev({on:el.checked}); toast(el.checked ? 'Это устройство открывает сразу кассу' : 'Обычный режим'); }
-  else if (k === 'pdevname'){ setPosDev({name:el.value.trim()}); toast('Имя устройства: ' + devName()); }
+  else if (k === 'pdevname'){ const v = el.value.trim(), who = v ? devTagOwner(v) : '', msg = document.getElementById('pdevmsg');
+    if (who){ el.value = devName(); if (msg) msg.textContent = `Буква «${devTag(v)}» уже у устройства «${who}» — выберите другое имя`; return; }   // разные устройства — разные буквы
+    if (msg) msg.textContent = ''; setPosDev({name:v}); toast('Имя устройства: ' + devName() + ' · чеки «' + devTag(devName()) + '-…»'); }
   else if (k === 'posnewlim'){ const v = +el.value.replace(/\D/g, '') || 0; setPosDev({newlim:v}); el.value = fmt(v); toast('Продавец без ПИН ставит лимит до ' + fmt(v)); } });
 /* сканер и клавиатура на кассе: цифры + Enter без поля ввода = штрихкод.
    Сканер в окнах (оплата, количество, ПИН, принять долг) и в поиске узнаём по скорости: ≥ 6 символов с интервалом < 50 мс
    и сразу Enter — так человек не печатает. Такой ввод ничего не меняет в окне и не подтверждает его. */
 let SCANBUF = '', SCANT = 0;
 const KB = {t:0, n:0, buf:'', snap:null};
-function kbTrack(key, snap){   // очередной символ; snap() — что было в окне до начала быстрой серии
-  const now = performance.now(); if (now - KB.t >= 50){ KB.n = 0; KB.buf = ''; KB.snap = snap ? snap() : null; }
-  KB.t = now; KB.n++; KB.buf += key;
+// время нажатия клавиши (e.timeStamp), а не обработки: на медленном ПК перерисовка окна растягивает обработку до 50–110 мс,
+// а сканер по-прежнему шлёт клавиши через 8 мс
+const keyT = e => e.timeStamp || performance.now();
+function kbTrack(e, snap){   // очередной символ; snap() — что было в окне до начала быстрой серии
+  const t = keyT(e); if (t - KB.t >= 50){ KB.n = 0; KB.buf = ''; KB.snap = snap ? snap() : null; }
+  KB.t = t; KB.n++; KB.buf += e.key;
 }
-const kbIsScan = () => KB.n >= 6 && performance.now() - KB.t < 150;
+const kbIsScan = e => KB.n >= 6 && keyT(e) - KB.t < 150;
 const kbDone = () => { KB.t = 0; KB.n = 0; KB.buf = ''; KB.snap = null; };
 function npScanned(){   // сканер в цифровом окне: вернуть, как было, и подсказать
   const sn = KB.snap; kbDone(); if (sn){ NP.val = sn.val; NP.fresh = sn.fresh; } npUpdate(); posBeep();
@@ -3291,7 +3305,7 @@ document.addEventListener('keydown', e => {
   if (R.s !== 'pos' || NP || CONF || !DB) return;
   const k = e.key;
   if (!POSU && posHasUsers()){   // экран ПИН кассира: штрихкод не должен «набрать» ПИН
-    if (/^[0-9]$/.test(k)){ e.preventDefault(); kbTrack(k, () => POS.pin || ''); if (KB.n >= 2){ POS.pin = KB.snap || ''; const el = document.getElementById('plpin'); if (el) el.innerHTML = '•'.repeat(POS.pin.length) || '&nbsp;'; } else A.plk({v:k}); }
+    if (/^[0-9]$/.test(k)){ e.preventDefault(); kbTrack(e, () => POS.pin || ''); if (KB.n >= 2){ POS.pin = KB.snap || ''; const el = document.getElementById('plpin'); if (el) el.innerHTML = '•'.repeat(POS.pin.length) || '&nbsp;'; } else A.plk({v:k}); }
     else if (k === 'Backspace'){ e.preventDefault(); A.plk({v:'⌫'}); }
     else if (k === 'Enter' && KB.n >= 2){ e.preventDefault(); kbDone(); posBeep(); POS.pinErr = 'Сначала войдите по ПИН — штрихкод не принят'; render(); }
     e.stopPropagation(); return; }
@@ -3299,20 +3313,20 @@ document.addEventListener('keydown', e => {
   const t = e.target, inInput = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
   if (POS.chg && !['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'NumLock'].includes(k)){ POS.chg = null; render(); if (k === 'Escape' || (k === 'Enter' && !SCANBUF)){ e.preventDefault(); return; } }   // окно сдачи — до любого действия кассира
   if (POS.pay && !inInput){
-    if (/^[0-9]$/.test(k)){ e.preventDefault(); kbTrack(k, () => Object.assign({}, POS.pay)); return A.ppk({v:k}); }
+    if (/^[0-9]$/.test(k)){ e.preventDefault(); kbTrack(e, () => Object.assign({}, POS.pay)); return A.ppk({v:k}); }
     if (k === 'Backspace'){ e.preventDefault(); return A.ppk({v:'⌫'}); }
     if (k === 'Enter'){ e.preventDefault();
-      if (kbIsScan()){ const sn = KB.snap; kbDone(); Object.assign(POS.pay, sn || {}, {msg:'Сначала закройте оплату — товар не добавлен'}); posBeep(); return render(); }
+      if (kbIsScan(e)){ const sn = KB.snap; kbDone(); Object.assign(POS.pay, sn || {}, {msg:'Сначала закройте оплату — товар не добавлен'}); posBeep(); return render(); }
       kbDone(); const b = document.querySelector('[data-a="ppok"]'); if (b && !b.disabled) posClose(); return; }
     if (k === 'Escape'){ e.preventDefault(); return A.ppcancel(); }
     return;
   }
   if (k === 'Escape' && POS.ov){ e.preventDefault(); POS.ov = null; payResume(); return render(); }
   if (inInput && t.id === 'pq'){
-    if (k.length === 1){ kbTrack(k, () => t.value); return; }
+    if (k.length === 1){ kbTrack(e, () => t.value); return; }
     if (k !== 'Enter') return;
     e.preventDefault();
-    if (kbIsScan()){ const code = KB.buf, was = KB.snap || ''; kbDone(); t.value = POS.q = was; posScan(code); return; }   // сканер при фокусе в поиске: товар — в чек, текст поиска — как был
+    if (kbIsScan(e)){ const code = KB.buf, was = KB.snap || ''; kbDone(); t.value = POS.q = was; posScan(code); return; }   // сканер при фокусе в поиске: товар — в чек, текст поиска — как был
     kbDone(); const v = t.value.trim(); if (!v) return;
     if (S.barcodes[v]){ POS.q = ''; posScan(v); return; }
     const it = posTiles(); if (it.length === 1){ POS.q = ''; posAdd(it[0].id, 'p', 1); return; }
@@ -3322,11 +3336,11 @@ document.addEventListener('keydown', e => {
   if (k === 'F2'){ e.preventDefault(); return A.pcashq(); }
   if (k === 'F3'){ e.preventDefault(); return A.pcardq(); }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  const now = Date.now(); if (now - SCANT > 600) SCANBUF = ''; SCANT = now;
+  const now = keyT(e); if (now - SCANT > 600) SCANBUF = ''; SCANT = now;
   if (k === 'Enter'){ if (SCANBUF.length >= 3){ e.preventDefault(); const c = SCANBUF; SCANBUF = ''; posScan(c); } return; }
   if (k === '*' && /^\d{1,3}$/.test(SCANBUF)){ e.preventDefault(); POS.mul = +SCANBUF || 0; SCANBUF = ''; POS.msg = POS.mul ? `Следующий товар × ${POS.mul}` : ''; return render(); }   // «5 *» — количество следующего товара
   if (k.length === 1 && /^[\p{L}\p{N}]$/u.test(k)){
-    if (!SCANBUF && /^\p{L}$/u.test(k)){ e.preventDefault(); kbTrack(k, () => ''); const q = document.getElementById('pq');   // любая буква (рус., узб., лат.) начинает поиск
+    if (!SCANBUF && /^\p{L}$/u.test(k)){ e.preventDefault(); kbTrack(e, () => ''); const q = document.getElementById('pq');   // любая буква (рус., узб., лат.) начинает поиск
       if (q){ q.focus(); q.value = POS.q = k; q.dispatchEvent(new Event('input', {bubbles:true})); } return; }
     SCANBUF += k; }
   if (k === '+'){ e.preventDefault(); A.pplus(); } else if (k === '-'){ e.preventDefault(); A.pminus(); } else if (k === 'Delete'){ e.preventDefault(); A.pdel(); }
