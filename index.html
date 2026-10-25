@@ -837,6 +837,7 @@ function save(){
 
 /* ---------- sync with the Google Sheet ---------- */
 const SYNC = {state:'idle', last:ls.get('chorsu_last', 0), err:'', warn:''};
+const EPOCH_KEY = 'chorsu_epoch', DATA_EPOCH = '2026-10-25';   // сменить дату — все устройства один раз загрузят базу заново целиком
 let pushT = null, syncing = null;
 const schedulePush = () => { clearTimeout(pushT); pushT = setTimeout(() => sync(), 1500); };
 const AUTH = () => (CFG && CFG.t) ? {key:CFG.k, token:CFG.t} : {key:CFG.k};
@@ -891,7 +892,9 @@ function sync(full){
   syncing = (async () => {
     try {
       await push();
-      const changed = await pull(full);
+      const epoch = ls.get(EPOCH_KEY, '') === DATA_EPOCH;   // один раз после обновления — база целиком, как в Таблице (история, удалённые записи)
+      const changed = await pull(full || !epoch);
+      if (!epoch) ls.set(EPOCH_KEY, DATA_EPOCH);
       SYNC.state = 'ok'; SYNC.err = ''; SYNC.last = Date.now(); ls.set('chorsu_last', SYNC.last);
       if (changed){ S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); DATAV++; softRender(); }
     } catch(e){
@@ -2591,7 +2594,7 @@ function tryConnect(s){
 function firstLoad(){ const p = firstLoadRun(); window.splashHold = p; return p; }
 async function firstLoadRun(){
   LOADERR = ''; render();
-  try { await pull(true); S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); DATAV++; SYNC.state = 'ok'; SYNC.last = Date.now(); ls.set('chorsu_last', SYNC.last); startScreen(); render(); }
+  try { await pull(true); ls.set(EPOCH_KEY, DATA_EPOCH); S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); DATAV++; SYNC.state = 'ok'; SYNC.last = Date.now(); ls.set('chorsu_last', SYNC.last); startScreen(); render(); }
   catch(e){ if (e.message === 'login'){ NEEDLOGIN = true; LOADERR = ''; return render(); } LOADERR = e.message === 'key' ? 'ключ не подходит — нужна новая ссылка подключения' : (navigator.onLine ? 'база не отвечает' : 'нет интернета'); render(); }
 }
 function loadXLSX(){
