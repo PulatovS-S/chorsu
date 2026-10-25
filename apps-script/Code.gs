@@ -9,6 +9,13 @@
  *   3. Нажать на «URL веб-приложения». Откроется страница с QR-кодом и ссылкой
  *      для телефонов (её видит только владелец таблицы).
  *
+ * Изменения v18 (26.10.2026) — совместимо со старыми листами и старыми версиями приложения:
+ *   • новые листы «Касса_документы» (приход и расход кассы), «Журнал» (кто, когда, что сделал; только дописывается),
+ *     «Черновики» (копии незаконченных документов с устройств) — создаются сами;
+ *   • новые столбцы: «Склад» в «Приходы», «Касса» в «Долги» — добавляются сами;
+ *   • pull отдаёт время сервера (now) — приложение предупреждает о неправильных часах на устройстве;
+ *   • копии всей таблицы каждую ночь в папку Диска «Chorsu — копии» (30 последних): один раз запустите installBackups.
+ *
  * Изменения v17 (касса, 25.10.2026) — совместимо со старыми листами и старыми версиями приложения:
  *   • новый лист «Журнал_кассы» (удалённые строки и очищенные чеки на кассе) — создаётся сам, только дописывается;
  *   • роль «продавец» может записывать листы «Штрихкоды» и «Журнал_кассы» (привязку на кассе делает управляющий по ПИН);
@@ -24,8 +31,10 @@ const TABLES = {
   products: 'Товары', prices: 'Цены', docs: 'Приходы', prihod: 'Приход_строки',
   inv: 'Инвентаризации', invlines: 'Инвент_строки', extra: 'Вне_списка', cash: 'Касса',
   adj: 'Корректировки', debtors: 'Должники', moves: 'Долги', settings: 'Настройки', dinfo: 'Карточки_должников',
-  sales: 'Чеки', salelines: 'Чек_строки', barcodes: 'Штрихкоды', posusers: 'Кассиры', poslog: 'Журнал_кассы'
+  sales: 'Чеки', salelines: 'Чек_строки', barcodes: 'Штрихкоды', posusers: 'Кассиры', poslog: 'Журнал_кассы',
+  cashdocs: 'Касса_документы', actlog: 'Журнал', draftbk: 'Черновики'   // v18
 };
+const SRV_VERSION = 18;
 // Заголовки листов, которые создаются сами, если их нет (новые таблицы приложения)
 const HEADERS = {
   dinfo: ['id', 'Имя', 'Телефон', 'Телефон близкого', 'Паспорт', 'Адрес', 'Лимит долга', 'Лимит включён', 'rev', 'del'],
@@ -33,19 +42,23 @@ const HEADERS = {
   salelines: ['id', 'Чек', 'Дата', 'Товар id', 'Товар', 'Ед.', 'Кол-во', 'Пачек', 'Цена', 'Сумма', 'rev', 'del'],
   barcodes: ['Штрихкод', 'Товар id', 'Товар', 'Ед.', 'rev', 'del'],
   posusers: ['id', 'Имя', 'Роль', 'ПИН (хэш)', 'Активен', 'rev', 'del'],
-  poslog: ['id', 'Чек', 'Дата', 'Время', 'Кассир', 'Касса', 'Действие', 'Товар', 'Кол-во', 'Сумма', 'rev', 'del']   // v17
+  poslog: ['id', 'Чек', 'Дата', 'Время', 'Кассир', 'Касса', 'Действие', 'Товар', 'Кол-во', 'Сумма', 'rev', 'del'],   // v17
+  cashdocs: ['id', 'Дата', 'Направление', 'Вид', 'Касса', 'Сумма', 'Примечание', 'Создан', 'Автор', 'Устройство', 'Изменён', 'rev', 'del'],   // v18
+  actlog: ['id', 'Дата', 'Время', 'ts', 'Кто', 'Устройство', 'Действие', 'Документ', 'Документ id', 'Дата документа', '№', 'Описание', 'Сумма', 'Данные', 'rev', 'del'],
+  draftbk: ['id', 'Устройство', 'Кто', 'Вид', 'Дата', 'Обновлён', 'Данные', 'rev', 'del']
 };
 // Новые столбцы в старых листах: добавляются сами перед «rev»
-const EXTRA_COLS = {products: ['Штук в блоке', 'Группа'], prices: ['Цена блока'], moves: ['Чек']};
+const EXTRA_COLS = {products: ['Штук в блоке', 'Группа'], prices: ['Цена блока'], moves: ['Чек', 'Касса'], docs: ['Склад']};
 // Листы, в которые строки только дописываются (чеки): при записи читается только столбец id
-const APPEND_ONLY = {sales: 1, salelines: 1, poslog: 1};
+const APPEND_ONLY = {sales: 1, salelines: 1, poslog: 1, actlog: 1};
 // Колонки, которые всегда хранятся как текст (id, даты, названия) — чтобы Таблица не превращала их в даты/числа
 const TEXT_COLS = {
-  products: [0, 2, 3, 4], prices: [0, 1, 2, 3], docs: [0, 1, 2], prihod: [0, 1, 2, 3, 4, 5],
+  products: [0, 2, 3, 4], prices: [0, 1, 2, 3], docs: [0, 1, 2, 4], prihod: [0, 1, 2, 3, 4, 5],
   inv: [0, 1, 2, 3], invlines: [0, 1, 2, 3, 4], extra: [0, 1, 2], cash: [0, 1], adj: [0, 1, 3],
-  debtors: [0, 1, 2], moves: [0, 1, 2, 3, 5, 6], settings: [0, 1], dinfo: [0, 1, 2, 3, 4, 5, 7],
+  debtors: [0, 1, 2], moves: [0, 1, 2, 3, 5, 6, 7], settings: [0, 1], dinfo: [0, 1, 2, 3, 4, 5, 7],
   sales: [0, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17], salelines: [0, 1, 2, 3, 4, 5], barcodes: [0, 1, 2, 3], posusers: [0, 1, 2, 3, 4],
-  poslog: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  poslog: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+  cashdocs: [0, 1, 2, 3, 4, 6, 8, 9], actlog: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 13], draftbk: [0, 1, 2, 3, 4, 6]
 };
 TEXT_COLS.products = TEXT_COLS.products.concat([6]);
 const COLS_OK_ = {};
@@ -151,6 +164,7 @@ function handle_(p) {
     if (p.action === 'pull') return out_(pull_(Number(p.since == null ? -1 : p.since), role, String(p.sf || '')));
     if (p.action === 'push') return out_(push_(p.ops || [], role));
     if (p.action === 'report') return out_(report_(p.sheets || []));
+    if (p.action === 'backups') { if (role === 'продавец') return out_({ok: false, error: 'role'}); return out_(backupsInfo_()); }
     if (p.action === 'logout') { props_().deleteProperty('T.' + p.token); return out_({ok: true}); }
     if (p.action === 'passwd') return out_(passwd_(me, p));
     if (p.action === 'users') { if (role !== 'админ') return out_({ok: false, error: 'role'}); return out_({ok: true, users: Object.keys(U).map(l => pub_(U[l]))}); }
@@ -166,7 +180,7 @@ function handle_(p) {
  * Пароли не хранятся — только хэш. Вход выдаёт личный токен телефона; «Активен: нет» — вход и токены перестают работать.
  */
 const USERS_SHEET = 'Пользователи', ROLES = ['админ', 'управляющий', 'продавец'];
-const SELLER_TABLES = {docs: 1, prihod: 1, inv: 1, invlines: 1, extra: 1, cash: 1, debtors: 1, moves: 1, dinfo: 1, sales: 1, salelines: 1, barcodes: 1, poslog: 1};   // v17: + штрихкоды и журнал кассы
+const SELLER_TABLES = {docs: 1, prihod: 1, inv: 1, invlines: 1, extra: 1, cash: 1, debtors: 1, moves: 1, dinfo: 1, sales: 1, salelines: 1, barcodes: 1, poslog: 1, cashdocs: 1, actlog: 1, draftbk: 1};   // v17: + штрихкоды и журнал кассы; v18: + касса, журнал, черновики
 function usersSheet_() {
   const ss = SpreadsheetApp.getActive();
   let sh = ss.getSheetByName(USERS_SHEET);
@@ -252,12 +266,12 @@ function pull_(since, role, sf) {
       const r = vals[i];
       if (r[0] === '' || r[0] === null) continue;
       const rev = Number(r[w - 2]) || 0;
-      if (since < 0 && sf && APPEND_ONLY[t] && String(norm_(r[2])) < sf) continue;   // при первой загрузке — чеки только за последние месяцы
+      if (since < 0 && sf && APPEND_ONLY[t] && String(norm_(r[t === 'actlog' ? 1 : 2])) < sf) continue;   // при первой загрузке — чеки и журнал только за последние месяцы
       if (rev > since && !(role === 'продавец' && t === 'settings' && String(r[0]) === 'pin')) rows.push(r.map(norm_));
     }
     res[t] = rows;
   });
-  return {ok: true, rev: Number(props_().getProperty('REV') || 0), tables: res};
+  return {ok: true, rev: Number(props_().getProperty('REV') || 0), tables: res, now: Date.now(), v: SRV_VERSION};
 }
 
 /** запись чеков: читается только столбец id, новые строки дописываются в конец */
@@ -621,4 +635,33 @@ function qarzExact_(ss, s, pos) {
   sh.setFrozenRows(2);
   [190, 84, 87, 66].forEach((w, i) => sh.setColumnWidth(i + 1, w));
   return sh;
+}
+
+/* ===================== Копии таблицы (v18) =====================
+ * Каждую ночь (около 3:00) вся таблица копируется в папку Диска «Chorsu — копии», хранятся 30 последних копий.
+ * Включить один раз: в редакторе Apps Script выбрать функцию installBackups → «Выполнить» → разрешить доступ.
+ * Сразу будет сделана первая копия. Восстановить: открыть нужную копию на Диске → Файл → Сделать копию / скопировать лист.
+ */
+const BACKUP_FOLDER = 'Chorsu — копии', BACKUP_KEEP = 30;
+function backupFolder_() { const it = DriveApp.getFoldersByName(BACKUP_FOLDER); return it.hasNext() ? it.next() : DriveApp.createFolder(BACKUP_FOLDER); }
+function backupNow() {
+  const ss = SpreadsheetApp.getActive(), folder = backupFolder_();
+  const name = ss.getName() + ' — копия ' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+  DriveApp.getFileById(ss.getId()).makeCopy(name, folder);
+  const files = [], fi = folder.getFiles(); while (fi.hasNext()) files.push(fi.next());
+  files.sort((a, b) => b.getDateCreated() - a.getDateCreated());
+  files.slice(BACKUP_KEEP).forEach(f => f.setTrashed(true));
+  const p = props_(); p.setProperty('LAST_BACKUP', String(Date.now())); p.setProperty('BACKUP_FOLDER_URL', folder.getUrl()); p.setProperty('BACKUP_COUNT', String(Math.min(files.length, BACKUP_KEEP)));
+  Logger.log('Копия сделана: ' + name + '\nПапка: ' + folder.getUrl());
+  return name;
+}
+function installBackups() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'backupNow').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('backupNow').timeBased().everyDays(1).atHour(3).create();
+  props_().setProperty('BACKUP_ON', '1');
+  return backupNow();
+}
+function backupsInfo_() {
+  const p = props_();
+  return {ok: true, on: p.getProperty('BACKUP_ON') === '1', last: Number(p.getProperty('LAST_BACKUP') || 0), url: p.getProperty('BACKUP_FOLDER_URL') || '', count: Number(p.getProperty('BACKUP_COUNT') || 0)};
 }
