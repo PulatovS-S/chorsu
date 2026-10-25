@@ -657,6 +657,7 @@ const ICON = {
   plus:SV('<path d="M12 5v14M5 12h14"/>', 2.6),
   check:SV('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 2.8),
   search:SV('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>', 2.6),
+  cart:SV('<path d="M3 4h2l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L21 8H6.2"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/>'),
   coin:SV('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 10a2.5 2 0 015 0c0 2.5-5 1.5-5 4a2.5 2 0 005 0"/>')
 };
 
@@ -686,27 +687,36 @@ const ls = {
   set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } },
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
+// База на устройстве — в IndexedDB (сотни МБ вместо 5 МБ localStorage); старая копия из localStorage переносится сама
+const IDB = (() => { let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => { try { const r = indexedDB.open('chorsu', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch(e){ rej(e); } }));
+  const tx = (mode, fn) => open().then(db => new Promise((res, rej) => { const x = db.transaction('kv', mode), st = x.objectStore('kv'); let out; const q = fn(st); if (q) q.onsuccess = () => { out = q.result; }; x.oncomplete = () => res(out); x.onerror = () => rej(x.error); x.onabort = () => rej(x.error); }));
+  return {get: k => tx('readonly', st => st.get(k)), set: (k, v) => tx('readwrite', st => { st.put(v, k); }), del: k => tx('readwrite', st => { st.delete(k); })};
+})();
 let CFG = ls.get(CFG_KEY, null);
 let DB = ls.get(DB_KEY, null);          // {rev, t:{table:{id:[cells]}}}
 let OUT = ls.get(OUT_KEY, []);          // unsent changes [{s, t, id, row|del}]
 const LOC = ls.get(LOC_KEY, {drafts:{}, wip:null});
 let SEQ = OUT.reduce((m, o) => Math.max(m, o.s||0), 0);
-const TABLES = ['products','prices','docs','prihod','inv','invlines','extra','cash','adj','debtors','moves','settings','dinfo'];
+const TABLES = ['products','prices','docs','prihod','inv','invlines','extra','cash','adj','debtors','moves','settings','dinfo','barcodes','posusers'];
+const SALE_TABLES = ['sales','salelines'];   // чеки кассы пишутся по одному, без полного сравнения базы
 const CATn = {cig:'сигареты', goods:'товары'}, CATr = {'сигареты':'cig', 'товары':'goods'};
 const TYPn = {kkm:'ККМ', om:'Омбор', own:'Запас', g:'Товары', rkkm:'Возврат ККМ', rom:'Возврат Омбор', rown:'Возврат запаса', rg:'Возврат товары'};
 const TYPr = Object.assign(Object.fromEntries(Object.entries(TYPn).map(([k, v]) => [v, k])), {'Свои':'own', 'Возврат свои':'rown'});   // старые записи «Свои» читаются и при сохранении переписываются в «Запас»
 const GRPn = {a:'должник', n:'несгор'}, GRPr = {'должник':'a', 'несгор':'n'};
+const SKINDn = {sale:'Продажа', ret:'Возврат', pay:'Погашение долга'}, SKINDr = {'Продажа':'sale', 'Возврат':'ret', 'Погашение долга':'pay'};
+const SSTn = {paid:'Оплачен', debt:'В долг', cancel:'Отменён'}, SSTr = {'Оплачен':'paid', 'В долг':'debt', 'Отменён':'cancel'};
 const Nn = v => { const n = Number(v); return isFinite(n) ? n : 0; };
 const Sx = v => v == null ? '' : String(v);
-const rk = row => row.map(Sx).join('\u0001');
-const emptyS = () => ({products:[], prices:[], docs:[], prihod:[], inv:[], cash:{}, adj:[], debtors:[], moves:[], dinfo:{}, pin:'0422', bal0:{date:'2026-04-19', amount:0}, drafts:LOC.drafts || {}, wip:LOC.wip || null});
+const rk = row => { const a = row.map(Sx); while (a.length && a[a.length - 1] === '') a.pop(); return a.join('\u0001'); };
+const emptyS = () => ({products:[], prices:[], docs:[], prihod:[], inv:[], cash:{}, adj:[], debtors:[], moves:[], dinfo:{}, barcodes:{}, posusers:[], sales:[], pin:'0422', bal0:{date:'2026-04-19', amount:0}, drafts:LOC.drafts || {}, wip:LOC.wip || null});
 
 function toTables(S){
   const T = {}; TABLES.forEach(k => T[k] = {});
   const pn = {}; S.products.forEach(p => pn[p.id] = p.name);
   const pos = {cig:0, goods:0};
-  S.products.forEach(p => { T.products[p.id] = [p.id, ++pos[p.cat], p.name, CATn[p.cat], p.hidden ? 'да' : '']; });
-  S.prices.forEach(x => { const id = x.pid + '|' + x.from; T.prices[id] = [id, x.pid, pn[x.pid]||'', x.from, x.cost, x.sale]; });
+  S.products.forEach(p => { T.products[p.id] = [p.id, ++pos[p.cat], p.name, CATn[p.cat], p.hidden ? 'да' : '', p.block == null ? '' : p.block, p.group || '']; });
+  S.prices.forEach(x => { const id = x.pid + '|' + x.from; T.prices[id] = [id, x.pid, pn[x.pid]||'', x.from, x.cost, x.sale, x.bsale || '']; });
   S.docs.forEach(d => { T.docs[d.id] = [d.id, d.date, TYPn[d.type], d.ts]; });
   S.prihod.forEach(x => { const c = priceAt(x.pid, x.date).cost; T.prihod[x.id] = [x.id, x.doc, x.date, TYPn[x.type], x.pid, pn[x.pid]||'', x.qty, c, c * x.qty]; });
   S.inv.forEach(i => {
@@ -720,17 +730,19 @@ function toTables(S){
   Object.keys(S.cash).forEach(d => { const c = S.cash[d]; if (c.t || c.k || (DB && DB.t.cash && DB.t.cash[d])) T.cash[d] = [d, d, c.t||0, c.k||0]; });
   (S.adj || []).forEach(a => { T.adj[a.id] = [a.id, a.date, a.amt, a.note||'']; });
   const dn = {}; S.debtors.forEach(d => { dn[d.id] = d.name; T.debtors[d.id] = [d.id, d.name, GRPn[d.grp], d.ts]; });
-  S.moves.forEach(m => { T.moves[m.id] = [m.id, m.did, dn[m.did]||'', m.date, m.amt, m.note||'']; });
+  S.moves.forEach(m => { T.moves[m.id] = [m.id, m.did, dn[m.did]||'', m.date, m.amt, m.note||'', m.sale||'']; });
+  Object.keys(S.barcodes || {}).forEach(code => { const b = S.barcodes[code]; T.barcodes[code] = [code, b.pid, pn[b.pid]||'', b.unit === 'b' ? 'блок' : 'шт']; });
+  (S.posusers || []).forEach(u => { T.posusers[u.id] = [u.id, u.name, u.role, u.pin || '', u.active === false ? 'нет' : 'да']; });
   Object.keys(S.dinfo || {}).forEach(id => { const x = S.dinfo[id]; if (dn[id] != null) T.dinfo[id] = [id, dn[id], x.ph||'', x.ph2||'', x.pass||'', x.addr||'', x.lim||0, x.limOn ? 'да' : '']; });
   T.settings.pin = ['pin', S.pin]; T.settings.bal0_date = ['bal0_date', S.bal0.date]; T.settings.bal0_amount = ['bal0_amount', S.bal0.amount];
   return T;
 }
 function fromTables(){
   const t = DB.t, S2 = emptyS(), g = k => Object.values(t[k] || {});
-  const prods = g('products').map(r => ({id:Sx(r[0]), pos:Nn(r[1]), name:Sx(r[2]), cat:CATr[r[3]] || 'cig', hidden:r[4] === 'да'}));
+  const prods = g('products').map(r => ({id:Sx(r[0]), pos:Nn(r[1]), name:Sx(r[2]), cat:CATr[r[3]] || 'cig', hidden:r[4] === 'да', block:Sx(r[5]) === '' ? null : Nn(r[5]), group:Sx(r[6])}));
   prods.sort((a, b) => a.cat === b.cat ? a.pos - b.pos : (a.cat === 'cig' ? -1 : 1));
-  S2.products = prods.map(p => ({id:p.id, name:p.name, cat:p.cat, hidden:p.hidden}));
-  S2.prices = g('prices').map(r => ({pid:Sx(r[1]), from:Sx(r[3]), cost:Nn(r[4]), sale:Nn(r[5])}));
+  S2.products = prods.map(p => { const o = {id:p.id, name:p.name, cat:p.cat, hidden:p.hidden}; if (p.block != null) o.block = p.block; if (p.group) o.group = p.group; return o; });
+  S2.prices = g('prices').map(r => { const o = {pid:Sx(r[1]), from:Sx(r[3]), cost:Nn(r[4]), sale:Nn(r[5])}; if (Nn(r[6])) o.bsale = Nn(r[6]); return o; });
   S2.docs = g('docs').map(r => ({id:Sx(r[0]), date:Sx(r[1]), type:TYPr[r[2]] || 'kkm', ts:Nn(r[3])}));
   S2.prihod = g('prihod').map(r => ({id:Sx(r[0]), doc:Sx(r[1]), date:Sx(r[2]), type:TYPr[r[3]] || 'kkm', pid:Sx(r[4]), qty:Nn(r[6])}));
   const invs = {};
@@ -741,7 +753,12 @@ function fromTables(){
   g('cash').forEach(r => { S2.cash[Sx(r[1])] = {t:Nn(r[2]), k:Nn(r[3])}; });
   S2.adj = g('adj').map(r => ({id:Sx(r[0]), date:Sx(r[1]), amt:Nn(r[2]), note:Sx(r[3])}));
   S2.debtors = g('debtors').map(r => ({id:Sx(r[0]), name:Sx(r[1]), grp:GRPr[r[2]] || 'a', ts:Nn(r[3])}));
-  S2.moves = g('moves').map(r => ({id:Sx(r[0]), did:Sx(r[1]), date:Sx(r[3]), amt:Nn(r[4]), note:Sx(r[5])}));
+  S2.moves = g('moves').map(r => { const o = {id:Sx(r[0]), did:Sx(r[1]), date:Sx(r[3]), amt:Nn(r[4]), note:Sx(r[5])}; if (Sx(r[6])) o.sale = Sx(r[6]); return o; });
+  S2.barcodes = {}; g('barcodes').forEach(r => { if (Sx(r[0])) S2.barcodes[Sx(r[0])] = {pid:Sx(r[1]), unit:r[3] === 'блок' ? 'b' : 'p'}; });
+  S2.posusers = g('posusers').map(r => ({id:Sx(r[0]), name:Sx(r[1]), role:Sx(r[2]) || 'продавец', pin:Sx(r[3]), active:r[4] !== 'нет'}));
+  const sl = {}; g('salelines').forEach(r => { (sl[Sx(r[1])] = sl[Sx(r[1])] || []).push({id:Sx(r[0]), pid:Sx(r[3]), name:Sx(r[4]), unit:r[5] === 'блок' ? 'b' : 'p', qty:Nn(r[6]), packs:Nn(r[7]), price:Nn(r[8]), sum:Nn(r[9])}); });
+  S2.sales = g('sales').map(r => ({id:Sx(r[0]), no:Nn(r[1]), date:Sx(r[2]), time:Sx(r[3]), kind:SKINDr[r[4]] || 'sale', status:SSTr[r[5]] || 'paid', seller:Sx(r[6]), dev:Sx(r[7]), did:Sx(r[8]), cname:Sx(r[9]), total:Nn(r[10]), cash:Nn(r[11]), card:Nn(r[12]), debt:Nn(r[13]), change:Nn(r[14]), note:Sx(r[15]), ref:Sx(r[16]), canc:Sx(r[17]), ts:Nn(r[18]), lines:(sl[Sx(r[0])] || [])}))
+    .sort((a, b) => a.ts - b.ts);
   S2.dinfo = {}; g('dinfo').forEach(r => { S2.dinfo[Sx(r[0])] = {ph:Sx(r[2]), ph2:Sx(r[3]), pass:Sx(r[4]), addr:Sx(r[5]), lim:Nn(r[6]), limOn:r[7] === 'да'}; });
   const st = t.settings || {};
   if (st.pin) S2.pin = Sx(st.pin[1]).padStart(4, '0');
@@ -751,7 +768,8 @@ function fromTables(){
 }
 let S = DB ? fromTables() : emptyS(), DATAV = 0;
 let persistT = null;
-const persistDB = () => { clearTimeout(persistT); persistT = setTimeout(() => { if (!ls.set(DB_KEY, DB)) SYNC.warn = 'Память телефона переполнена'; }, 250); };
+const persistDB = () => { clearTimeout(persistT); persistT = setTimeout(() => { const snap = DB; if (!snap) return;
+  IDB.set('db', snap).then(() => { if (localStorage.getItem(DB_KEY)) ls.del(DB_KEY); }).catch(() => { if (!ls.set(DB_KEY, snap)) SYNC.warn = 'Память устройства переполнена'; }); }, 250); };
 function queue(ops){
   const keys = new Set(ops.map(o => o.t + '\u0001' + o.id));
   OUT = OUT.filter(o => !keys.has(o.t + '\u0001' + o.id)).concat(ops.map(o => Object.assign({s:++SEQ}, o)));
@@ -795,10 +813,10 @@ async function push(){
 }
 async function pull(full){
   const since = (full || !DB) ? -1 : DB.rev;
-  const j = await api('GET', Object.assign(AUTH(), {action:'pull', since}));
+  const j = await api('GET', Object.assign(AUTH(), {action:'pull', since, sf:addD(TODAY, -90)}));
   if (!j || !j.ok) throw new Error(j && (j.error === 'key' || j.error === 'login') ? j.error : (j && j.error) || 'pull');
   if (since !== -1 && Number(j.rev) < since) return pull(true);   // база на сервере пересоздана — загрузить заново целиком
-  if (since === -1){ DB = {rev:0, t:{}}; TABLES.forEach(k => DB.t[k] = {}); }
+  if (since === -1){ DB = {rev:0, t:{}}; TABLES.concat(SALE_TABLES).forEach(k => DB.t[k] = {}); }
   let changed = since === -1;
   SRV_DINFO = 'dinfo' in j.tables;
   for (const k in j.tables){
@@ -807,6 +825,7 @@ async function pull(full){
       if (row[row.length - 1] === 'x') delete DB.t[k][id]; else DB.t[k][id] = row.slice(0, row.length - 2); });
   }
   OUT.forEach(o => { DB.t[o.t] = DB.t[o.t] || {}; if (o.del) delete DB.t[o.t][o.id]; else DB.t[o.t][o.id] = o.row; }); // my unsent changes win
+  if (DB.t.salelines){ const old = addD(TODAY, -120); for (const id in DB.t.salelines){ if (Sx(DB.t.salelines[id][2]) < old) delete DB.t.salelines[id]; } }
   DB.rev = j.rev; persistDB();
   return changed;
 }
@@ -1021,7 +1040,7 @@ function homeDesk(){
   const docRows = docs.map(d => { const it = S.prihod.filter(x => x.doc === d.id); return `<tr class="rowtap" data-a="dpopen" data-v="${d.id}"><td class="l"><span class="pill p-${TYPES[d.type].c}" style="font-size:11px">${TYPES[d.type].n}</span> ${isRet(d.type) ? 'Возврат' : 'Приход'}</td><td>${it.length} поз.</td><td><b>${fmt(docSum(it, d.date))}</b></td></tr>`; }).join('');
   const per = {}; S.moves.forEach(m => { if (m.date >= o.from && m.date <= o.to){ const x = per[m.did] = per[m.did] || {g:0, b:0}; if (m.amt > 0) x.g += m.amt; else x.b -= m.amt; } });
   const top = S.debtors.filter(d => per[d.id]).sort((a, b) => (per[b.id].g + per[b.id].b) - (per[a.id].g + per[a.id].b)).slice(0, 8);
-  return `<div class="hdr wrap"><div class="hrow"><h1>Сегодня · ${dLong(TODAY)}</h1><span class="muted small">Неделя ${dShort(o.from)} – ${dShort(o.to)}</span>
+  return `<div class="hdr wrap"><div class="hrow"><h1>Сегодня · ${innerWidth < 1200 ? wdShort(TODAY) + ', ' + dLong(TODAY).split(', ')[1] : dLong(TODAY)}</h1><span class="muted small">Неделя ${dShort(o.from)} – ${dShort(o.to)}</span>
       <div class="fabs"><div class="fabw"><button class="fab" data-a="sgo" data-v="plist">${ICON.plus}<span class="fl">Приход</span></button></div><div class="fabw"><button class="fab s" data-a="sgo" data-v="cash">${ICON.card}<span class="fl">Касса</span></button></div><div class="fabw"><button class="fab s" data-a="sgo" data-v="debts">${ICON.ppl}<span class="fl">Долги</span></button></div></div></div></div>
   <div class="wrap stack" style="padding-top:14px">
     ${S.wip && S.wip.items.length && vis(S.wip.type) ? `<button class="banner" data-a="wipopen">Есть несохранённый ${isRet(S.wip.type) ? 'возврат' : 'приход'}: ${TYPES[S.wip.type].full}, ${S.wip.items.length} поз. <b>Открыть ›</b></button>` : ''}
@@ -1052,7 +1071,7 @@ function homeDesk(){
     </div>
   </div>`;
 }
-const MENU = () => [['plist','box','--accent','Приход'], ['rlist','ret','--coral','Возврат'], ['cash','card','--kkm','Терминал и касса'], ['debts','ppl','--om','Долги'], ['inv','list','--own','Инвентаризация']]
+const MENU = () => [['pos','cart','--goods','Продажа'], ['plist','box','--accent','Приход'], ['rlist','ret','--coral','Возврат'], ['cash','card','--kkm','Терминал и касса'], ['debts','ppl','--om','Долги'], ['inv','list','--own','Инвентаризация']]
   .concat(isSeller() ? [] : [['reports','chart','--goods','Отчёты'], ['settings','gear','--muted','Настройки']]).concat(CFG.user ? [['me','ppl','--muted', CFG.user.name]] : []);
 let MSHEET = false;
 function menuSheetHtml(){
@@ -1308,7 +1327,7 @@ V.debtor = () => {
     <button class="dinfo" data-a="dcard"><span>${x.ph ? '☎ <b>' + esc(x.ph) + '</b>' : '<span class="muted">Телефон не записан</span>'}${x.ph2 ? ' · близкий: ' + esc(x.ph2) : ''}<br><span class="${over ? 'neg' : 'muted'}">${x.limOn && x.lim ? 'Лимит ' + fmt(x.lim) + (over ? ' — достигнут' : ' · можно ещё ' + fmt(x.lim - debtOf(d.id))) : 'Лимит выключен'}</span></span><b>Карточка ›</b></button>
     <div class="grid2"><button class="btn give" data-a="dmove" data-v="1">Дал в долг +</button><button class="btn ret" data-a="dmove" data-v="-1">Вернул −</button></div>
     <div class="sec-h">История</div>
-    <div class="list">${mv.map(m => `<button class="row" data-a="mdel" data-v="${m.id}"><span class="nm">${dShort(m.date)} <span class="small muted">${esc(m.note||'')}</span></span><span class="rt" style="color:var(${m.amt>0?'--om':'--good'})">${m.amt>0?'+':''}${fmt(m.amt)}</span></button>`).join('') || '<div class="empty-st">Записей нет</div>'}</div>
+    <div class="list">${mv.map(m => `<button class="row" data-a="mdel" data-v="${m.id}"><span class="nm">${dShort(m.date)} <span class="small muted">${m.sale ? '🧾 ' : ''}${esc(m.note||'')}</span></span><span class="rt" style="color:var(${m.amt>0?'--om':'--good'})">${m.amt>0?'+':''}${fmt(m.amt)}</span></button>`).join('') || '<div class="empty-st">Записей нет</div>'}</div>
     ${mv.length ? '<div class="small muted">Ошиблись? Нажмите на запись. Сегодняшнюю можно удалить сразу, более старую — только по ПИН-коду.</div>' : ''}
     <button class="btn sec" data-a="dgrp">${d.grp==='n' ? 'Вернуть в должники' : 'Перенести в Несгор'}</button>
     <button class="btn sec" data-a="dren">Изменить имя</button>
@@ -1472,6 +1491,7 @@ const REPORTS = [
   {id:'rsw', t:'Аналитика продаж', s:'Все недели: сколько продано каждого товара, график', i:'trend', c:'--goods'},
   {id:'rpd', t:'Аналитика прихода', s:'Что и сколько заказывали по дням, за любой период', i:'trend', c:'--kkm'},
   {id:'rprice', t:'Прайс-лист', s:'Цены на любой день, что поменялось', i:'coin', c:'--own'},
+  {id:'rpos', t:'Касса: итог дня', s:'Чеки за день, наличные, карта, долги, возвраты', i:'cart', c:'--goods'},
   {id:'rbal', t:'Баланс с офисом', s:'Долг магазина перед офисом · по ПИН-коду', i:'lock', c:'--om'}
 ];
 V.reports = () => hdr('Отчёты') + `<div class="wrap stack">${REPORTS.map(r => tile(r.id, r.i, r.c, r.t, r.s)).join('')}</div>`;
@@ -1503,7 +1523,7 @@ V.rsales = () => {
         <button class="stat ${neg?'badst':''}" data-a="rneg" style="text-align:left"><span class="lbl">Ошибки (минус)</span><b>${neg}${R.onlyNeg?' · показаны':''}</b></button>
         <div class="stat"><span class="lbl">Сумма продаж</span><b>${fmt(sale)}</b></div>
       </div>`}
-      ${ex}
+      ${ex}${posCmp(rows, per)}
       ${R.onlyNeg ? `<button class="btn sec" data-a="rneg">Показать все товары</button>` : ''}
       ${R.q ? '' : brandChips(R.cat, base.map(r => r.p.id))}
       ${DESK ? salesTable(shown) : `<div class="list" id="plist">${shown.map(r => salesRow(r, per)).join('') || '<div class="empty-st">Нет строк</div>'}</div>`}
@@ -1912,7 +1932,7 @@ async function sendReports(inv, quiet){
 }
 const sendOffice = id => sendReports(S.inv.find(i => i.id === id));
 /* ---------- вход и пользователи ---------- */
-const SELLER_NO = {reports:1, settings:1, rstock:1, rweek:1, rdays:1, rsales:1, rsw:1, rprod:1, rpd:1, rpprod:1, rprice:1, rbal:1, sprod:1, sedit:1, users:1, uedit:1};
+const SELLER_NO = {reports:1, settings:1, rstock:1, rweek:1, rdays:1, rsales:1, rsw:1, rprod:1, rpd:1, rpprod:1, rprice:1, rbal:1, sprod:1, sedit:1, users:1, uedit:1, posusers:1, puedit:1, bcbind:1, rpos:1};
 const ROLE_INFO = {'админ':'всё, включая пользователей', 'управляющий':'всё, кроме пользователей', 'продавец':'приход, возврат, касса, долги, инвентаризация — без отчётов и настроек'};
 V.login = () => `<div class="hdr wrap"><div class="hrow"><h1>Магазин Чорсу</h1></div></div><div class="wrap stack">
   <div class="card"><b style="font-size:22px">Вход</b><p class="muted" style="margin:6px 0 0">Введите свой логин и пароль. Их выдаёт Саидало.</p></div>
@@ -2021,6 +2041,10 @@ V.settings = () => {
     ${tile2('sprod','cig','Сигареты', ordered('cig').length + ' товаров · порядок, цены')}
     ${tile2('sprod','goods','Прочие товары', ordered('goods').length + ' товаров · цены')}
     <button class="tile" data-a="pinchange"><span style="min-width:0"><b>Сменить ПИН-код</b><span>Для значка 👁 (запас)${needPin() ? ' и входа в настройки' : ''}: ${'•'.repeat(S.pin.length)}</span></span><span class="chev">›</span></button>
+    <div class="sec-h">Касса (продажа)</div>
+    ${tile2('go','posusers','Кассиры и ПИН-коды', (S.posusers || []).filter(u => u.active).length ? (S.posusers || []).filter(u => u.active).length + ' кассиров' : 'Пока без ПИН-кодов — касса открывается сразу')}
+    ${tile2('go','bcbind','Привязать штрихкоды', Object.keys(S.barcodes || {}).length + ' штрихкодов · сканировать подряд')}
+    <label class="chk"><input type="checkbox" data-in="pdev" ${POSDEV().on ? 'checked' : ''}> Это устройство — касса (сразу открывать продажу)</label>
     <div class="sec-h">База (Google Таблица)</div>
     <div class="card small"><div>${statusText()[1]}</div><div class="muted" style="margin-top:4px">Неотправленных записей: ${OUT.length}</div></div>
     <button class="btn sec" data-a="syncnow">Обновить сейчас</button>
@@ -2050,6 +2074,7 @@ V.sedit = () => {
     <div class="field txt"><label for="e_name">Название</label><input id="e_name" value="${esc(p.name)}" autocomplete="off"></div>
     <div class="grid2"><div class="field"><label for="e_cost">Себестоимость</label><input id="e_cost" inputmode="numeric" value="${c.cost}"></div>
     <div class="field"><label for="e_sale">Продажная</label><input id="e_sale" inputmode="numeric" value="${c.sale}"></div></div>
+    ${posFields(p, c, isNew)}
     ${isNew ? `<div class="field txt"><label for="e_after">Поставить после</label><select id="e_after"><option value="__top">— в начало списка —</option>${list.map((x,i) => `<option value="${x.id}" ${i===list.length-1?'selected':''}>${i+1}. ${esc(x.name)}</option>`).join('')}</select></div>`
     : `<div class="field txt"><label for="e_from">Новая цена действует с</label><input type="date" id="e_from" value="${TODAY}"></div>
       <div class="grid2"><button class="btn sec" data-a="smove" data-v="-1">↑ Выше</button><button class="btn sec" data-a="smove" data-v="1">↓ Ниже</button></div>
@@ -2090,7 +2115,7 @@ const A = {
   back, go: d => go(d.v),
   syncnow: () => { sync().then(() => { if (SYNC.state === 'ok') toast('База обновлена'); }); },
   fullpull: () => confirmBox('Загрузить всю базу заново? Это займёт немного времени.', 'Загрузить', () => { sync(true).then(() => toast(SYNC.state === 'ok' ? 'База загружена' : 'Не получилось, нет связи')); }),
-  disconnect: () => confirmBox(OUT.length ? `Есть ${OUT.length} неотправленных записей — они пропадут. Всё равно отключить?` : 'Отключить этот телефон от базы?', 'Отключить', () => { [CFG_KEY, DB_KEY, OUT_KEY, 'chorsu_last'].forEach(k => ls.del(k)); CFG = null; DB = null; OUT = []; S = emptyS(); HIST.length = 0; R = {s:'home'}; }),
+  disconnect: () => confirmBox(OUT.length ? `Есть ${OUT.length} неотправленных записей — они пропадут. Всё равно отключить?` : 'Отключить этот телефон от базы?', 'Отключить', () => { [CFG_KEY, DB_KEY, OUT_KEY, 'chorsu_last'].forEach(k => ls.del(k)); IDB.del('db').catch(() => {}); CFG = null; DB = null; OUT = []; S = emptyS(); HIST.length = 0; R = {s:'home'}; }),
   pinchange: () => openNP({title:'Новый ПИН-код', sub:'Наберите 4 цифры', mask:true, allowZero:true, ok:'Дальше', onOk:() => { const p1 = NP.val; if (p1.length !== 4){ NP.val=''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Нужно ровно 4 цифры</span>'; return; }
     openNP({title:'Повторите новый ПИН-код', sub:'Ещё раз те же 4 цифры', mask:true, allowZero:true, ok:'Сохранить', onOk:() => { if (NP.val !== p1){ NP.val=''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Не совпало, наберите ещё раз</span>'; return; } S.pin = p1; save(); NP = null; toast('ПИН-код изменён'); }}); }}),
   xls: () => exportWeek(),
@@ -2165,7 +2190,8 @@ const A = {
   dcard: () => go('dcard', {id:R.id, dc:null}),
   dclim: () => { keepDc(); openNP({title:'Лимит долга', money:true, allowZero:true, val:String((R.dc && R.dc.lim) ?? dInfo(R.id).lim ?? ''), ok:'Готово', onOk:n => { R.dc = Object.assign(R.dc || {}, {lim:n}); NP = null; render(); }}); },
   dcsave: () => { keepDc(); S.dinfo = S.dinfo || {}; S.dinfo[R.id] = Object.assign({}, dInfo(R.id), R.dc); save(); doBack(); toast('Карточка сохранена'); },
-  mdel: d => { const m = S.moves.find(x => x.id === d.v); if (!m) return; const dd = S.debtors.find(x => x.id === m.did), what = `${esc(dd ? dd.name : '')}: ${dShort(m.date)}, ${m.amt > 0 ? 'дал в долг +' : 'вернул '}${fmt(m.amt)}`;
+  mdel: d => { const m = S.moves.find(x => x.id === d.v); if (!m) return;
+    if (m.sale){ if (S.sales.some(x => x.id === m.sale)) return go('possale', {id:m.sale}); return toast('Это запись с кассы — отменить можно только чек на кассе'); } const dd = S.debtors.find(x => x.id === m.did), what = `${esc(dd ? dd.name : '')}: ${dShort(m.date)}, ${m.amt > 0 ? 'дал в долг +' : 'вернул '}${fmt(m.amt)}`;
     const del = () => { S.moves = S.moves.filter(x => x.id !== d.v); save(); toast('Запись удалена'); };
     confirmBox('Удалить запись?<br><b>' + what + '</b>', 'Удалить', () => m.date === TODAY ? del() : setTimeout(() => pinGuard(what, del), 0)); },
   dgrp: () => { const dd = S.debtors.find(x => x.id === R.id); confirmBox(dd.grp === 'n' ? `Вернуть «${esc(dd.name)}» в должники?` : `Перенести «${esc(dd.name)}» в Несгор?`, dd.grp === 'n' ? 'Вернуть' : 'Перенести', () => A.dgrp2()); },
@@ -2299,13 +2325,17 @@ const A = {
   ssave: () => {
     const name = document.getElementById('e_name').value.trim(), cost = +document.getElementById('e_cost').value.replace(/\D/g,'') || 0, sale = +document.getElementById('e_sale').value.replace(/\D/g,'') || cost;
     if (!name) return toast('Введите название');
+    const gv = id => { const e = document.getElementById(id); return e ? e.value.trim() : null; }, blk = gv('e_block'), bsale = +(gv('e_bsale') || '').replace(/\D/g, '') || 0, grp = gv('e_group');
     if (!R.id){
       const after = document.getElementById('e_after').value, id = R.cat[0] + uid(), np = {id, name, cat:R.cat, hidden:false};
       const pos = after === '__top' ? S.products.findIndex(p => p.cat === R.cat) : S.products.findIndex(p => p.id === after) + 1;
-      S.products.splice(Math.max(pos,0), 0, np); S.prices.push({pid:id, from:'2026-01-01', cost, sale}); save(); doBack(); toast('Товар добавлен под № ' + numOf(id));
+      if (blk !== null && blk !== '') np.block = +blk.replace(/\D/g, '') || 0; if (grp) np.group = grp;
+      S.products.splice(Math.max(pos,0), 0, np); S.prices.push(Object.assign({pid:id, from:'2026-01-01', cost, sale}, bsale ? {bsale} : {})); save(); doBack(); toast('Товар добавлен под № ' + numOf(id));
     } else {
       const p = P(R.id); p.name = name; const c = curPrice(p.id);
-      if (c.cost !== cost || c.sale !== sale){ const from = document.getElementById('e_from').value || TODAY; S.prices = S.prices.filter(x => !(x.pid===p.id && x.from===from)); S.prices.push({pid:p.id, from, cost, sale}); }
+      if (blk !== null){ const dflt = p.cat === 'cig' ? 10 : 0, v = blk === '' ? null : (+blk.replace(/\D/g, '') || 0); if (v === null || (v === dflt && p.block == null)) delete p.block; else p.block = v; }
+      if (grp !== null){ if (grp) p.group = grp; else delete p.group; }
+      if (c.cost !== cost || c.sale !== sale || (c.bsale || 0) !== bsale){ const from = document.getElementById('e_from').value || TODAY; S.prices = S.prices.filter(x => !(x.pid===p.id && x.from===from)); S.prices.push(Object.assign({pid:p.id, from, cost, sale}, bsale ? {bsale} : {})); }
       save(); doBack(); toast('Сохранено');
     }
   },
@@ -2485,7 +2515,7 @@ function tryConnect(s){
     if (!j.u || !j.k) return false;
     CFG = {u:j.u, k:j.k}; ls.set(CFG_KEY, CFG);
     try { history.replaceState(null, '', location.pathname + location.search); } catch(e){}
-    DB = null; ls.del(DB_KEY); OUT = []; ls.set(OUT_KEY, OUT);
+    DB = null; ls.del(DB_KEY); IDB.del('db').catch(() => {}); OUT = []; ls.set(OUT_KEY, OUT);
     firstLoad(); return true;
   } catch(e){ return false; }
 }
@@ -2546,7 +2576,7 @@ function renderSide(){
 }
 function render(){
   const app = document.getElementById('app');
-  renderSide(); app.classList.toggle('wide', !!WIDE[R.s]);
+  renderSide(); app.classList.toggle('wide', !!WIDE[R.s]); document.body.classList.toggle('posmode', R.s === 'pos' && !!DB && !!CFG && !NEEDLOGIN);
   NEED_RENDER = false;
   if (!CFG){ app.innerHTML = V.connect(); return; }
   if (NEEDLOGIN){ app.innerHTML = V.login() + (TOAST ? `<div class="toast" role="status">${esc(TOAST)}</div>` : ''); return; }
@@ -2569,6 +2599,559 @@ function render(){
   if (q){ const el = document.getElementById('q'); if (el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
   syncHist();
 }
+/* =====================================================================
+   POS-касса: продажа на сенсорном мониторе (режим той же программы)
+   Чек → оплата (наличные / карта / смешанная / в долг) → запись в «Чеки» и «Чек_строки».
+   Незакрытые и отложенные чеки — только на этом устройстве (LOC.pos), закрытые — в базу.
+   ===================================================================== */
+const blockOf = p => !p ? 0 : (p.block != null ? p.block : (p.cat === 'cig' ? 10 : 0));
+function unitPrice(pid, unit, date){ const pr = priceAt(pid, date || TODAY), p = P(pid); return unit === 'b' ? (pr.bsale || pr.sale * blockOf(p)) : pr.sale; }
+const unitName = (p, u) => u === 'b' ? (p && p.cat === 'cig' ? 'бл' : 'уп') : 'шт';
+const barcodesOf = pid => Object.keys(S.barcodes || {}).filter(c => S.barcodes[c].pid === pid);
+const POSDEV = () => ls.get('chorsu_posdev', {on:false, name:'Касса'});
+let POSU = null;                       // кто сейчас за кассой {id, name, role}
+const POS = {grp:'*', q:'', all:false, osk:false, lay:'ru', sel:-1, pay:null, ov:null, price:false, msg:'', chg:null, docsDate:null, docsTab:'all', cq:'', bind:null};
+LOC.pos = LOC.pos || {cur:null, held:[]};
+const posKeep = () => ls.set(LOC_KEY, LOC);
+const newPosDoc = () => ({id:'s' + uid() + uid(), ts:Date.now(), lines:[], did:'', note:''});
+function posCur(){ if (!LOC.pos.cur) LOC.pos.cur = newPosDoc(); return LOC.pos.cur; }
+const posMgr = () => POSU && (POSU.role === 'админ' || POSU.role === 'управляющий');
+const hhmm = ts => { const d = new Date(ts); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+
+/* ---------- продажи по кассе: индексы ---------- */
+let SIX = null, SIXK = '';
+function salesIdx(){
+  const k = DATAV + '|' + (S.sales || []).length; if (SIXK === k && SIX) return SIX;
+  const by = {}, cnt = {}, from30 = addD(TODAY, -30);
+  (S.sales || []).forEach(s => { if (s.status === 'cancel' || s.kind === 'pay') return; const sg = s.kind === 'ret' ? -1 : 1;
+    s.lines.forEach(l => { (by[l.pid] = by[l.pid] || []).push({date:s.date, packs:sg * l.packs}); if (sg > 0 && s.date >= from30) cnt[l.pid] = (cnt[l.pid] || 0) + 1; }); });
+  SIXK = k; return SIX = {by, cnt};
+}
+const posSold = (pid, from, to) => (salesIdx().by[pid] || []).reduce((a, x) => a + (x.date >= from && (!to || x.date < to) ? x.packs : 0), 0);
+function stockNow(pid){   // примерный остаток: последняя инвентаризация + приход − продано по кассе
+  const p = P(pid); if (!p) return null; const inv = invList(p.cat).slice(-1)[0]; if (!inv) return null;
+  const r = inv.rows[pid], pr = prihodSum(pid, inv.date);
+  const base = p.cat === 'goods' ? ((r || [0])[0] || 0) : (r ? r[0] + r[1] + r[2] + r[3] + (r[4] || 0) : 0);
+  const inc = p.cat === 'goods' ? pr.g - pr.rg : pr.kkm + pr.om + pr.own - pr.rkkm - pr.rom - pr.rown;
+  return base + inc - posSold(pid, inv.date);
+}
+function dayTotals(date){
+  const z = {n:0, sum:0, cash:0, card:0, debt:0, rn:0, rsum:0, rcash:0, rcard:0, rdebt:0, pcash:0, pcard:0, pn:0, cn:0, change:0};
+  (S.sales || []).forEach(s => { if (s.date !== date) return; if (s.status === 'cancel'){ z.cn++; return; }
+    if (s.kind === 'sale'){ z.n++; z.sum += s.total; z.cash += s.cash; z.card += s.card; z.debt += s.debt; z.change += s.change; }
+    else if (s.kind === 'ret'){ z.rn++; z.rsum += s.total; z.rcash += s.cash; z.rcard += s.card; z.rdebt += s.debt; }
+    else if (s.kind === 'pay'){ z.pn++; z.pcash += s.cash; z.pcard += s.card; } });
+  z.drawer = z.cash + z.pcash - z.rcash; z.cardAll = z.card + z.pcard - z.rcard; return z;
+}
+
+/* ---------- запись чека в базу (по одному, без полного сравнения) ---------- */
+const saleRow = d => [d.id, d.no, d.date, d.time, SKINDn[d.kind], SSTn[d.status], d.seller || '', d.dev || '', d.did || '', d.cname || '', d.total, d.cash || 0, d.card || 0, d.debt || 0, d.change || 0, d.note || '', d.ref || '', d.canc || '', d.ts];
+const lineRow = (d, l) => [l.id, d.id, d.date, l.pid, l.name, l.unit === 'b' ? 'блок' : 'шт', l.qty, l.packs, l.price, l.sum];
+function writeSale(d, withLines){
+  if (!DB) return; DB.t.sales = DB.t.sales || {}; DB.t.salelines = DB.t.salelines || {};
+  const ops = [], r = saleRow(d); DB.t.sales[d.id] = r; ops.push({t:'sales', id:d.id, row:r});
+  if (withLines !== false) d.lines.forEach(l => { const lr = lineRow(d, l); DB.t.salelines[l.id] = lr; ops.push({t:'salelines', id:l.id, row:lr}); });
+  const i = S.sales.findIndex(x => x.id === d.id); if (i >= 0) S.sales[i] = d; else S.sales.push(d);
+  DATAV++; queue(ops); persistDB(); schedulePush();
+}
+const nextNo = date => (S.sales || []).filter(s => s.date === date).reduce((m, s) => Math.max(m, s.no || 0), 0) + 1;
+const posSeller = () => POSU ? POSU.name : (CFG && CFG.user ? CFG.user.name : 'Касса');
+
+/* ---------- чек ---------- */
+function posTotal(doc){ return (doc || posCur()).lines.reduce((a, l) => a + l.qty * unitPrice(l.pid, l.unit), 0); }
+function posAdd(pid, unit, qty){
+  const p = P(pid); if (!p) return;
+  if (POS.price){ POS.price = false; POS.ov = {k:'info', pid}; return render(); }
+  unit = unit === 'b' && blockOf(p) ? 'b' : 'p';
+  const doc = posCur(), i = doc.lines.findIndex(l => l.pid === pid && l.unit === unit);
+  if (i >= 0){ doc.lines[i].qty += qty || 1; POS.sel = i; } else { doc.lines.push({pid, unit, qty:qty || 1}); POS.sel = doc.lines.length - 1; }
+  const st = stockNow(pid), packs = doc.lines.filter(l => l.pid === pid).reduce((a, l) => a + l.qty * (l.unit === 'b' ? blockOf(p) : 1), 0);
+  POS.msg = st != null && packs > st ? `⚠ ${p.name}: по учёту осталось ${Math.max(st, 0)} шт` : '';
+  POS.undo = null; posKeep(); render();
+  const el = document.querySelector('.pos-lines .pl.on'); if (el) el.scrollIntoView({block:'nearest'});
+}
+function posScan(code){
+  code = String(code || '').trim(); if (!code) return false;
+  const b = S.barcodes && S.barcodes[code];
+  if (b && P(b.pid)){ posAdd(b.pid, b.unit, 1); return true; }
+  posBeep();
+  POS.msg = `Штрихкод ${code} не найден`;
+  if (posMgr() || (!POSU && !isSeller())){ POS.ov = {k:'bind', code, q:''}; }
+  render(); return false;
+}
+function posBeep(){ try { const c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(), g = c.createGain(); o.frequency.value = 330; g.gain.value = 0.15; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 0.18); } catch(e){} }
+
+/* ---------- группы и плитки ---------- */
+function posGroups(){
+  const cig = brands('cig').filter(b => b.key !== '~').map(b => ({key:b.key, name:b.name, ids:b.ids.filter(id => { const p = P(id); return p && !p.hidden; })}));
+  const g = {}; ordered('goods').forEach(p => { const k = p.group || 'Прочие товары'; (g[k] = g[k] || []).push(p.id); });
+  const other = brands('cig').find(b => b.key === '~');
+  const list = cig.concat(Object.keys(g).sort().map(k => ({key:'g:' + k, name:k, ids:g[k]})));
+  if (other) list.push({key:'~', name:'Другие сигареты', ids:other.ids.filter(id => P(id) && !P(id).hidden)});
+  const cnt = salesIdx().cnt, sc = useScore(), w = x => x.ids.reduce((a, id) => a + (cnt[id] || 0) * 3 + (sc[id] || 0), 0);
+  return list.filter(x => x.ids.length).map(x => Object.assign(x, {w:w(x)}));
+}
+function posTiles(){
+  const cnt = salesIdx().cnt, sc = useScore(), w = id => (cnt[id] || 0) * 3 + (sc[id] || 0), all = ordered('cig').concat(ordered('goods'));
+  const q = POS.q.trim();
+  if (q){ const n = Number(q); return all.filter(p => match(p.name, q) || (n && numOf(p.id) === n) || barcodesOf(p.id).some(c => c === q)).slice(0, 60); }
+  if (POS.grp === '*') return all.slice().sort((a, b) => w(b.id) - w(a.id)).slice(0, 24);
+  const gr = posGroups().find(x => x.key === POS.grp); if (!gr) return [];
+  return gr.ids.map(P).filter(Boolean).sort((a, b) => w(b.id) - w(a.id));
+}
+function posTileHtml(p){
+  const st = stockNow(p.id), b = blockOf(p);
+  return `<button class="ptile" data-a="padd2" data-v="${p.id}"><span class="pn">${esc(p.name)}</span><span class="pp"><b>${fmt(unitPrice(p.id, 'p'))}</b>${b && p.cat === 'cig' ? `<small>бл ${fmt(unitPrice(p.id, 'b'))}</small>` : ''}</span>${st != null ? `<span class="ps ${st <= 0 ? 'neg' : ''}">ост. ${st}</span>` : ''}</button>`;
+}
+
+/* ---------- экран кассы ---------- */
+V.pos = () => {
+  if (!DB) return V.loading();
+  if (!POSU && (S.posusers || []).some(u => u.active)) return posLogin();
+  const doc = posCur(), lines = doc.lines, tot = posTotal(doc), cl = doc.did ? S.debtors.find(d => d.id === doc.did) : null;
+  if (POS.sel >= lines.length) POS.sel = lines.length - 1;
+  const held = LOC.pos.held.length, [sc, st] = statusText();
+  const groups = posGroups(), N = 7, top = POS.all ? groups : groups.slice().sort((a, b) => b.w - a.w).slice(0, N);
+  if (!POS.all && POS.grp !== '*' && !top.some(g => g.key === POS.grp)){ const g = groups.find(x => x.key === POS.grp); if (g) top.unshift(g); }
+  const tiles = posTiles(), packs = lines.reduce((a, l) => a + l.qty * (l.unit === 'b' ? blockOf(P(l.pid)) : 1), 0);
+  const left = `<div class="pos-left">
+    <button class="pos-client ${cl ? 'on' : ''}" data-a="pclient">${cl ? `👤 <b>${esc(cl.name)}</b> · долг ${fmt(debtOf(cl.id))}` : '👤 Клиент: не выбран'}</button>
+    <div class="pos-lines">${lines.length ? lines.map((l, i) => { const p = P(l.pid), pr = unitPrice(l.pid, l.unit);
+      return `<button class="pl ${i === POS.sel ? 'on' : ''}" data-a="psel" data-v="${i}"><span class="q">${l.qty} ${unitName(p, l.unit)}</span><span class="n">${esc(p ? p.name : '?')}<small>${fmt(pr)} × ${l.qty}</small></span><span class="s">${fmt(pr * l.qty)}</span></button>`; }).join('')
+      : `<div class="pos-empty">Сканируйте товар или выберите справа</div>`}</div>
+    <div class="pos-lc">
+      <button data-a="pminus" ${POS.sel < 0 ? 'disabled' : ''} aria-label="Меньше">−</button><button data-a="pplus" ${POS.sel < 0 ? 'disabled' : ''} aria-label="Больше">+</button>
+      <button data-a="punit" ${POS.sel < 0 || !blockOf(P((lines[POS.sel] || {}).pid)) ? 'disabled' : ''}>шт ⇄ бл</button>
+      <button class="del" data-a="pdel" ${POS.sel < 0 ? 'disabled' : ''}>Удалить</button>${POS.undo ? `<button data-a="pundo">Вернуть</button>` : ''}
+    </div>
+    <div class="pos-tot"><span>${lines.length} поз. · ${packs} шт</span><b>${fmt(tot)}</b></div>
+  </div>`;
+  const right = `<div class="pos-right">
+    <div class="pos-top"><span class="pos-st ${sc}">${esc(POSU ? POSU.name : posSeller())} · ${esc(st)}</span>
+      <button data-a="pdocs">Документы${held ? ` <i>${held}</i>` : ''}</button><button data-a="pday">Итог дня</button><button data-a="pmenu" aria-label="Меню">☰</button></div>
+    <div class="pos-search"><input id="pq" data-in="pq" value="${esc(POS.q)}" placeholder="Поиск: название, номер или штрихкод" autocomplete="off" ${POS.osk ? 'inputmode="none"' : ''}><button data-a="posk" class="${POS.osk ? 'on' : ''}" aria-label="Экранная клавиатура">⌨</button><button data-a="pqclr" aria-label="Очистить поиск" ${POS.q ? '' : 'hidden'}>✕</button></div>
+    ${POS.msg ? `<div class="pos-msg">${esc(POS.msg)}</div>` : ''}
+    ${POS.q ? '' : `<div class="pos-gw ${POS.all ? 'all' : ''}"><div class="pos-grp ${POS.all ? 'all' : ''}"><button class="${POS.grp === '*' ? 'on' : ''}" data-a="pgrp" data-v="*">★ Частые</button>${top.map(g => `<button class="${POS.grp === g.key ? 'on' : ''}" data-a="pgrp" data-v="${esc(g.key)}">${esc(g.name)}</button>`).join('')}</div><button class="more" data-a="pgall">${POS.all ? 'Свернуть ▴' : 'Все ▾'}</button></div>`}
+    <div class="pos-tiles" id="ptiles">${tiles.map(posTileHtml).join('') || '<div class="pos-empty">Ничего не найдено</div>'}</div>
+    ${POS.osk ? oskHtml() : `<div class="pos-act">
+      <button data-a="pqty" ${POS.sel < 0 ? 'disabled' : ''}>× Кол-во</button><button class="${POS.price ? 'on' : ''}" data-a="pprice">Цена?</button><button data-a="phold" ${lines.length ? '' : 'disabled'}>Отложить</button><button data-a="pclear" ${lines.length ? '' : 'disabled'}>Очистить</button>
+      <button class="pay" data-a="ppay" ${lines.length ? '' : 'disabled'}>Оплата <b>${fmt(tot)}</b></button></div>`}
+  </div>`;
+  return `<div class="pos">${left}${right}</div>${posOverlay()}`;
+};
+function posLogin(){
+  return `<div class="pos-login"><h1>Касса</h1><p class="muted">Введите свой ПИН-код</p><div class="disp" id="plpin">${'•'.repeat((POS.pin || '').length) || '&nbsp;'}</div>
+    ${POS.pinErr ? `<p class="neg">${esc(POS.pinErr)}</p>` : ''}
+    <div class="keys">${['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k => `<button data-a="plk" data-v="${k}">${k}</button>`).join('')}</div>
+    <button class="btn sec" data-a="pexit">В программу</button></div>`;
+}
+
+/* ---------- экранная клавиатура ---------- */
+const OSK = {ru:['йцукенгшщзхъ', 'фывапролджэ', 'ячсмитьбю'], en:['qwertyuiop', 'asdfghjkl', 'zxcvbnm']};
+function oskHtml(){
+  const rows = OSK[POS.lay];
+  return `<div class="osk">${['1234567890'].concat(rows).map(r => `<div class="okr">${[...r].map(c => `<button data-a="pok" data-v="${c}">${c}</button>`).join('')}</div>`).join('')}
+    <div class="okr"><button class="w" data-a="playt">${POS.lay === 'ru' ? 'LAT' : 'РУС'}</button><button class="sp" data-a="pok" data-v=" ">пробел</button><button class="w" data-a="pok" data-v="⌫">⌫</button><button class="w" data-a="posk">Готово</button></div></div>`;
+}
+
+/* ---------- окна поверх кассы ---------- */
+function posOverlay(){
+  const o = POS.ov; if (POS.chg) return `<div class="pos-ov" data-a="pchgok"><div class="pos-chg"><span>Чек № ${POS.chg.no} закрыт</span>${POS.chg.change ? `<b>Сдача ${fmt(POS.chg.change)}</b>` : `<b>Без сдачи</b>`}${POS.chg.debt ? `<span>В долг: ${fmt(POS.chg.debt)}</span>` : ''}</div></div>`;
+  if (POS.pay) return payHtml();
+  if (!o) return '';
+  const wrap = (t, body, wide) => `<div class="pos-ov"><div class="pos-sh ${wide ? 'wide' : ''}"><div class="psh"><b>${t}</b><button data-a="povx" aria-label="Закрыть">✕</button></div>${body}</div></div>`;
+  if (o.k === 'info'){ const p = P(o.pid), st = stockNow(o.pid), b = blockOf(p);
+    return wrap(esc(p.name), `<div class="pinfo"><div><span>Пачка</span><b>${fmt(unitPrice(p.id, 'p'))}</b></div>${b ? `<div><span>Блок (${b} шт)</span><b>${fmt(unitPrice(p.id, 'b'))}</b></div>` : ''}<div><span>Остаток по учёту</span><b>${st == null ? '—' : st}</b></div></div>
+      <div class="grid2"><button class="btn pri" data-a="padd3" data-v="${p.id}|p">Добавить пачку</button>${b ? `<button class="btn sec" data-a="padd3" data-v="${p.id}|b">Добавить блок</button>` : ''}</div>`); }
+  if (o.k === 'client') return wrap('Клиент', clientPickHtml(), true);
+  if (o.k === 'newcl') return wrap('Новый клиент', `<div class="field txt"><label for="nc_name">Имя</label><input id="nc_name" autocomplete="off"></div><div class="field txt"><label for="nc_ph">Телефон</label><input id="nc_ph" inputmode="tel" autocomplete="off"></div>
+    <button class="btn pri" data-a="pnewclok">Добавить и выбрать</button>`);
+  if (o.k === 'docs') return wrap('Документы', docsHtml(), true);
+  if (o.k === 'sale') return wrap('Чек', saleHtml(o.id), true);
+  if (o.k === 'ret') return wrap('Возврат по чеку', retHtml(o), true);
+  if (o.k === 'day') return wrap('Итог дня', dayHtml(o.date || TODAY), true);
+  if (o.k === 'menu') return wrap('Меню кассы', `<div class="stack">
+    <button class="btn sec" data-a="pdocs">Документы</button><button class="btn sec" data-a="pday">Итог дня</button>
+    ${posMgr() || (!POSU && !isSeller()) ? `<button class="btn sec" data-a="pgo" data-v="bcbind">Привязать штрихкоды</button><button class="btn sec" data-a="pgo" data-v="posusers">Кассиры и ПИН-коды</button>` : ''}
+    <label class="chk"><input type="checkbox" id="pdev" data-in="pdev" ${POSDEV().on ? 'checked' : ''}> Это устройство — касса (открывать сразу кассу)</label>
+    ${POSU ? `<button class="btn sec" data-a="plogout">Сменить кассира (${esc(POSU.name)})</button>` : ''}
+    <button class="btn sec" data-a="pexit">Выйти в программу</button></div>`);
+  if (o.k === 'bind') return wrap('Неизвестный штрихкод', bindHtml(o), true);
+  return '';
+}
+function clientPickHtml(){
+  const q = POS.cq.trim(), list = S.debtors.filter(d => !q || match(d.name, q) || (dInfo(d.id).ph || '').replace(/\D/g, '').includes(q.replace(/\D/g, '') || '§'))
+    .sort((a, b) => (a.grp === 'n') - (b.grp === 'n') || b.ts - a.ts).slice(0, 80), cur = posCur().did;
+  return `<div class="pos-search"><input id="pcq" data-in="pcq" value="${esc(POS.cq)}" placeholder="Имя или телефон" autocomplete="off"></div>
+    <div class="pcl">${list.map(d => { const x = dInfo(d.id), v = debtOf(d.id), lim = x.limOn && x.lim;
+      return `<button class="pcr ${d.grp === 'n' ? 'ns' : ''} ${d.id === cur ? 'on' : ''}" data-a="pclpick" data-v="${d.id}"><span><b>${esc(d.name)}</b>${x.ph ? `<small>☎ ${esc(x.ph)}</small>` : ''}${d.grp === 'n' ? '<small>Несгор</small>' : ''}</span><span class="r">${fmt(v)}${lim ? `<small>лимит ${fmt(x.lim)}</small>` : ''}</span></button>`; }).join('') || '<div class="pos-empty">Никого не нашли</div>'}</div>
+    <div class="grid2"><button class="btn sec" data-a="pnewcl">+ Новый клиент</button>${cur ? `<button class="btn sec" data-a="pclnone">Убрать клиента</button>` : ''}</div>
+    ${cur ? `<button class="btn sec" data-a="pdebtpay">Принять долг от ${esc((S.debtors.find(d => d.id === cur) || {}).name || '')}</button>` : ''}`;
+}
+function docsHtml(){
+  const date = POS.docsDate || TODAY, tab = POS.docsTab, cur = LOC.pos.cur;
+  const st = s => s.status === 'cancel' ? ['Отменён', 'x'] : s.kind === 'ret' ? ['Возврат', 'r'] : s.kind === 'pay' ? ['Погашение', 'p'] : s.status === 'debt' ? ['В долг', 'd'] : ['Оплачен', 'ok'];
+  const sales = (S.sales || []).filter(s => s.date === date).filter(s => tab === 'all' || (tab === 'held' ? false : tab === 'debt' ? s.status === 'debt' : tab === 'cancel' ? s.status === 'cancel' : tab === 'ret' ? s.kind === 'ret' : s.status === 'paid' && s.kind === 'sale')).slice().reverse();
+  const held = date === TODAY && (tab === 'all' || tab === 'held') ? LOC.pos.held.slice().reverse() : [];
+  const cl = id => { const d = S.debtors.find(x => x.id === id); return d ? d.name : ''; };
+  return `<div class="pdn"><button data-a="pdd" data-v="-1">‹</button><b>${date === TODAY ? 'Сегодня' : dLong(date)}</b><button data-a="pdd" data-v="1" ${date >= TODAY ? 'disabled' : ''}>›</button></div>
+    <div class="pos-grp">${[['all', 'Все'], ['held', 'Отложенные'], ['paid', 'Оплаченные'], ['debt', 'В долг'], ['ret', 'Возвраты'], ['cancel', 'Отменённые']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-a="pdtab" data-v="${k}">${l}</button>`).join('')}</div>
+    <div class="pdl">${date === TODAY && cur && cur.lines.length && (tab === 'all' || tab === 'held') ? `<button class="pdr" data-a="povx"><span class="tm">${hhmm(cur.ts)}</span><span class="stt o">Открыт</span><span class="nm">текущий чек · ${cur.lines.length} поз.</span><b>${fmt(posTotal(cur))}</b></button>` : ''}
+      ${held.map(h => `<button class="pdr" data-a="presume" data-v="${h.id}"><span class="tm">${hhmm(h.ts)}</span><span class="stt h">Отложен</span><span class="nm">${h.lines.length} поз.${h.did ? ' · ' + esc(cl(h.did)) : ''}</span><b>${fmt(posTotal(h))}</b></button>`).join('')}
+      ${sales.map(s => { const [l, c] = st(s); return `<button class="pdr" data-a="psale" data-v="${s.id}"><span class="tm">${s.time}</span><span class="stt ${c}">${l}</span><span class="nm">№ ${s.no}${s.cname ? ' · ' + esc(s.cname) : ''} <small>${[s.cash ? 'нал' : '', s.card ? 'карта' : '', s.debt ? 'долг' : ''].filter(Boolean).join(' + ')}</small></span><b>${s.kind === 'ret' ? '−' : ''}${fmt(s.total)}</b></button>`; }).join('')}
+      ${!held.length && !sales.length && !(date === TODAY && cur && cur.lines.length) ? '<div class="pos-empty">Документов нет</div>' : ''}</div>`;
+}
+function saleHtml(id){
+  const s = (S.sales || []).find(x => x.id === id); if (!s) return '<div class="pos-empty">Чек не найден</div>';
+  const canRet = s.kind === 'sale' && s.status !== 'cancel', canCancel = s.status !== 'cancel' && s.date === TODAY;
+  return `<div class="small muted">${SKINDn[s.kind]} № ${s.no} · ${dLong(s.date)} ${s.time} · ${esc(s.seller)}${s.cname ? ' · клиент ' + esc(s.cname) : ''}${s.status === 'cancel' ? ' · <b class="neg">отменён ' + esc(s.canc) + '</b>' : ''}</div>
+    ${s.lines.length ? `<div class="tbl-wrap"><table class="tight"><tr><th class="l">Товар</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr>${s.lines.map(l => `<tr><td class="l">${esc(l.name)}</td><td>${l.qty} ${l.unit === 'b' ? 'бл' : 'шт'}</td><td>${fmt(l.price)}</td><td>${fmt(l.sum)}</td></tr>`).join('')}</table></div>` : ''}
+    <div class="pinfo"><div><span>Итого</span><b>${fmt(s.total)}</b></div>${s.cash ? `<div><span>Наличные</span><b>${fmt(s.cash)}</b></div>` : ''}${s.card ? `<div><span>Карта</span><b>${fmt(s.card)}</b></div>` : ''}${s.debt ? `<div><span>${s.kind === 'ret' ? 'В счёт долга' : 'В долг'}</span><b>${fmt(s.debt)}</b></div>` : ''}${s.change ? `<div><span>Сдача</span><b>${fmt(s.change)}</b></div>` : ''}</div>
+    <div class="grid2">${canRet ? `<button class="btn sec" data-a="pret" data-v="${s.id}">Возврат</button>` : ''}${canCancel ? `<button class="btn dang ghost" data-a="pcancel" data-v="${s.id}">Отменить чек</button>` : ''}</div>`;
+}
+function retHtml(o){
+  const s = S.sales.find(x => x.id === o.id); if (!s) return '';
+  const done = {}; S.sales.filter(x => x.kind === 'ret' && x.ref === s.id && x.status !== 'cancel').forEach(x => x.lines.forEach(l => done[l.pid + l.unit] = (done[l.pid + l.unit] || 0) + l.qty));
+  const sum = s.lines.reduce((a, l, i) => a + (o.q[i] || 0) * l.price, 0);
+  return `<div class="small muted">Сколько возвращает покупатель (чек № ${s.no})</div>
+    <div class="pdl">${s.lines.map((l, i) => { const max = l.qty - (done[l.pid + l.unit] || 0); return `<div class="pdr"><span class="nm">${esc(l.name)} <small>куплено ${l.qty} ${l.unit === 'b' ? 'бл' : 'шт'}${done[l.pid + l.unit] ? ', уже вернули ' + done[l.pid + l.unit] : ''}</small></span><span class="rq"><button data-a="prq" data-v="${i}|-1" ${(o.q[i] || 0) <= 0 ? 'disabled' : ''}>−</button><b>${o.q[i] || 0}</b><button data-a="prq" data-v="${i}|1" ${(o.q[i] || 0) >= max ? 'disabled' : ''}>+</button></span></div>`; }).join('')}</div>
+    <div class="pinfo"><div><span>Вернуть покупателю</span><b>${fmt(sum)}</b></div></div>
+    <div class="grid2"><button class="btn sec" data-a="pretok" data-v="cash" ${sum ? '' : 'disabled'}>Наличными</button><button class="btn sec" data-a="pretok" data-v="card" ${sum ? '' : 'disabled'}>На карту</button></div>
+    ${s.did ? `<button class="btn sec" data-a="pretok" data-v="debt" ${sum ? '' : 'disabled'}>В счёт долга ${esc(s.cname)}</button>` : ''}`;
+}
+function dayHtml(date){
+  const z = dayTotals(date), c = cashOf(date);
+  return `<div class="pdn"><button data-a="pdayd" data-v="-1">‹</button><b>${date === TODAY ? 'Сегодня' : dLong(date)}</b><button data-a="pdayd" data-v="1" ${date >= TODAY ? 'disabled' : ''}>›</button></div>
+    <div class="pinfo">
+      <div><span>Продаж (чеков)</span><b>${z.n}</b></div><div><span>Продано на сумму</span><b>${fmt(z.sum)}</b></div>
+      <div><span>— наличными</span><b>${fmt(z.cash)}</b></div><div><span>— картой</span><b>${fmt(z.card)}</b></div><div><span>— в долг</span><b>${fmt(z.debt)}</b></div>
+      ${z.pn ? `<div><span>Принято долгов (${z.pn})</span><b>${fmt(z.pcash + z.pcard)}</b></div>` : ''}
+      ${z.rn ? `<div><span>Возвратов (${z.rn})</span><b>−${fmt(z.rsum)}</b></div>` : ''}${z.cn ? `<div><span>Отменено чеков</span><b>${z.cn}</b></div>` : ''}
+      <div class="tot"><span>Наличных должно быть в кассе</span><b>${fmt(z.drawer)}</b></div>
+      <div class="tot"><span>Картой всего (для «Терминала»)</span><b>${fmt(z.cardAll)}</b></div>
+    </div>
+    ${posMgr() || (!POSU && !isSeller()) ? (c.t === z.cardAll ? `<p class="small muted">В «Терминал и касса» за этот день записано ${fmt(c.t)} — совпадает.</p>` : `<button class="btn sec" data-a="pterm" data-v="${date}">Записать ${fmt(z.cardAll)} в «Терминал»${c.t ? ` (сейчас ${fmt(c.t)})` : ''}</button>`) : ''}`;
+}
+function bindHtml(o){
+  const q = (o.q || '').trim(), list = q ? ordered('cig').concat(ordered('goods')).filter(p => match(p.name, q)).slice(0, 40) : [];
+  if (o.pid){ const p = P(o.pid); return `<p>Штрихкод <b>${esc(o.code)}</b> → <b>${esc(p.name)}</b>. Это пачка или блок?</p><div class="grid2"><button class="btn pri" data-a="pbindok" data-v="p">Пачка (шт)</button><button class="btn sec" data-a="pbindok" data-v="b">Блок</button></div>`; }
+  return `<p class="small muted">Штрихкод <b>${esc(o.code)}</b> ещё не привязан. Найдите товар — штрихкод запомнится, и товар добавится в чек.</p>
+    <div class="pos-search"><input id="pbq" data-in="pbq" value="${esc(o.q || '')}" placeholder="Название товара" autocomplete="off"></div>
+    <div class="pcl">${list.map(p => `<button class="pcr" data-a="pbindp" data-v="${p.id}"><span><b>${esc(p.name)}</b><small>${barcodesOf(p.id).length} штрихкодов</small></span></button>`).join('') || `<div class="pos-empty">${q ? 'Не нашли' : 'Начните писать название'}</div>`}</div>`;
+}
+
+/* ---------- оплата ---------- */
+function payResume(){   // вернуться в оплату после выбора клиента
+  const k = POS.payKeep; if (!k) return; POS.payKeep = null; POS.pay = k;
+  if (POS.wantDebtRest && posCur().did){ k.debt = 0; k.debt = Math.max(0, posTotal() - k.cash - k.card); k.act = 'debt'; }
+  else if (POS.wantDebtRest || k.act === 'debt') k.act = posCur().did ? 'debt' : 'cash';
+  POS.wantDebtRest = false;
+}
+function payState(){ const t = posTotal(), p = POS.pay, paid = p.cash + p.card + p.debt; return {t, paid, rest:Math.max(0, t - paid), change:Math.max(0, Math.min(p.cash, paid - t)), over:p.card + p.debt > t}; }
+function payHtml(){
+  const p = POS.pay, s = payState(), doc = posCur(), cl = doc.did ? S.debtors.find(d => d.id === doc.did) : null, x = cl ? dInfo(cl.id) : {}, lim = cl && x.limOn && x.lim ? x.lim - debtOf(cl.id) : null;
+  const f = (k, l) => `<button class="pf ${p.act === k ? 'on' : ''}" data-a="pact" data-v="${k}"><span>${l}</span><b>${fmt(p[k])}</b></button>`;
+  const ok = s.rest === 0 && !s.over && !(p.debt && !cl) && !(lim != null && p.debt > lim);
+  return `<div class="pos-ov"><div class="pos-pay">
+    <div class="pp-l"><div class="pp-tot"><span>Итого</span><b>${fmt(s.t)}</b></div>
+      ${f('cash', 'Наличные')}${f('card', 'Карта')}${f('debt', cl ? 'В долг · ' + esc(cl.name) : 'В долг (нужен клиент)')}
+      ${lim != null ? `<div class="small ${p.debt > lim ? 'neg' : 'muted'}">Лимит: можно ещё ${fmt(Math.max(lim, 0))}</div>` : ''}
+      ${s.over ? '<div class="neg small">Картой и в долг — не больше итога</div>' : ''}
+      <div class="pp-res ${s.rest ? 'rest' : 'chg'}">${s.rest ? `<span>Осталось</span><b>${fmt(s.rest)}</b>` : `<span>Сдача</span><b>${fmt(s.change)}</b>`}</div>
+    </div>
+    <div class="pp-r">
+      <div class="pp-notes">${[5000, 10000, 20000, 50000, 100000, 200000].map(n => `<button data-a="pnote" data-v="${n}">${fmt(n)}</button>`).join('')}</div>
+      <div class="pp-quick"><button data-a="pexact">Наличные ровно</button><button data-a="pallcard">Всё картой</button><button data-a="prest" data-v="card">Остальное картой</button><button data-a="prest" data-v="debt">Остальное в долг</button></div>
+      <div class="keys pp-keys">${['1','2','3','4','5','6','7','8','9','000','0','⌫'].map(k => `<button data-a="ppk" data-v="${k}">${k}</button>`).join('')}</div>
+      <div class="pp-btns"><button class="btn sec" data-a="ppcancel">Отмена</button><button class="btn sec" data-a="ppreset">Сброс</button><button class="btn pri" data-a="ppok" ${ok ? '' : 'disabled'}>Закрыть чек</button></div>
+    </div></div></div>`;
+}
+function posClose(){
+  const doc = posCur(), p = POS.pay, s = payState(), cl = doc.did ? S.debtors.find(d => d.id === doc.did) : null;
+  if (s.rest || s.over) return;
+  const no = nextNo(TODAY), now = Date.now();
+  const sale = {id:doc.id, no, date:TODAY, time:hhmm(now), kind:'sale', status:p.debt ? 'debt' : 'paid', seller:posSeller(), dev:POSDEV().name || 'Касса', did:cl ? cl.id : '', cname:cl ? cl.name : '',
+    total:s.t, cash:p.cash - s.change, card:p.card, debt:p.debt, change:s.change, note:doc.note || '', ref:'', canc:'', ts:now,
+    lines:doc.lines.map(l => { const pp = P(l.pid), pr = unitPrice(l.pid, l.unit), k = l.unit === 'b' ? blockOf(pp) : 1; return {id:doc.id + '-' + uid(), pid:l.pid, name:pp.name, unit:l.unit, qty:l.qty, packs:l.qty * k, price:pr, sum:pr * l.qty}; })};
+  writeSale(sale);
+  if (p.debt && cl){ S.moves.push({id:uid(), did:cl.id, date:TODAY, amt:p.debt, note:'Покупка, чек № ' + no, sale:sale.id}); save(); }
+  LOC.pos.cur = newPosDoc(); POS.sel = -1; POS.pay = null; POS.msg = ''; POS.undo = null; POS.chg = {no, change:s.change, debt:p.debt}; posKeep();
+  render(); clearTimeout(POS.chgT); POS.chgT = setTimeout(() => { if (POS.chg){ POS.chg = null; render(); } }, 3500);
+}
+function needMgr(title, fn){   // действие только с ПИН управляющего / админа
+  const mgrs = (S.posusers || []).filter(u => u.active && (u.role === 'админ' || u.role === 'управляющий'));
+  if (posMgr()) return fn();
+  if (!mgrs.length){ if (isSeller()) return toast('Нужен управляющий'); return pinGuard(title, fn); }
+  openNP({title:'ПИН управляющего', sub:title, mask:true, allowZero:true, ok:'Подтвердить', onOk:async () => { const v = NP.val;
+    for (const u of mgrs) if (u.pin && u.pin === await pinHash(u.id, v)){ NP = null; fn(); return render(); }
+    NP.val = ''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Неверный ПИН</span>'; }});
+}
+async function pinHash(id, pin){
+  const enc = new TextEncoder(), key = await crypto.subtle.importKey('raw', enc.encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2', salt:enc.encode('chorsu|' + id), iterations:60000, hash:'SHA-256'}, key, 256);
+  return btoa(String.fromCharCode(...new Uint8Array(bits)));
+}
+
+/* ---------- кассиры (ПИН-коды) и привязка штрихкодов — обычные экраны ---------- */
+V.posusers = () => hdr('Кассиры') + `<div class="wrap stack nar">
+  <p class="small muted">У каждого, кто работает на кассе, свой ПИН из 4 цифр. ПИН управляющего или админа нужен, чтобы отменить закрытый чек и привязывать штрихкоды.</p>
+  <div class="list">${(S.posusers || []).map(u => `<button class="row" data-a="puedit" data-v="${u.id}"><span class="nm"><b>${esc(u.name)}</b><div class="small muted">${esc(u.role)}${u.active ? '' : ' · отключён'}</div></span><span class="chev">›</span></button>`).join('') || '<div class="empty-st">Кассиров ещё нет — касса открывается без ПИН-кода</div>'}</div>
+  <button class="btn pri" data-a="puedit" data-v="">+ Добавить кассира</button></div>`;
+V.puedit = () => { const u = (S.posusers || []).find(x => x.id === R.id) || {id:'', name:'', role:'продавец', active:true};
+  return hdr(u.id ? 'Кассир' : 'Новый кассир') + `<div class="wrap stack nar">
+  <div class="field txt"><label for="pu_name">Имя</label><input id="pu_name" value="${esc(u.name)}" autocomplete="off"></div>
+  <div class="seg">${['продавец', 'управляющий', 'админ'].map(r => `<button class="${(R.role || u.role) === r ? 'on' : ''}" data-a="purole" data-v="${r}">${r}</button>`).join('')}</div>
+  <button class="money" data-a="pupin"><span class="lbl">ПИН-код</span><b>${R.pin ? '•••• (новый)' : u.pin ? '••••' : 'не задан'}</b></button>
+  ${u.id ? `<label class="chk"><input type="checkbox" id="pu_on" ${u.active ? 'checked' : ''}> Работает (снимите галочку, чтобы отключить)</label>` : ''}
+  <button class="btn pri" data-a="pusave">Сохранить</button></div>`; };
+V.bcbind = () => {
+  const b = R.bc || {}, last = (R.bcLast || []).slice(-8).reverse(), noBc = ordered('cig').concat(ordered('goods')).filter(p => !barcodesOf(p.id).length).length;
+  const q = (b.q || '').trim(), list = b.code && !b.pid && q ? ordered('cig').concat(ordered('goods')).filter(p => match(p.name, q)).slice(0, 40) : [];
+  return hdr('Привязка штрихкодов') + `<div class="wrap stack nar">
+  <p class="small muted">Сканируйте пачку — выберите товар — пачка или блок. Без штрихкода ещё ${noBc} товаров. Один товар может иметь сколько угодно штрихкодов.</p>
+  <div class="field txt"><label for="bc_code">Штрихкод (сканер или вручную, Enter)</label><input id="bc_code" data-in="bccode" value="${esc(b.code || '')}" inputmode="numeric" autocomplete="off" autofocus></div>
+  ${b.msg ? `<div class="note ${b.err ? 'warn' : 'info'}">${esc(b.msg)}</div>` : ''}
+  ${b.code && !b.pid ? `<div class="field txt"><label for="bc_q">Какой это товар?</label><input id="bc_q" data-in="bcq" value="${esc(b.q || '')}" placeholder="Название" autocomplete="off"></div>
+    <div class="list">${list.map(p => `<button class="row" data-a="bcpick" data-v="${p.id}"><span class="nm">${esc(p.name)}<div class="small muted">${barcodesOf(p.id).length} штрихкодов</div></span></button>`).join('')}</div>` : ''}
+  ${b.pid ? `<p><b>${esc(P(b.pid).name)}</b> — это пачка или блок?</p><div class="grid2"><button class="btn pri" data-a="bcunit" data-v="p">Пачка (шт)</button><button class="btn sec" data-a="bcunit" data-v="b" ${blockOf(P(b.pid)) ? '' : 'disabled'}>Блок</button></div>` : ''}
+  ${last.length ? `<div class="sec-h">Только что привязаны</div><div class="list">${last.map(x => `<div class="row"><span class="nm">${esc(x.code)}<div class="small muted">${esc(P(x.pid) ? P(x.pid).name : '')} · ${x.unit === 'b' ? 'блок' : 'пачка'}</div></span></div>`).join('')}</div>` : ''}
+  </div>`;
+};
+function bindCode(code, pid, unit){
+  const old = S.barcodes[code]; if (old && old.pid !== pid) return 'Этот штрихкод уже у товара «' + (P(old.pid) || {}).name + '»';
+  S.barcodes[code] = {pid, unit:unit === 'b' ? 'b' : 'p'}; save(); return '';
+}
+/* итог дня по кассе в обычной программе (отчёты) */
+V.rpos = () => { R.date = R.date || TODAY; return hdr('Касса: итог дня') + `<div class="wrap stack nar">${datenav(R.date, 'rposd')}${dayHtml(R.date).replace(/<div class="pdn">[\s\S]*?<\/div>/, '')}
+  <div class="sec-h">Чеки</div><div class="list">${(S.sales || []).filter(s => s.date === R.date).slice().reverse().map(s => `<button class="row" data-a="go" data-v="possale" data-id="${s.id}"><span class="nm">${s.time} · ${SKINDn[s.kind]} № ${s.no}${s.cname ? ' · ' + esc(s.cname) : ''}<div class="small muted">${SSTn[s.status]} · ${esc(s.seller)}</div></span><span class="rt">${s.kind === 'ret' ? '−' : ''}${fmt(s.total)}</span></button>`).join('') || '<div class="empty-st">Чеков нет</div>'}</div></div>`; };
+V.possale = () => hdr('Чек') + `<div class="wrap stack nar">${saleHtml(R.id).replace(/<div class="grid2">[\s\S]*$/, '')}</div>`;
+
+
+/* ---------- карточка товара: блок, цена блока, группа, штрихкоды ---------- */
+function posFields(p, c, isNew){
+  const cig = p.cat === 'cig', b = p.block != null ? p.block : (cig ? 10 : ''), groups = [...new Set(S.products.filter(x => x.group).map(x => x.group))].sort();
+  const bc = isNew ? [] : barcodesOf(p.id), auto = cig && c.sale && b ? fmt(c.sale * b) : '';
+  return `<div class="grid2"><div class="field"><label for="e_block">${cig ? 'Пачек в блоке' : 'Штук в упаковке'}</label><input id="e_block" inputmode="numeric" value="${b}" placeholder="${cig ? '10' : 'нет'}"></div>
+    <div class="field"><label for="e_bsale">${cig ? 'Цена блока' : 'Цена упаковки'}</label><input id="e_bsale" inputmode="numeric" value="${c.bsale || ''}" placeholder="${auto ? auto + ' (авто)' : 'авто'}"></div></div>
+    ${cig ? '' : `<div class="field txt"><label for="e_group">Группа на кассе</label><input id="e_group" list="e_groups" value="${esc(p.group || '')}" placeholder="Напитки, жвачка, зажигалки…" autocomplete="off"><datalist id="e_groups">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist></div>`}
+    ${isNew ? '<p class="small muted">Штрихкоды можно добавить после сохранения товара.</p>' : `<div class="sec-h">Штрихкоды (${bc.length})</div>
+    <div class="bcl">${bc.map(code => `<span class="bcc">${esc(code)}<small>${S.barcodes[code].unit === 'b' ? 'блок' : 'шт'}</small><button data-a="sbcdel" data-v="${esc(code)}" aria-label="Убрать штрихкод">✕</button></span>`).join('') || '<span class="small muted">Пока нет — отсканируйте пачку в поле ниже</span>'}</div>
+    <div class="bcadd"><input id="e_bc" inputmode="numeric" placeholder="Сканируйте или введите штрихкод" autocomplete="off"><button class="btn sec" data-a="sbcadd" data-v="p">+ шт</button>${b ? `<button class="btn sec" data-a="sbcadd" data-v="b">+ ${cig ? 'блок' : 'уп'}</button>` : ''}</div>`}`;
+}
+
+
+/* отчёт «Продажи за неделю»: сколько пробито на кассе против инвентаризации */
+function posCmp(rows, per){
+  let q = 0, sum = 0, inv = 0, bad = 0; rows.forEach(r => { const k = posSold(r.p.id, per.from.date, per.to.date); if (!k) return; q += k; sum += k * r.pr.sale; const v = sv(r.c); inv += v; if (Math.abs(v - k) > Math.max(2, k * 0.1)) bad++; });
+  if (!q) return '';
+  return `<div class="card" style="padding:12px 14px"><div class="lbl">По кассе (пробито чеками)</div><div class="g4">
+    <div><span>Пробито, пачек</span><b>${fmt(q)}</b></div><div><span>На сумму</span><b>${fmt(sum)}</b></div>
+    <div><span>По инвентаризации (эти товары)</span><b>${fmt(inv)}</b></div><div><span>Не пробито</span><b style="color:var(${inv - q > 0 ? '--warn' : '--good'})">${fmt(inv - q)}</b></div></div>
+    ${bad ? `<div class="small muted" style="margin-top:6px">У ${bad} товаров касса и инвентаризация расходятся больше чем на 10%.</div>` : ''}</div>`;
+}
+
+/* ---------- действия ---------- */
+Object.assign(A, {
+  pos: () => { HIST.length = 0; HIST.push({s:'home'}); R = {s:'pos'}; render(); },
+  pexit: () => { POS.ov = null; HIST.length = 0; R = {s:'home'}; render(); },
+  plk: async d => { if (d.v === 'C') POS.pin = ''; else if (d.v === '⌫') POS.pin = (POS.pin || '').slice(0, -1); else POS.pin = ((POS.pin || '') + d.v).slice(0, 4);
+    POS.pinErr = ''; const el = document.getElementById('plpin'); if (el) el.innerHTML = '•'.repeat(POS.pin.length) || '&nbsp;';
+    if (POS.pin.length === 4){ const v = POS.pin; POS.pin = '';
+      for (const u of S.posusers.filter(x => x.active)) if (u.pin && u.pin === await pinHash(u.id, v)){ POSU = {id:u.id, name:u.name, role:u.role}; POS.pinErr = ''; return render(); }
+      POS.pinErr = 'Неверный ПИН'; render(); } },
+  plogout: () => { POSU = null; POS.ov = null; render(); },
+  padd2: d => { posAdd(d.v, 'p', 1); },
+  padd3: d => { const [pid, u] = d.v.split('|'); POS.ov = null; posAdd(pid, u, 1); },
+  psel: d => { POS.sel = +d.v; render(); },
+  pplus: () => { const l = posCur().lines[POS.sel]; if (!l) return; l.qty++; posKeep(); render(); },
+  pminus: () => { const l = posCur().lines[POS.sel]; if (!l || l.qty <= 1) return; l.qty--; posKeep(); render(); },
+  punit: () => { const doc = posCur(), l = doc.lines[POS.sel]; if (!l || !blockOf(P(l.pid))) return; const nu = l.unit === 'b' ? 'p' : 'b', j = doc.lines.findIndex((x, i) => i !== POS.sel && x.pid === l.pid && x.unit === nu);
+    if (j >= 0){ doc.lines[j].qty += l.qty; doc.lines.splice(POS.sel, 1); POS.sel = j > POS.sel ? j - 1 : j; } else l.unit = nu; posKeep(); render(); },
+  pdel: () => { const doc = posCur(), l = doc.lines[POS.sel]; if (!l) return; POS.undo = {l, i:POS.sel}; doc.lines.splice(POS.sel, 1); POS.sel = Math.min(POS.sel, doc.lines.length - 1); POS.msg = ''; posKeep(); render(); },
+  pundo: () => { const u = POS.undo; if (!u) return; posCur().lines.splice(u.i, 0, u.l); POS.sel = u.i; POS.undo = null; posKeep(); render(); },
+  pclear: () => confirmBox('Очистить чек? Все строки пропадут.', 'Очистить', () => { const doc = posCur(); doc.lines = []; doc.did = ''; POS.sel = -1; POS.undo = null; POS.msg = ''; posKeep(); }),
+  pqty: () => { const l = posCur().lines[POS.sel]; if (!l) return; const p = P(l.pid);
+    openNP({title:p.name, sub:'Количество, ' + unitName(p, l.unit), val:String(l.qty), ok:'Готово', extra:n => n > 100 ? '⚠ Проверьте: больше 100' : '', onOk:n => { if (!n) return; l.qty = n; posKeep(); NP = null; render(); }}); },
+  pprice: () => { POS.price = !POS.price; POS.msg = POS.price ? 'Цена: сканируйте товар или нажмите на плитку' : ''; render(); },
+  phold: () => { const doc = posCur(); if (!doc.lines.length) return; LOC.pos.held.push(doc); LOC.pos.cur = newPosDoc(); POS.sel = -1; POS.msg = 'Чек отложен — он в «Документах»'; posKeep(); render(); },
+  presume: d => { const i = LOC.pos.held.findIndex(h => h.id === d.v); if (i < 0) return; const h = LOC.pos.held.splice(i, 1)[0], cur = LOC.pos.cur;
+    if (cur && cur.lines.length) LOC.pos.held.push(cur); LOC.pos.cur = h; POS.sel = h.lines.length - 1; POS.ov = null; POS.msg = ''; posKeep(); render(); },
+  pgrp: d => { POS.grp = d.v; POS.all = false; render(); const t = document.getElementById('ptiles'); if (t) t.scrollTop = 0; },
+  pgall: () => { POS.all = !POS.all; render(); },
+  posk: () => { POS.osk = !POS.osk; render(); if (!POS.osk){ const q = document.getElementById('pq'); if (q) q.blur(); } },
+  playt: () => { POS.lay = POS.lay === 'ru' ? 'en' : 'ru'; render(); },
+  pok: d => { const tgt = POS.ov && POS.ov.k === 'client' ? 'cq' : 'q', v = d.v;
+    if (v === '⌫') POS[tgt] = POS[tgt].slice(0, -1); else POS[tgt] += v; render(); },
+  pqclr: () => { POS.q = ''; render(); },
+  pmenu: () => { POS.ov = {k:'menu'}; render(); },
+  povx: () => { POS.ov = null; payResume(); render(); },
+  pgo: d => { POS.ov = null; go(d.v, {}); },
+  pdocs: () => { POS.docsDate = TODAY; POS.docsTab = 'all'; POS.ov = {k:'docs'}; render(); },
+  pdd: d => { POS.docsDate = addD(POS.docsDate || TODAY, +d.v); if (POS.docsDate > TODAY) POS.docsDate = TODAY; render(); },
+  pdtab: d => { POS.docsTab = d.v; render(); },
+  psale: d => { POS.ov = {k:'sale', id:d.v}; render(); },
+  pday: () => { POS.ov = {k:'day', date:TODAY}; render(); },
+  pdayd: d => { const o = POS.ov; o.date = addD(o.date || TODAY, +d.v); if (o.date > TODAY) o.date = TODAY; render(); },
+  rposd: d => { R.date = addD(R.date, +d.v); if (R.date > TODAY) R.date = TODAY; render(); },
+  pterm: d => { const z = dayTotals(d.v), c = cashOf(d.v), set = () => { S.cash[d.v] = Object.assign({t:0, k:0}, S.cash[d.v] || {}, {t:z.cardAll}); save(); toast('Терминал за ' + dShort(d.v) + ': ' + fmt(z.cardAll)); };
+    if (c.t && c.t !== z.cardAll) CONF = {text:`Заменить терминал за ${dShort(d.v)}?<br><b>было ${fmt(c.t)} → станет ${fmt(z.cardAll)}</b>`, yes:{l:'Заменить', c:'pri', f:set}, no:{l:'Нет', f:() => {}}}; else set(); render(); },
+  pclient: () => { POS.cq = ''; POS.ov = {k:'client'}; render(); },
+  pclpick: d => { const doc = posCur(), dd = S.debtors.find(x => x.id === d.v);
+    const pick = () => { doc.did = d.v; POS.ov = null; posKeep(); payResume(); render(); };
+    if (dd && dd.grp === 'n') return confirmBox(`«${esc(dd.name)}» — в Несгоре. Всё равно выбрать?`, 'Выбрать', pick);
+    pick(); },
+  pclnone: () => { posCur().did = ''; POS.ov = null; posKeep(); render(); },
+  pnewcl: () => { POS.ov = {k:'newcl'}; render(); setTimeout(() => { const e = document.getElementById('nc_name'); if (e) e.focus(); }); },
+  pnewclok: () => { const name = (document.getElementById('nc_name').value || '').trim(), ph = (document.getElementById('nc_ph').value || '').trim();
+    if (!name) return toast('Введите имя'); const id = 'd' + uid(); S.debtors.push({id, name, grp:'a', ts:Date.now()}); if (ph){ S.dinfo = S.dinfo || {}; S.dinfo[id] = {ph}; }
+    save(); posCur().did = id; POS.ov = null; posKeep(); toast('Клиент добавлен'); },
+  pdebtpay: () => { const did = posCur().did, dd = S.debtors.find(x => x.id === did); if (!dd) return; POS.ov = null;
+    openNP({title:'Принять долг: ' + dd.name, sub:'Долг сейчас ' + fmt(debtOf(did)), money:true, ok:'Дальше', onOk:n => { if (!n) return; NP = null;
+      CONF = {text:`Принять ${fmt(n)} от ${esc(dd.name)}?`, alt:{l:'Картой', c:'sec', f:() => A.pdebtpay2({n, did, m:'card'})}, yes:{l:'Наличными', c:'pri', f:() => A.pdebtpay2({n, did, m:'cash'})}, no:{l:'Отмена', f:() => {}}}; render(); }}); },
+  pdebtpay2: x => { const dd = S.debtors.find(d => d.id === x.did), now = Date.now(), no = nextNo(TODAY);
+    const s = {id:'s' + uid() + uid(), no, date:TODAY, time:hhmm(now), kind:'pay', status:'paid', seller:posSeller(), dev:POSDEV().name || 'Касса', did:x.did, cname:dd.name, total:x.n, cash:x.m === 'cash' ? x.n : 0, card:x.m === 'card' ? x.n : 0, debt:0, change:0, note:'', ref:'', canc:'', ts:now, lines:[]};
+    writeSale(s); S.moves.push({id:uid(), did:x.did, date:TODAY, amt:-x.n, note:'Погашение на кассе (' + (x.m === 'cash' ? 'нал' : 'карта') + ')', sale:s.id}); save(); POS.ov = null; toast('Принято ' + fmt(x.n)); },
+  pret: d => { POS.ov = {k:'ret', id:d.v, q:{}}; render(); },
+  prq: d => { const [i, s] = d.v.split('|'); const o = POS.ov; o.q[i] = Math.max(0, (o.q[i] || 0) + +s); render(); },
+  pretok: d => { const o = POS.ov, s = S.sales.find(x => x.id === o.id); if (!s) return;
+    const lines = s.lines.map((l, i) => ({l, q:o.q[i] || 0})).filter(x => x.q > 0); if (!lines.length) return;
+    const total = lines.reduce((a, x) => a + x.q * x.l.price, 0), now = Date.now(), no = nextNo(TODAY), m = d.v;
+    const r = {id:'s' + uid() + uid(), no, date:TODAY, time:hhmm(now), kind:'ret', status:'paid', seller:posSeller(), dev:POSDEV().name || 'Касса', did:s.did, cname:s.cname, total, cash:m === 'cash' ? total : 0, card:m === 'card' ? total : 0, debt:m === 'debt' ? total : 0, change:0, note:'', ref:s.id, canc:'', ts:now,
+      lines:lines.map(x => ({id:'r' + uid() + uid(), pid:x.l.pid, name:x.l.name, unit:x.l.unit, qty:x.q, packs:x.q * (x.l.packs / x.l.qty), price:x.l.price, sum:x.q * x.l.price}))};
+    writeSale(r); if (m === 'debt' && s.did){ S.moves.push({id:uid(), did:s.did, date:TODAY, amt:-total, note:'Возврат товара, чек № ' + no, sale:r.id}); save(); }
+    POS.ov = {k:'sale', id:r.id}; toast('Возврат ' + fmt(total) + (m === 'cash' ? ' — отдайте наличными' : m === 'card' ? ' — верните на карту' : ' — долг уменьшен')); },
+  pcancel: d => { const s = S.sales.find(x => x.id === d.v); if (!s) return;
+    confirmBox(`Отменить чек № ${s.no} на ${fmt(s.total)}?${s.debt ? '<br><b>Долг клиента по этому чеку тоже снимется.</b>' : ''}`, 'Отменить чек', () => setTimeout(() => needMgr(`Отмена чека № ${s.no} на ${fmt(s.total)}`, () => {
+      const c = Object.assign({}, s, {status:'cancel', canc:(POSU ? POSU.name : posSeller()) + ' ' + hhmm(Date.now())}); writeSale(c, false);
+      const n = S.moves.length; S.moves = S.moves.filter(m => m.sale !== s.id); if (S.moves.length !== n) save(); POS.ov = {k:'sale', id:s.id}; toast('Чек отменён'); render(); }), 0)); },
+  ppay: () => { if (!posCur().lines.length) return; POS.pay = {cash:0, card:0, debt:0, act:'cash', fresh:true}; render(); },
+  pact: d => { POS.pay.act = d.v; POS.pay.fresh = true; if (d.v === 'debt' && !posCur().did){ POS.ov = {k:'client'}; POS.cq = ''; POS.payKeep = POS.pay; POS.pay = null; } render(); },
+  pnote: d => { const p = POS.pay; p.cash += +d.v; p.act = 'cash'; p.fresh = true; render(); },
+  pexact: () => { const p = POS.pay, t = posTotal(); p.cash = Math.max(0, t - p.card - p.debt); render(); },
+  pallcard: () => { const p = POS.pay; p.card = posTotal(); p.cash = 0; p.debt = 0; render(); },
+  prest: d => { const p = POS.pay, t = posTotal(); if (d.v === 'debt' && !posCur().did){ POS.payKeep = p; POS.pay = null; POS.ov = {k:'client'}; POS.cq = ''; POS.wantDebtRest = true; return render(); }
+    p[d.v] = 0; const rest = Math.max(0, t - p.cash - p.card - p.debt); p[d.v] = rest; render(); },
+  ppk: d => { const p = POS.pay, k = p.act; let s = p.fresh ? '' : String(p[k] || ''); p.fresh = false;
+    if (d.v === '⌫') s = s.slice(0, -1); else s = (s + d.v).replace(/^0+/, '').slice(0, 10); p[k] = +s || 0; render(); },
+  ppreset: () => { POS.pay = {cash:0, card:0, debt:0, act:'cash', fresh:true}; render(); },
+  ppcancel: () => { POS.pay = null; render(); },
+  ppok: () => posClose(),
+  pchgok: () => { POS.chg = null; render(); },
+  pbindp: d => { POS.ov.pid = d.v; if (!blockOf(P(d.v))) return A.pbindok({v:'p'}); render(); },
+  pbindok: d => { const o = POS.ov, err = bindCode(o.code, o.pid, d.v); if (err){ POS.msg = err; POS.ov = null; return render(); } POS.ov = null; POS.msg = 'Штрихкод привязан'; posAdd(o.pid, d.v, 1); },
+  puedit: d => go('puedit', {id:d.v, role:null, pin:null}),
+  purole: d => { R.role = d.v; keepPu(); render(); },
+  pupin: () => { keepPu(); openNP({title:'ПИН-код кассира', sub:'4 цифры', mask:true, allowZero:true, ok:'Дальше', onOk:() => { const p1 = NP.val; if (p1.length !== 4){ NP.val = ''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Нужно ровно 4 цифры</span>'; return; }
+    openNP({title:'Повторите ПИН-код', sub:'Ещё раз те же 4 цифры', mask:true, allowZero:true, ok:'Готово', onOk:() => { if (NP.val !== p1){ NP.val = ''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Не совпало</span>'; return; } R.pin = p1; NP = null; render(); }}); }}); },
+  pusave: async () => { keepPu(); const name = (R.puName || '').trim(); if (!name) return toast('Введите имя');
+    let u = (S.posusers || []).find(x => x.id === R.id); const isNew = !u; if (!u){ u = {id:'u' + uid(), name, role:'продавец', pin:'', active:true}; }
+    if (!R.pin && !u.pin) return toast('Задайте ПИН-код');
+    const ph = R.pin ? await pinHash(u.id, R.pin) : u.pin;
+    for (const x of (S.posusers || [])) if (x.id !== u.id && x.active && R.pin && x.pin === await pinHash(x.id, R.pin)) return toast('Такой ПИН уже у другого кассира');
+    Object.assign(u, {name, role:R.role || u.role, pin:ph, active:R.puOn == null ? u.active : R.puOn}); if (isNew) S.posusers.push(u); save(); doBack(); toast('Сохранено'); },
+  sbcadd: d => { const e = document.getElementById('e_bc'), code = (e && e.value || '').trim(); if (!code) return toast('Отсканируйте штрихкод');
+    const err = bindCode(code, R.id, d.v); if (err) return toast(err); render(); toast('Штрихкод добавлен'); const n = document.getElementById('e_bc'); if (n) n.focus(); },
+  sbcdel: d => confirmBox('Убрать штрихкод ' + esc(d.v) + '?', 'Убрать', () => { delete S.barcodes[d.v]; save(); }),
+  bcpick: d => { R.bc.pid = d.v; if (!blockOf(P(d.v))) return A.bcunit({v:'p'}); render(); },
+  bcunit: d => { const b = R.bc, err = bindCode(b.code, b.pid, d.v); R.bcLast = (R.bcLast || []).concat(err ? [] : [{code:b.code, pid:b.pid, unit:d.v}]);
+    R.bc = {msg:err || `Привязано: ${b.code} → ${P(b.pid).name} (${d.v === 'b' ? 'блок' : 'пачка'})`, err:!!err}; render(); setTimeout(() => { const e = document.getElementById('bc_code'); if (e) e.focus(); }); }
+});
+const keepPu = () => { const g = id => document.getElementById(id); if (g('pu_name')) R.puName = g('pu_name').value; if (g('pu_on')) R.puOn = g('pu_on').checked; };
+
+/* поля ввода кассы */
+document.addEventListener('input', e => {
+  const el = e.target, k = el.dataset && el.dataset.in; if (!k) return;
+  if (k === 'pq'){ POS.q = el.value; const box = document.getElementById('ptiles'); if (box){ box.innerHTML = posTiles().map(posTileHtml).join('') || '<div class="pos-empty">Ничего не найдено</div>'; const g = document.querySelector('.pos-gw'); if (g) g.style.display = POS.q ? 'none' : ''; const x = document.querySelector('[data-a="pqclr"]'); if (x) x.hidden = !POS.q; } }
+  else if (k === 'pcq'){ POS.cq = el.value; const pos = el.selectionStart; render(); const n = document.getElementById('pcq'); if (n){ n.focus(); n.setSelectionRange(pos, pos); } }
+  else if (k === 'pbq'){ POS.ov.q = el.value; const pos = el.selectionStart; render(); const n = document.getElementById('pbq'); if (n){ n.focus(); n.setSelectionRange(pos, pos); } }
+  else if (k === 'bcq'){ R.bc.q = el.value; const pos = el.selectionStart; render(); const n = document.getElementById('bc_q'); if (n){ n.focus(); n.setSelectionRange(pos, pos); } }
+});
+document.addEventListener('change', e => { const el = e.target; if (el.dataset && el.dataset.in === 'pdev'){ const d = POSDEV(); d.on = el.checked; ls.set('chorsu_posdev', d); toast(el.checked ? 'Это устройство открывает сразу кассу' : 'Обычный режим'); } });
+/* сканер и клавиатура на кассе: цифры + Enter без поля ввода = штрихкод */
+let SCANBUF = '', SCANT = 0;
+document.addEventListener('keydown', e => {
+  if (R.s === 'bcbind' && e.key === 'Enter' && e.target.id === 'bc_code'){ e.preventDefault(); const code = e.target.value.trim(); if (!code) return; const old = S.barcodes[code];
+    R.bc = old ? {code:'', msg:`${code} уже привязан: ${(P(old.pid) || {}).name} (${old.unit === 'b' ? 'блок' : 'пачка'})`, err:true} : {code, q:'', msg:''}; render(); setTimeout(() => { const n = document.getElementById(old ? 'bc_code' : 'bc_q'); if (n) n.focus(); }); return; }
+  if (e.key === 'Enter' && e.target.id === 'e_bc'){ e.preventDefault(); e.stopPropagation(); return A.sbcadd({v:'p'}); }
+  if (R.s !== 'pos' || NP || CONF || !DB) return;
+  if (!POSU && (S.posusers || []).some(u => u.active)){ if (/^[0-9]$/.test(e.key)){ e.preventDefault(); A.plk({v:e.key}); } else if (e.key === 'Backspace'){ e.preventDefault(); A.plk({v:'⌫'}); } e.stopPropagation(); return; }
+  e.stopPropagation();
+  const t = e.target, inInput = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
+  if (POS.pay && !inInput){
+    if (/^[0-9]$/.test(e.key)){ e.preventDefault(); return A.ppk({v:e.key}); }
+    if (e.key === 'Backspace'){ e.preventDefault(); return A.ppk({v:'⌫'}); }
+    if (e.key === 'Enter'){ e.preventDefault(); const b = document.querySelector('[data-a="ppok"]'); if (b && !b.disabled) posClose(); return; }
+    if (e.key === 'Escape'){ e.preventDefault(); return A.ppcancel(); }
+    return;
+  }
+  if (e.key === 'Escape' && (POS.ov || POS.chg)){ e.preventDefault(); POS.ov = null; POS.chg = null; return render(); }
+  if (inInput && t.id === 'pq' && e.key === 'Enter'){ e.preventDefault(); const v = t.value.trim(); if (!v) return;
+    if (S.barcodes[v]){ POS.q = ''; posScan(v); return; }
+    const it = posTiles(); if (it.length === 1){ POS.q = ''; posAdd(it[0].id, 'p', 1); return; }
+    if (/^\d{6,}$/.test(v)){ POS.q = ''; posScan(v); } return; }
+  if (inInput) return;
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); return A.ppay(); }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const now = Date.now(); if (now - SCANT > 600) SCANBUF = ''; SCANT = now;
+  if (e.key === 'Enter'){ if (SCANBUF.length >= 3){ e.preventDefault(); const c = SCANBUF; SCANBUF = ''; posScan(c); } return; }
+  if (e.key.length === 1 && /[0-9A-Za-z]/.test(e.key)){ SCANBUF += e.key; if (!/[0-9]/.test(e.key) && SCANBUF.length === 1){ e.preventDefault(); const q = document.getElementById('pq'); if (q){ q.focus(); q.value = POS.q = e.key; q.dispatchEvent(new Event('input', {bubbles:true})); } SCANBUF = ''; } }
+  if (e.key === '+' ){ e.preventDefault(); A.pplus(); } else if (e.key === '-'){ e.preventDefault(); A.pminus(); } else if (e.key === 'Delete'){ e.preventDefault(); A.pdel(); }
+}, true);
+
+/* стили кассы */
+document.head.insertAdjacentHTML('beforeend', `<style>
+body.posmode{display:block!important;font-size:16px}body.posmode #side{display:none!important}body.posmode #app{max-width:none;margin:0;padding:0;width:100%}body.posmode #app>*{max-width:none}
+.pos{display:grid;grid-template-columns:minmax(300px,36%) 1fr;gap:12px;height:100vh;height:100dvh;padding:12px;box-sizing:border-box;background:var(--bg)}
+.pos-left,.pos-right{display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}.pos-search button[hidden]{display:none}
+.pos-client{min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;padding:0 14px;font-size:16px;color:var(--muted)}.pos-client.on{color:var(--text);border-color:var(--accent)}
+.pos-lines{flex:1;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+.pl{display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:center;width:100%;text-align:left;padding:10px;border-radius:10px;min-height:56px;font-size:16px}
+.pl .q{color:var(--muted);font-weight:700}.pl .n{min-width:0;font-weight:600}.pl .n small{display:block;color:var(--muted);font-weight:400;font-size:13px}.pl .s{font-weight:800;font-size:17px}
+.pl.on{background:var(--accent-soft);outline:2px solid var(--accent)}
+.pos-empty{padding:24px;text-align:center;color:var(--muted)}
+.pos-lc{display:grid;grid-template-columns:64px 64px 1fr 1fr;gap:8px}.pos-lc button{min-height:56px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:20px;font-weight:700}
+.pos-lc button.del{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent);font-size:16px}.pos-lc button:disabled{opacity:.4}
+.pos-tot{display:flex;justify-content:space-between;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px}.pos-tot span{color:var(--muted)}.pos-tot b{font-size:34px;font-weight:800}
+.pos-top{display:flex;gap:8px;align-items:center}.pos-st{flex:1;font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pos-st.warn{color:var(--warn)}.pos-st.bad{color:var(--bad)}
+.pos-top button{min-height:48px;padding:0 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-weight:700;font-size:15px}.pos-top button i{font-style:normal;background:var(--warn);color:#fff;border-radius:99px;padding:1px 8px;margin-left:4px}
+.pos-search{display:flex;gap:8px}.pos-search input{flex:1;min-height:52px;font-size:18px;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface);color:var(--text)}.pos-search button{width:56px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:20px}.pos-search button.on{background:var(--accent-soft);border-color:var(--accent)}
+.pos-msg{background:color-mix(in srgb,var(--warn) 14%,var(--surface));color:var(--text);border-radius:10px;padding:8px 12px;font-weight:600}
+.pos-grp{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pos-grp.all{flex-wrap:wrap}.pos-grp button{flex:none;min-height:46px;padding:0 14px;border:1px solid var(--line);border-radius:99px;background:var(--surface);font-weight:700;font-size:15px;white-space:nowrap}
+.pos-grp button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.pos-grp button.more{border-style:dashed;color:var(--accent)}
+.pos-tiles{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-content:start}
+.ptile{min-height:92px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;padding:10px 12px;display:flex;flex-direction:column;gap:4px;justify-content:space-between}
+.ptile:active{background:var(--accent-soft)}.ptile .pn{font-weight:700;font-size:15px;line-height:1.2}.ptile .pp{display:flex;justify-content:space-between;align-items:baseline;gap:6px;flex-wrap:wrap}.ptile .pp b{font-size:17px}.ptile .pp small{font-size:12px;color:var(--muted)}.ptile .ps{font-size:12px;color:var(--muted);margin-top:-2px}
+.pos-gw{display:flex;gap:6px;align-items:flex-start}.pos-gw .pos-grp{flex:1;min-width:0}.pos-gw>.more{flex:none;min-height:46px;padding:0 14px;border:1px dashed var(--accent);border-radius:99px;background:var(--surface);color:var(--accent);font-weight:700;font-size:15px}.pos-gw.all .pos-grp{max-height:40vh;overflow:auto}.ptile .ps.neg{color:var(--bad)}
+.pos-act{display:grid;grid-template-columns:repeat(4,1fr) 1.6fr;gap:8px}.pos-act button{min-height:64px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-weight:700;font-size:16px}.pos-act button.on{background:var(--accent-soft);border-color:var(--accent)}
+.pos-act button.pay{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-size:18px}.pos-act button.pay b{display:block;font-size:22px}.pos-act button:disabled{opacity:.45}
+.osk{display:flex;flex-direction:column;gap:6px;background:var(--sunk);border-radius:12px;padding:8px}.okr{display:flex;gap:6px}.okr button{flex:1;min-height:50px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:19px;font-weight:600}.okr button.w{flex:1.4;font-size:15px}.okr button.sp{flex:5;font-size:15px}
+.pos-ov{position:fixed;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;z-index:15;padding:16px}
+.pos-sh{background:var(--bg);border-radius:16px;width:min(560px,100%);max-height:92vh;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}.pos-sh.wide{width:min(820px,100%)}
+.psh{display:flex;justify-content:space-between;align-items:center}.psh b{font-size:20px}.psh button{width:48px;height:48px;border-radius:12px;background:var(--sunk);font-size:20px}
+.pinfo{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px}.pinfo>div{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line)}.pinfo>div:last-child{border-bottom:0}.pinfo b{font-size:17px}.pinfo .tot b{font-size:22px}.pinfo .tot span{font-weight:700}
+.pcl,.pdl{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto}
+.pcr,.pdr{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:56px;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;font-size:15px}
+.pcr small,.pdr small{display:block;color:var(--muted);font-size:13px}.pcr .r{text-align:right;font-weight:700}.pcr.ns{opacity:.6}.pcr.on{border-color:var(--accent);background:var(--accent-soft)}
+.pdr .tm{color:var(--muted);width:48px}.pdr .nm{flex:1;min-width:0}.pdr .stt{font-size:12px;font-weight:800;border-radius:99px;padding:3px 9px;background:var(--sunk)}.stt.ok{background:var(--accent-soft);color:var(--accent)}.stt.d{background:color-mix(in srgb,var(--om) 18%,transparent);color:var(--om)}.stt.x{background:var(--bad-soft);color:var(--bad)}.stt.h,.stt.o{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}.stt.r,.stt.p{background:color-mix(in srgb,var(--kkm) 16%,transparent);color:var(--kkm)}
+.pdr .rq{display:flex;align-items:center;gap:10px}.pdr .rq button{width:48px;height:48px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:22px}.pdr .rq b{min-width:28px;text-align:center;font-size:18px}
+.pdn{display:flex;align-items:center;justify-content:space-between;gap:8px}.pdn button{width:52px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:20px}.pdn button:disabled{opacity:.4}
+.pos-pay{background:var(--bg);border-radius:18px;width:min(980px,100%);max-height:94vh;overflow:auto;display:grid;grid-template-columns:1fr 1.15fr;gap:16px;padding:16px}
+.pp-l{display:flex;flex-direction:column;gap:10px}.pp-tot{display:flex;justify-content:space-between;align-items:baseline;padding:4px 4px 8px}.pp-tot b{font-size:38px;font-weight:800}
+.pf{display:flex;justify-content:space-between;align-items:center;min-height:62px;padding:0 16px;border:2px solid var(--line);border-radius:14px;background:var(--surface);font-size:17px}.pf b{font-size:24px}.pf.on{border-color:var(--accent);background:var(--accent-soft)}
+.pp-res{display:flex;justify-content:space-between;align-items:baseline;border-radius:14px;padding:14px 16px}.pp-res b{font-size:34px;font-weight:800}.pp-res.rest{background:color-mix(in srgb,var(--warn) 14%,var(--surface))}.pp-res.chg{background:var(--accent-soft);color:var(--accent)}
+.pp-r{display:flex;flex-direction:column;gap:10px}.pp-notes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pp-notes button{min-height:52px;border-radius:12px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));background:color-mix(in srgb,var(--accent) 7%,var(--surface));font-weight:700;font-size:16px}
+.pp-quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pp-quick button{min-height:50px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:15px}
+.pp-keys button{min-height:56px}.pp-btns{display:grid;grid-template-columns:1fr 1fr 1.6fr;gap:8px}.pp-btns .btn{min-height:60px}
+.pos-chg{background:var(--bg);border-radius:20px;padding:36px 48px;display:flex;flex-direction:column;align-items:center;gap:10px;font-size:18px}.pos-chg b{font-size:54px;font-weight:800;color:var(--accent)}
+.pos-login{max-width:380px;margin:8vh auto;display:flex;flex-direction:column;gap:14px;text-align:center;padding:16px}.pos-login .disp{font-size:40px;letter-spacing:12px;min-height:56px}.pos-login .keys button{min-height:68px;font-size:26px}
+@media (max-width:899px){.pos{grid-template-columns:1fr;height:auto;min-height:100vh}.pos-lines{max-height:34vh}.pos-tiles{max-height:46vh}.pos-act{grid-template-columns:1fr 1fr}.pos-act button.pay{grid-column:span 2}.pos-pay{grid-template-columns:1fr}}
+.bcl{display:flex;flex-wrap:wrap;gap:6px}.bcc{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:4px 6px 4px 12px;font-variant-numeric:tabular-nums}.bcc small{color:var(--muted)}.bcc button{width:32px;height:32px;border-radius:99px;background:var(--sunk)}
+.bcadd{display:flex;gap:8px}.bcadd input{flex:1;min-width:0;min-height:52px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:17px;background:var(--surface);color:var(--text)}.bcadd .btn{width:auto;padding:0 14px}
+</style>`);
+
+/* устройство-касса: сразу открыть продажу */
+if (POSDEV().on && R.s === 'home'){ HIST.length = 0; HIST.push({s:'home'}); R = {s:'pos'}; }
+
 /* Кнопка и жест «Назад» телефона: каждый экран и окно — шаг в истории браузера, чтобы «назад» не закрывало приложение */
 let HSKIP = 0;
 function syncHist(){
@@ -2587,6 +3170,8 @@ window.addEventListener('popstate', () => {
   else if (TSHEET){ TSHEET = false; render(); }
   else if (DSHEET){ DSHEET = null; render(); }
   else if (MSHEET){ MSHEET = false; render(); }
+  else if (R.s === 'pos' && (POS.pay || POS.ov || POS.chg)){ POS.pay = null; POS.ov = null; POS.chg = null; render(); }
+  else if (R.s === 'pos' && POSDEV().on){ render(); }
   else if (R.sOpen || R.q || HIST.length) back();
   syncHist();
 });
@@ -2601,7 +3186,7 @@ window.splashResult = () => {
   return '✓ База обновлена';
 };
 if (location.hash.includes('connect=')) tryConnect(location.hash);
-else if (CFG && !DB) firstLoad();
+else if (CFG && !DB){ render(); window.splashHold = IDB.get('db').then(d => { if (d && d.t && !DB){ DB = d; S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); DATAV++; render(); return sync(); } return firstLoad(); }).catch(() => firstLoad()); }
 else { render(); window.splashHold = CFG ? sync() : null; }
 if (window.splashHold === undefined) window.splashHold = null;
 if ('serviceWorker' in navigator){ const had = !!navigator.serviceWorker.controller; navigator.serviceWorker.register('sw.js').then(r => { try { r.update(); } catch(e){} }).catch(() => {});

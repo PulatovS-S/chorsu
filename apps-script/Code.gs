@@ -18,18 +18,41 @@ const WEB_APP_URL = '';
 const TABLES = {
   products: 'Товары', prices: 'Цены', docs: 'Приходы', prihod: 'Приход_строки',
   inv: 'Инвентаризации', invlines: 'Инвент_строки', extra: 'Вне_списка', cash: 'Касса',
-  adj: 'Корректировки', debtors: 'Должники', moves: 'Долги', settings: 'Настройки', dinfo: 'Карточки_должников'
+  adj: 'Корректировки', debtors: 'Должники', moves: 'Долги', settings: 'Настройки', dinfo: 'Карточки_должников',
+  sales: 'Чеки', salelines: 'Чек_строки', barcodes: 'Штрихкоды', posusers: 'Кассиры'
 };
 // Заголовки листов, которые создаются сами, если их нет (новые таблицы приложения)
 const HEADERS = {
-  dinfo: ['id', 'Имя', 'Телефон', 'Телефон близкого', 'Паспорт', 'Адрес', 'Лимит долга', 'Лимит включён', 'rev', 'del']
+  dinfo: ['id', 'Имя', 'Телефон', 'Телефон близкого', 'Паспорт', 'Адрес', 'Лимит долга', 'Лимит включён', 'rev', 'del'],
+  sales: ['id', '№', 'Дата', 'Время', 'Вид', 'Статус', 'Продавец', 'Касса', 'Клиент id', 'Клиент', 'Сумма', 'Наличные', 'Карта', 'В долг', 'Сдача', 'Заметка', 'Основание', 'Отменил', 'ts', 'rev', 'del'],
+  salelines: ['id', 'Чек', 'Дата', 'Товар id', 'Товар', 'Ед.', 'Кол-во', 'Пачек', 'Цена', 'Сумма', 'rev', 'del'],
+  barcodes: ['Штрихкод', 'Товар id', 'Товар', 'Ед.', 'rev', 'del'],
+  posusers: ['id', 'Имя', 'Роль', 'ПИН (хэш)', 'Активен', 'rev', 'del']
 };
+// Новые столбцы в старых листах: добавляются сами перед «rev»
+const EXTRA_COLS = {products: ['Штук в блоке', 'Группа'], prices: ['Цена блока'], moves: ['Чек']};
+// Листы, в которые строки только дописываются (чеки): при записи читается только столбец id
+const APPEND_ONLY = {sales: 1, salelines: 1};
 // Колонки, которые всегда хранятся как текст (id, даты, названия) — чтобы Таблица не превращала их в даты/числа
 const TEXT_COLS = {
   products: [0, 2, 3, 4], prices: [0, 1, 2, 3], docs: [0, 1, 2], prihod: [0, 1, 2, 3, 4, 5],
   inv: [0, 1, 2, 3], invlines: [0, 1, 2, 3, 4], extra: [0, 1, 2], cash: [0, 1], adj: [0, 1, 3],
-  debtors: [0, 1, 2], moves: [0, 1, 2, 3, 5], settings: [0, 1], dinfo: [0, 1, 2, 3, 4, 5, 7]
+  debtors: [0, 1, 2], moves: [0, 1, 2, 3, 5, 6], settings: [0, 1], dinfo: [0, 1, 2, 3, 4, 5, 7],
+  sales: [0, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17], salelines: [0, 1, 2, 3, 4, 5], barcodes: [0, 1, 2, 3], posusers: [0, 1, 2, 3, 4]
 };
+TEXT_COLS.products = TEXT_COLS.products.concat([6]);
+const COLS_OK_ = {};
+/** добавить недостающие новые столбцы перед «rev» (один раз) */
+function ensureCols_(sh, t) {
+  if (!EXTRA_COLS[t] || COLS_OK_[t]) return;
+  COLS_OK_[t] = 1;
+  const w = sh.getLastColumn(), head = sh.getRange(1, 1, 1, w).getValues()[0].map(String);
+  const miss = EXTRA_COLS[t].filter(h => head.indexOf(h) < 0);
+  if (!miss.length) return;
+  sh.insertColumnsBefore(w - 1, miss.length);
+  sh.getRange(1, w - 1, 1, miss.length).setValues([miss]).setFontWeight('bold');
+  if (sh.getMaxRows() > 1) sh.getRange(2, w - 1, sh.getMaxRows() - 1, miss.length).setNumberFormat('@');
+}
 /** Лист таблицы; новые листы (например, «Карточки_должников») создаются сами */
 function sheet_(ss, t) {
   let sh = ss.getSheetByName(TABLES[t]);
@@ -39,6 +62,7 @@ function sheet_(ss, t) {
     sh.setFrozenRows(1);
     TEXT_COLS[t].concat([HEADERS[t].length - 1]).forEach(c => sh.getRange(2, c + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@'));
   }
+  if (sh) ensureCols_(sh, t);
   return sh;
 }
 
@@ -117,7 +141,7 @@ function handle_(p) {
     if (p.action === 'ping') return out_({ok: true, rev: Number(props_().getProperty('REV') || 0), users: has, user: me && pub_(me)});
     if (has && !me) return out_({ok: false, error: 'login'});
     const role = me ? me.role : 'админ';            // пока пользователей нет — всё как раньше
-    if (p.action === 'pull') return out_(pull_(Number(p.since == null ? -1 : p.since), role));
+    if (p.action === 'pull') return out_(pull_(Number(p.since == null ? -1 : p.since), role, String(p.sf || '')));
     if (p.action === 'push') return out_(push_(p.ops || [], role));
     if (p.action === 'report') return out_(report_(p.sheets || []));
     if (p.action === 'logout') { props_().deleteProperty('T.' + p.token); return out_({ok: true}); }
@@ -135,7 +159,7 @@ function handle_(p) {
  * Пароли не хранятся — только хэш. Вход выдаёт личный токен телефона; «Активен: нет» — вход и токены перестают работать.
  */
 const USERS_SHEET = 'Пользователи', ROLES = ['админ', 'управляющий', 'продавец'];
-const SELLER_TABLES = {docs: 1, prihod: 1, inv: 1, invlines: 1, extra: 1, cash: 1, debtors: 1, moves: 1, dinfo: 1};
+const SELLER_TABLES = {docs: 1, prihod: 1, inv: 1, invlines: 1, extra: 1, cash: 1, debtors: 1, moves: 1, dinfo: 1, sales: 1, salelines: 1};
 function usersSheet_() {
   const ss = SpreadsheetApp.getActive();
   let sh = ss.getSheetByName(USERS_SHEET);
@@ -205,9 +229,11 @@ function norm_(v) {
   return v;
 }
 
-function pull_(since, role) {
-  const ss = SpreadsheetApp.getActive(), res = {};
+function pull_(since, role, sf) {
+  const ss = SpreadsheetApp.getActive(), res = {}, pr = props_().getProperties();
   Object.keys(TABLES).forEach(t => {
+    // лист не менялся с прошлого обновления телефона — не читаем его (быстрее и меньше квоты)
+    if (since >= 0 && pr['R.' + t] != null && Number(pr['R.' + t]) <= since) { res[t] = []; return; }
     const sh = sheet_(ss, t);
     if (!sh) { res[t] = []; return; }
     if (t === 'cash' && sh.getRange(1, 4).getValue() === 'Сдано в офис') sh.getRange(1, 4).setValue('Касса');
@@ -219,6 +245,7 @@ function pull_(since, role) {
       const r = vals[i];
       if (r[0] === '' || r[0] === null) continue;
       const rev = Number(r[w - 2]) || 0;
+      if (since < 0 && sf && APPEND_ONLY[t] && String(norm_(r[2])) < sf) continue;   // при первой загрузке — чеки только за последние месяцы
       if (rev > since && !(role === 'продавец' && t === 'settings' && String(r[0]) === 'pin')) rows.push(r.map(norm_));
     }
     res[t] = rows;
@@ -226,6 +253,27 @@ function pull_(since, role) {
   return {ok: true, rev: Number(props_().getProperty('REV') || 0), tables: res};
 }
 
+/** запись чеков: читается только столбец id, новые строки дописываются в конец */
+function pushAppend_(sh, t, w, n, ops, rev) {
+  const ids = n ? sh.getRange(2, 1, n, 1).getValues() : [], idx = {};
+  ids.forEach((r, i) => { if (r[0] !== '') idx[String(r[0])] = i; });
+  const appends = [];
+  ops.forEach(o => {
+    rev++;
+    const i = idx[String(o.id)];
+    if (o.del) { if (i != null) sh.getRange(2 + i, w - 1, 1, 2).setValues([[rev, 'x']]); return; }
+    const row = (o.row || []).slice(0, w - 2); while (row.length < w - 2) row.push(''); row.push(rev, '');
+    if (i != null) sh.getRange(2 + i, 1, 1, w).setValues([row]);
+    else { idx[String(o.id)] = n + appends.length; appends.push(row); }
+  });
+  if (appends.length) {
+    const start = n + 2;
+    if (sh.getMaxRows() < start + appends.length) sh.insertRowsAfter(sh.getMaxRows(), start + appends.length - sh.getMaxRows() + 500);
+    TEXT_COLS[t].concat([w - 1]).forEach(c => sh.getRange(start, c + 1, appends.length, 1).setNumberFormat('@'));
+    sh.getRange(start, 1, appends.length, w).setValues(appends);
+  }
+  return rev;
+}
 function push_(ops, role) {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -241,6 +289,7 @@ function push_(ops, role) {
       if (!TABLES[t]) return;
       const sh = sheet_(ss, t); if (!sh) return;
       const w = sh.getLastColumn(), n = Math.max(sh.getLastRow() - 1, 0);
+      if (APPEND_ONLY[t]) { rev = pushAppend_(sh, t, w, n, byTable[t], rev); p.setProperty('R.' + t, String(rev)); return; }
       const vals = n ? sh.getRange(2, 1, n, w).getValues() : [];
       const idx = {};
       vals.forEach((r, i) => { if (r[0] !== '') idx[String(r[0])] = i; });
@@ -255,7 +304,7 @@ function push_(ops, role) {
           return;
         }
         const row = (o.row || []).slice(0, w - 2);
-        while (row.length < w - 2) row.push('');
+        while (row.length < w - 2) row.push(i != null && row.length >= (o.row || []).length ? vals[i][row.length] : '');   // старая версия приложения не знает новых столбцов — не стираем их
         row.push(rev, '');
         if (i == null) { idx[String(o.id)] = vals.length + appends.length; appends.push(row); }
         else { vals[i] = row; lo = Math.min(lo, i); hi = Math.max(hi, i); }
@@ -268,6 +317,7 @@ function push_(ops, role) {
         TEXT_COLS[t].concat([w - 1]).forEach(c => sh.getRange(start, c + 1, appends.length, 1).setNumberFormat('@'));
         rg.setValues(appends);
       }
+      p.setProperty('R.' + t, String(rev));
     });
     p.setProperty('REV', String(rev));
     return {ok: true, rev};
