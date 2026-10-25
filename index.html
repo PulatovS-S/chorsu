@@ -687,19 +687,33 @@ const ls = {
   set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } },
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
-// База на устройстве — в IndexedDB (сотни МБ вместо 5 МБ localStorage); старая копия из localStorage переносится сама
+// База на устройстве — в IndexedDB (сотни МБ вместо 5 МБ localStorage). Листы хранятся по отдельности ('t|лист'),
+// чеки, строки чеков и журнал кассы — по одной записи ('S|id', 'L|id', 'J|id'): после чека сохраняется только сам чек,
+// а не вся база. Старая копия одним ключом 'db' (до v17) или из localStorage переносится сама.
 const IDB = (() => { let dbp = null;
   const open = () => dbp || (dbp = new Promise((res, rej) => { try { const r = indexedDB.open('chorsu', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch(e){ rej(e); } }));
   const tx = (mode, fn) => open().then(db => new Promise((res, rej) => { const x = db.transaction('kv', mode), st = x.objectStore('kv'); let out; const q = fn(st); if (q) q.onsuccess = () => { out = q.result; }; x.oncomplete = () => res(out); x.onerror = () => rej(x.error); x.onabort = () => rej(x.error); }));
-  return {get: k => tx('readonly', st => st.get(k)), set: (k, v) => tx('readwrite', st => { st.put(v, k); }), del: k => tx('readwrite', st => { st.delete(k); })};
+  const range = p => IDBKeyRange.bound(p, p + '\uffff');
+  return {get: k => tx('readonly', st => st.get(k)), clear: () => tx('readwrite', st => { st.clear(); }),
+    // одна транзакция: сначала удалить (ключ или {p: префикс}), потом записать [ключ, значение]
+    write: (puts, dels) => tx('readwrite', st => { dels.forEach(k => st.delete(typeof k === 'string' ? k : range(k.p))); puts.forEach(([k, v]) => st.put(v, k)); }),
+    // все записи с ключами на префикс: [[ключ, значение], …]
+    all: p => open().then(db => new Promise((res, rej) => { const st = db.transaction('kv', 'readonly').objectStore('kv'), qk = st.getAllKeys(range(p)), qv = st.getAll(range(p));
+      qv.onsuccess = () => res(qk.result.map((k, i) => [k, qv.result[i]])); qv.onerror = () => rej(qv.error); }))};
 })();
+const ROWT = {sales:'S|', salelines:'L|', poslog:'J|'};   // листы, которые только дописываются: на устройстве — по записи
+const emptySDB = () => ({sales:{}, salelines:{}, poslog:{}});
+let SDB = emptySDB();                   // чеки, строки чеков, журнал кассы — отдельно от DB: база не клонируется после каждого чека
+const splitRows = d => { if (d && d.t) Object.keys(ROWT).forEach(k => { if (d.t[k]){ SDB[k] = d.t[k]; delete d.t[k]; } }); return d; };
+const tbl = k => ROWT[k] ? (SDB[k] = SDB[k] || {}) : (DB.t[k] = DB.t[k] || {});
 let CFG = ls.get(CFG_KEY, null);
-let DB = ls.get(DB_KEY, null);          // {rev, t:{table:{id:[cells]}}}
+let DB = splitRows(ls.get(DB_KEY, null));   // {rev, t:{table:{id:[cells]}}}
 let OUT = ls.get(OUT_KEY, []);          // unsent changes [{s, t, id, row|del}]
+const REJ_KEY = 'chorsu_rejected';
+let REJ = ls.get(REJ_KEY, []);          // не принятые сервером по правам роли (видно админу в Настройках)
 const LOC = ls.get(LOC_KEY, {drafts:{}, wip:null});
 let SEQ = OUT.reduce((m, o) => Math.max(m, o.s||0), 0);
 const TABLES = ['products','prices','docs','prihod','inv','invlines','extra','cash','adj','debtors','moves','settings','dinfo','barcodes','posusers'];
-const SALE_TABLES = ['sales','salelines'];   // чеки кассы пишутся по одному, без полного сравнения базы
 const CATn = {cig:'сигареты', goods:'товары'}, CATr = {'сигареты':'cig', 'товары':'goods'};
 const TYPn = {kkm:'ККМ', om:'Омбор', own:'Запас', g:'Товары', rkkm:'Возврат ККМ', rom:'Возврат Омбор', rown:'Возврат запаса', rg:'Возврат товары'};
 const TYPr = Object.assign(Object.fromEntries(Object.entries(TYPn).map(([k, v]) => [v, k])), {'Свои':'own', 'Возврат свои':'rown'});   // старые записи «Свои» читаются и при сохранении переписываются в «Запас»
@@ -709,7 +723,7 @@ const SSTn = {paid:'Оплачен', debt:'В долг', cancel:'Отменён'
 const Nn = v => { const n = Number(v); return isFinite(n) ? n : 0; };
 const Sx = v => v == null ? '' : String(v);
 const rk = row => { const a = row.map(Sx); while (a.length && a[a.length - 1] === '') a.pop(); return a.join('\u0001'); };
-const emptyS = () => ({products:[], prices:[], docs:[], prihod:[], inv:[], cash:{}, adj:[], debtors:[], moves:[], dinfo:{}, barcodes:{}, posusers:[], sales:[], pin:'0422', bal0:{date:'2026-04-19', amount:0}, drafts:LOC.drafts || {}, wip:LOC.wip || null});
+const emptyS = () => ({products:[], prices:[], docs:[], prihod:[], inv:[], cash:{}, adj:[], debtors:[], moves:[], dinfo:{}, barcodes:{}, posusers:[], sales:[], poslog:[], pin:'0422', bal0:{date:'2026-04-19', amount:0}, drafts:LOC.drafts || {}, wip:LOC.wip || null});
 
 function toTables(S){
   const T = {}; TABLES.forEach(k => T[k] = {});
@@ -738,7 +752,7 @@ function toTables(S){
   return T;
 }
 function fromTables(){
-  const t = DB.t, S2 = emptyS(), g = k => Object.values(t[k] || {});
+  const t = DB.t, S2 = emptyS(), g = k => Object.values((ROWT[k] ? SDB[k] : t[k]) || {});
   const prods = g('products').map(r => ({id:Sx(r[0]), pos:Nn(r[1]), name:Sx(r[2]), cat:CATr[r[3]] || 'cig', hidden:r[4] === 'да', block:Sx(r[5]) === '' ? null : Nn(r[5]), group:Sx(r[6])}));
   prods.sort((a, b) => a.cat === b.cat ? a.pos - b.pos : (a.cat === 'cig' ? -1 : 1));
   S2.products = prods.map(p => { const o = {id:p.id, name:p.name, cat:p.cat, hidden:p.hidden}; if (p.block != null) o.block = p.block; if (p.group) o.group = p.group; return o; });
@@ -759,6 +773,7 @@ function fromTables(){
   const sl = {}; g('salelines').forEach(r => { (sl[Sx(r[1])] = sl[Sx(r[1])] || []).push({id:Sx(r[0]), pid:Sx(r[3]), name:Sx(r[4]), unit:r[5] === 'блок' ? 'b' : 'p', qty:Nn(r[6]), packs:Nn(r[7]), price:Nn(r[8]), sum:Nn(r[9])}); });
   S2.sales = g('sales').map(r => ({id:Sx(r[0]), no:Nn(r[1]), date:Sx(r[2]), time:Sx(r[3]), kind:SKINDr[r[4]] || 'sale', status:SSTr[r[5]] || 'paid', seller:Sx(r[6]), dev:Sx(r[7]), did:Sx(r[8]), cname:Sx(r[9]), total:Nn(r[10]), cash:Nn(r[11]), card:Nn(r[12]), debt:Nn(r[13]), change:Nn(r[14]), note:Sx(r[15]), ref:Sx(r[16]), canc:Sx(r[17]), ts:Nn(r[18]), lines:(sl[Sx(r[0])] || [])}))
     .sort((a, b) => a.ts - b.ts);
+  S2.poslog = g('poslog').map(r => ({id:Sx(r[0]), sale:Sx(r[1]), date:Sx(r[2]), time:Sx(r[3]), who:Sx(r[4]), dev:Sx(r[5]), act:Sx(r[6]), name:Sx(r[7]), qty:Sx(r[8]), sum:Nn(r[9])}));
   S2.dinfo = {}; g('dinfo').forEach(r => { S2.dinfo[Sx(r[0])] = {ph:Sx(r[2]), ph2:Sx(r[3]), pass:Sx(r[4]), addr:Sx(r[5]), lim:Nn(r[6]), limOn:r[7] === 'да'}; });
   const st = t.settings || {};
   if (st.pin) S2.pin = Sx(st.pin[1]).padStart(4, '0');
@@ -767,9 +782,34 @@ function fromTables(){
   return S2;
 }
 let S = DB ? fromTables() : emptyS(), DATAV = 0;
-let persistT = null;
-const persistDB = () => { clearTimeout(persistT); persistT = setTimeout(() => { const snap = DB; if (!snap) return;
-  IDB.set('db', snap).then(() => { if (localStorage.getItem(DB_KEY)) ls.del(DB_KEY); }).catch(() => { if (!ls.set(DB_KEY, snap)) SYNC.warn = 'Память устройства переполнена'; }); }, 250); };
+// Сохранение на устройстве: только изменившиеся листы и записи, в простое главного потока (после чека — только сам чек)
+const PERS = {t:new Set(), rows:new Map(), all:!!DB, h:null};
+const persistDB = tables => { (tables || []).forEach(k => { if (!ROWT[k]) PERS.t.add(k); }); schedulePersist(); };   // без списка — только номер версии базы
+const persistRow = (t, id) => { PERS.rows.set(ROWT[t] + id, [t, id]); schedulePersist(); };
+const whenIdle = f => window.requestIdleCallback ? requestIdleCallback(f, {timeout:1500}) : setTimeout(f, 0);
+function schedulePersist(){ if (!PERS.h) PERS.h = setTimeout(() => whenIdle(flushPersist), 250); }
+function flushPersist(){
+  PERS.h = null; if (!DB) return;
+  const puts = [['meta', {rev:DB.rev, v:2}]], dels = [];
+  if (PERS.all){ dels.push('db', {p:'t|'}); Object.keys(DB.t).forEach(k => puts.push(['t|' + k, DB.t[k]]));
+    Object.keys(ROWT).forEach(t => { dels.push({p:ROWT[t]}); for (const id in SDB[t]) puts.push([ROWT[t] + id, SDB[t][id]]); }); }
+  else { PERS.t.forEach(k => puts.push(['t|' + k, DB.t[k] || {}])); PERS.rows.forEach(([t, id], key) => { const r = SDB[t][id]; if (r) puts.push([key, r]); else dels.push(key); }); }
+  PERS.t = new Set(); PERS.rows = new Map(); PERS.all = false;
+  IDB.write(puts, dels).then(() => { if (localStorage.getItem(DB_KEY)) ls.del(DB_KEY); })
+    .catch(() => { PERS.all = true; if (!ls.set(DB_KEY, {rev:DB.rev, t:Object.assign({}, DB.t, SDB)})) SYNC.warn = 'Память устройства переполнена'; });
+}
+window.addEventListener('pagehide', () => { if (PERS.h){ clearTimeout(PERS.h); flushPersist(); } });
+async function loadLocal(){   // база с устройства → {d, s, all}; null — на устройстве базы нет
+  const meta = await IDB.get('meta');
+  if (meta){ const parts = await Promise.all(['t|'].concat(Object.values(ROWT)).map(IDB.all)), d = {rev:meta.rev, t:{}}, s = emptySDB();
+    parts[0].forEach(([k, v]) => { d.t[k.slice(2)] = v; });
+    Object.keys(ROWT).forEach((t, i) => parts[i + 1].forEach(([k, v]) => { s[t][k.slice(2)] = v; }));
+    return {d, s, all:false}; }
+  const old = await IDB.get('db'); if (!old || !old.t) return null;
+  const s = emptySDB(); Object.keys(ROWT).forEach(k => { if (old.t[k]){ s[k] = old.t[k]; delete old.t[k]; } });
+  return {d:old, s, all:true};
+}
+const applyOut = o => { const tb = tbl(o.t); if (o.del) delete tb[o.id]; else tb[o.id] = o.row; };   // свои неотправленные записи важнее
 function queue(ops){
   const keys = new Set(ops.map(o => o.t + '\u0001' + o.id));
   OUT = OUT.filter(o => !keys.has(o.t + '\u0001' + o.id)).concat(ops.map(o => Object.assign({s:++SEQ}, o)));
@@ -779,14 +819,16 @@ function save(){
   DATAV++;
   LOC.drafts = S.drafts; LOC.wip = S.wip; ls.set(LOC_KEY, LOC);
   if (!DB) return;
-  const T = toTables(S), ops = [];
+  const T = toTables(S), ops = [], ch = [];
   TABLES.forEach(k => {
-    const old = DB.t[k] || {}, nw = T[k];
+    if (k === 'settings' && isSeller()) return;   // продавцу сервер настройки (ПИН) не отдаёт и не принимает — не отправляем
+    const old = DB.t[k] || {}, nw = T[k], n = ops.length;
     for (const id in nw) if (!old[id] || rk(old[id]) !== rk(nw[id])) ops.push({t:k, id, row:nw[id]});
     for (const id in old) if (!nw[id]) ops.push({t:k, id, del:1});
+    if (ops.length > n) ch.push(k);
     DB.t[k] = nw;
   });
-  if (ops.length){ queue(ops); persistDB(); schedulePush(); }
+  if (ops.length){ queue(ops); persistDB(ch); schedulePush(); }
 }
 
 /* ---------- sync with the Google Sheet ---------- */
@@ -808,6 +850,9 @@ async function push(){
     const batch = OUT.slice(0, 400), sent = new Set(batch.map(o => o.s));
     const j = await api('POST', Object.assign(AUTH(), {action:'push', ops:batch.map(o => o.del ? {t:o.t, id:o.id, del:1} : {t:o.t, id:o.id, row:o.row})}));
     if (!j || !j.ok) throw new Error(j && (j.error === 'key' || j.error === 'login') ? j.error : (j && j.error) || 'push');
+    if (j.rejected && j.rejected.length){   // сервер не принял по правам роли — не теряем молча, а откладываем в «Не сохранено»
+      const bad = new Set(j.rejected.map(x => x.t + '\u0001' + x.id)), key = o => o.t + '\u0001' + o.id;
+      REJ = REJ.filter(o => !bad.has(key(o))).concat(batch.filter(o => bad.has(key(o)))); ls.set(REJ_KEY, REJ); }
     OUT = OUT.filter(o => !sent.has(o.s)); ls.set(OUT_KEY, OUT);
   }
 }
@@ -816,17 +861,19 @@ async function pull(full){
   const j = await api('GET', Object.assign(AUTH(), {action:'pull', since, sf:addD(TODAY, -90)}));
   if (!j || !j.ok) throw new Error(j && (j.error === 'key' || j.error === 'login') ? j.error : (j && j.error) || 'pull');
   if (since !== -1 && Number(j.rev) < since) return pull(true);   // база на сервере пересоздана — загрузить заново целиком
-  if (since === -1){ DB = {rev:0, t:{}}; TABLES.concat(SALE_TABLES).forEach(k => DB.t[k] = {}); }
-  let changed = since === -1;
+  if (since === -1){ DB = {rev:0, t:{}}; TABLES.forEach(k => DB.t[k] = {}); SDB = emptySDB(); PERS.all = true; }
+  let changed = since === -1; const ch = new Set();
   SRV_DINFO = 'dinfo' in j.tables;
   for (const k in j.tables){
-    DB.t[k] = DB.t[k] || {};
-    j.tables[k].forEach(row => { const id = Sx(row[0]); changed = true;
-      if (row[row.length - 1] === 'x') delete DB.t[k][id]; else DB.t[k][id] = row.slice(0, row.length - 2); });
+    const tb = tbl(k);
+    j.tables[k].forEach(row => { const id = Sx(row[0]), del = row[row.length - 1] === 'x', nr = row.slice(0, row.length - 2);
+      if (del ? !(id in tb) : (tb[id] && rk(tb[id]) === rk(nr))) return;   // своя же запись вернулась с сервера — ничего не изменилось
+      if (del) delete tb[id]; else tb[id] = nr;
+      changed = true; if (ROWT[k]) persistRow(k, id); else ch.add(k); });
   }
-  OUT.forEach(o => { DB.t[o.t] = DB.t[o.t] || {}; if (o.del) delete DB.t[o.t][o.id]; else DB.t[o.t][o.id] = o.row; }); // my unsent changes win
-  if (DB.t.salelines){ const old = addD(TODAY, -120); for (const id in DB.t.salelines){ if (Sx(DB.t.salelines[id][2]) < old) delete DB.t.salelines[id]; } }
-  DB.rev = j.rev; persistDB();
+  OUT.forEach(applyOut);
+  const old = addD(TODAY, -120); for (const id in SDB.salelines){ if (Sx(SDB.salelines[id][2]) < old){ delete SDB.salelines[id]; persistRow('salelines', id); } }
+  DB.rev = j.rev; persistDB([...ch]);
   return changed;
 }
 function sync(full){
@@ -852,11 +899,14 @@ function softRender(){ // do not interrupt typing or an open number pad
   render();
 }
 let NEED_RENDER = false;
-const plWait = n => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? 'запись ждёт' : a >= 2 && a <= 4 && (b < 12 || b > 14) ? 'записи ждут' : 'записей ждут'; };
+const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };   // 1 запись, 2 записи, 5 записей
+const plRec = n => plural(n, 'запись', 'записи', 'записей');
+const plWait = n => plural(n, 'запись ждёт', 'записи ждут', 'записей ждут');
 function statusText(){
   const n = OUT.length, t = SYNC.last ? new Date(SYNC.last).toTimeString().slice(0,5) : '';
   if (SYNC.state === 'busy') return ['busy', 'Сохраняю в базу…'];
   if (SYNC.state === 'key') return ['bad', 'Телефон не подключён к базе: ключ не подходит. Откройте ссылку подключения ещё раз.'];
+  if (REJ.length) return ['warn', `${REJ.length} ${plRec(REJ.length)} не сохранено: нет прав`];
   if (n && SYNC.state === 'offline') return ['warn', `Нет интернета · ${n} ${plWait(n)} отправки`];
   if (n && SYNC.state === 'err') return ['warn', `Нет связи с базой · ${n} ${plWait(n)}, отправится само`];
   if (n) return ['warn', `${n} ${plWait(n)} отправки`];
@@ -864,7 +914,8 @@ function statusText(){
   if (SYNC.state === 'err') return ['warn', 'База недоступна, повторю позже' + (t ? ` · обновлена в ${t}` : '')];
   return ['ok', t ? `Всё сохранено в базе · ${t}` : 'Всё сохранено в базе'];
 }
-function paintStatus(){ const sd = document.querySelector('#side .sync'); if (sd){ const [c, txt] = statusText(); sd.className = 'sync ' + c; sd.textContent = txt; } const el = document.getElementById('sync'); if (el){ const [c, txt] = statusText(); el.className = 'syncbar ' + c; el.querySelector('span').textContent = txt; } }
+function paintStatus(){ const sd = document.querySelector('#side .sync'); if (sd){ const [c, txt] = statusText(); sd.className = 'sync ' + c; sd.textContent = txt; } const el = document.getElementById('sync'); if (el){ const [c, txt] = statusText(); el.className = 'syncbar ' + c; el.querySelector('span').textContent = txt; }
+  const ps = document.querySelector('.pos-st'); if (ps){ const [c, txt] = statusText(); ps.className = 'pos-st ' + c; ps.textContent = txt; } }   // строка статуса на кассе
 setInterval(() => { if (document.visibilityState === 'visible') sync(); }, 60000);
 setInterval(() => { const t = iso(new Date()); if (t !== TODAY){ TODAY = t; softRender(); } }, 60000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible'){ const t = iso(new Date()); if (t !== TODAY){ TODAY = t; softRender(); } sync(); } });
@@ -2045,8 +2096,12 @@ V.settings = () => {
     ${tile2('go','posusers','Кассиры и ПИН-коды', (S.posusers || []).filter(u => u.active).length ? (S.posusers || []).filter(u => u.active).length + ' кассиров' : 'Пока без ПИН-кодов — касса открывается сразу')}
     ${tile2('go','bcbind','Привязать штрихкоды', Object.keys(S.barcodes || {}).length + ' штрихкодов · сканировать подряд')}
     <label class="chk"><input type="checkbox" data-in="pdev" ${POSDEV().on ? 'checked' : ''}> Это устройство — касса (сразу открывать продажу)</label>
+    ${devNameField()}
+    <div class="field txt"><label for="posnewlim">Лимит долга, который продавец ставит новому клиенту без ПИН (на этом устройстве)</label><input id="posnewlim" data-in="posnewlim" inputmode="numeric" value="${fmt(posNewLim())}" autocomplete="off"></div>
     <div class="sec-h">База (Google Таблица)</div>
     <div class="card small"><div>${statusText()[1]}</div><div class="muted" style="margin-top:4px">Неотправленных записей: ${OUT.length}</div></div>
+    ${REJ.length ? `<div class="note warn"><b>Не сохранено в базе: ${REJ.length} ${plRec(REJ.length)}</b> — сервер не принял их по правам входа (${[...new Set(REJ.map(o => o.t))].map(esc).join(', ')}). Войдите как админ и отправьте снова.</div>
+      <div class="grid2"><button class="btn sec" data-a="rejretry">Отправить снова</button><button class="btn dang ghost" data-a="rejdrop">Убрать из списка</button></div>` : ''}
     <button class="btn sec" data-a="syncnow">Обновить сейчас</button>
     <div class="sec-h">Отчёты в Google Таблице</div>
     <div class="card small"><div>Листы «📊 …» для анализа на компьютере и листы для офиса («Qarz дд.мм» и «дд.мм»). Собираются сами после каждой инвентаризации.</div>
@@ -2087,23 +2142,26 @@ V.sedit = () => {
 function openNP(o){ NP = Object.assign({val:''}, o); NP.fresh = !!NP.val; TOAST = null; ANIM = true; render(); }
 const qtyWarn = n => n >= 1000 ? ' · ⚠ Проверьте: очень большое количество' : '';
 function npDisp(){ const v = NP.val, n = Number(v||0); return v ? (NP.mask ? '•'.repeat(v.length) : fmt(n)) : (NP.money ? '0 сум' : '0'); }
+const npOver = n => NP.max != null && n > NP.max;   // больше допустимого: «Готово» серая, касание объясняет почему
 function npHtml(){
-  const n = Number(NP.val||0);
+  const n = Number(NP.val||0), over = npOver(n);
   return `<div class="ov ${ANIM?'anim':''}"><div class="sheet" role="dialog" aria-label="${esc(NP.title)}">
     <h2>${esc(NP.title)}</h2>${NP.sub ? `<div class="muted small" id="npsub">${NP.sub}</div>` : ''}
     <div class="disp ${NP.val?'':'empty'}" id="npdisp">${npDisp()}</div>
-    <div class="npx" id="npx">${NP.extra ? NP.extra(n) : ''}</div>
+    <div class="npx ${over ? 'neg' : ''}" id="npx" role="status">${over ? esc(NP.maxMsg || '') : NP.extra ? NP.extra(n) : ''}</div>
+    ${NP.fill ? `<button class="btn sec" data-a="npfill">${esc(NP.fill.l)} · ${fmt(NP.fill.v)}</button>` : ''}
     <div class="npkb small muted" style="display:none">Можно печатать цифрами на клавиатуре · Enter — готово · Esc — отмена</div>
     <div class="keys">${['1','2','3','4','5','6','7','8','9', NP.money?'000':'00','0','⌫'].map(k => `<button data-a="npk" data-v="${k}">${k}</button>`).join('')}</div>
-    <div class="sheet-btns"><button class="btn sec" data-a="npclose">Отмена</button><button class="btn ${NP.okDang ? 'dang' : 'pri'}" id="npok" data-a="npok" ${NP.allowZero || n>0 ? '' : 'disabled'}>${NP.ok || 'Записать'}</button></div>
+    <div class="sheet-btns"><button class="btn sec" data-a="npclose">Отмена</button><button class="btn ${NP.okDang ? 'dang' : 'pri'} ${over ? 'off' : ''}" id="npok" data-a="npok" ${NP.allowZero || n>0 ? '' : 'disabled'}>${NP.ok || 'Записать'}</button></div>
     ${NP.onDel ? `<button class="btn dang" data-a="npdel">${NP.delL || 'Удалить строку'}</button>` : ''}
   </div></div>`;
 }
 function npUpdate(){
   const n = Number(NP.val||0), d = document.getElementById('npdisp');
   d.textContent = npDisp(); d.classList.toggle('empty', !NP.val);
-  if (NP.extra) document.getElementById('npx').textContent = NP.extra(n);
-  document.getElementById('npok').disabled = !(NP.allowZero || n>0);
+  const x = document.getElementById('npx'), over = npOver(n), ok = document.getElementById('npok');
+  if (over || NP.extra || x.classList.contains('neg')){ x.textContent = over ? NP.maxMsg || '' : NP.extra ? NP.extra(n) : ''; x.classList.toggle('neg', over); }
+  ok.disabled = !(NP.allowZero || n>0); ok.classList.toggle('off', over);
 }
 function confHtml(){ return `<div class="ov ${ANIM?'anim':''}"><div class="sheet" role="alertdialog"><h2>${CONF.text}</h2>${CONF.alt ? `<button class="btn ${CONF.alt.c || 'sec'}" data-a="cfalt" style="margin-bottom:10px">${CONF.alt.l}</button>` : ''}<div class="sheet-btns"><button class="btn sec" data-a="cfno">${CONF.no.l}</button><button class="btn ${CONF.yes.c}" data-a="cfyes">${CONF.yes.l}</button></div></div></div>`; }
 function typeSheetHtml(){ const K = KIND[R.kind || 'in']; return `<div class="ov ${ANIM?'anim':''}" data-a="tsclose"><div class="sheet" data-stop="1"><h2>${K.q}</h2>
@@ -2115,7 +2173,7 @@ const A = {
   back, go: d => go(d.v),
   syncnow: () => { sync().then(() => { if (SYNC.state === 'ok') toast('База обновлена'); }); },
   fullpull: () => confirmBox('Загрузить всю базу заново? Это займёт немного времени.', 'Загрузить', () => { sync(true).then(() => toast(SYNC.state === 'ok' ? 'База загружена' : 'Не получилось, нет связи')); }),
-  disconnect: () => confirmBox(OUT.length ? `Есть ${OUT.length} неотправленных записей — они пропадут. Всё равно отключить?` : 'Отключить этот телефон от базы?', 'Отключить', () => { [CFG_KEY, DB_KEY, OUT_KEY, 'chorsu_last'].forEach(k => ls.del(k)); IDB.del('db').catch(() => {}); CFG = null; DB = null; OUT = []; S = emptyS(); HIST.length = 0; R = {s:'home'}; }),
+  disconnect: () => confirmBox(OUT.length ? `Есть ${OUT.length} неотправленных записей — они пропадут. Всё равно отключить?` : 'Отключить этот телефон от базы?', 'Отключить', () => { [CFG_KEY, DB_KEY, OUT_KEY, REJ_KEY, 'chorsu_last'].forEach(k => ls.del(k)); IDB.clear().catch(() => {}); CFG = null; DB = null; SDB = emptySDB(); REJ = []; OUT = []; S = emptyS(); HIST.length = 0; R = {s:'home'}; }),
   pinchange: () => openNP({title:'Новый ПИН-код', sub:'Наберите 4 цифры', mask:true, allowZero:true, ok:'Дальше', onOk:() => { const p1 = NP.val; if (p1.length !== 4){ NP.val=''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Нужно ровно 4 цифры</span>'; return; }
     openNP({title:'Повторите новый ПИН-код', sub:'Ещё раз те же 4 цифры', mask:true, allowZero:true, ok:'Сохранить', onOk:() => { if (NP.val !== p1){ NP.val=''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Не совпало, наберите ещё раз</span>'; return; } S.pin = p1; save(); NP = null; toast('ПИН-код изменён'); }}); }}),
   xls: () => exportWeek(),
@@ -2281,7 +2339,7 @@ const A = {
     try { const r = await api('POST', {key:CFG.k, action:'login', login, password});
       TOAST = null;
       if (r && r.ok){ const before = CFG.user && CFG.user.login; CFG.t = r.token; CFG.user = r.user; ls.set(CFG_KEY, CFG); ls.set('chorsu_lastlogin', login); NEEDLOGIN = false; SHOW = false; USERS = null;
-        HIST.length = 0; R = {s:'home'}; if (!DB) firstLoad(); else { render(); sync(); } toast('Здравствуйте, ' + r.user.name); }
+        startScreen(); if (!DB) firstLoad(); else { render(); sync(); } toast('Здравствуйте, ' + r.user.name); }
       else { LOGINERR = r && r.error === 'badlogin' ? 'Неверный логин или пароль' : r && r.error === 'key' ? 'Ссылка подключения устарела — попросите новую' : 'Не получилось войти' + (r && r.error ? ': ' + r.error : ''); render(); }
     } catch(e){ TOAST = null; LOGINERR = 'Нет связи с базой. Проверьте интернет.'; render(); } },
   logout: () => confirmBox('Выйти из своего входа на этом телефоне?', 'Выйти', () => { const tk = CFG.t; api('POST', Object.assign(AUTH(), {action:'logout'})).catch(() => {});
@@ -2344,7 +2402,8 @@ const A = {
   shide: () => { const p = P(R.id); p.hidden = !p.hidden; save(); doBack(); toast(p.hidden ? 'Товар скрыт' : 'Товар снова в списке'); },
   sbal: () => openNP({title:'Начальный долг на ' + dShort(S.bal0.date), money:true, allowZero:true, ok:'Сохранить', onOk:n => { S.bal0.amount = n; save(); NP = null; toast('Сохранено'); }}),
   npk: d => { const k = d.v; if (NP.fresh){ NP.fresh = false; if (k !== '⌫') NP.val = ''; } if (k === '⌫') NP.val = NP.val.slice(0,-1); else if (NP.val.length < 12) NP.val = NP.mask ? (NP.val + k).slice(0, 4) : (NP.val + k).replace(/^0+/, ''); npUpdate(); },
-  npok: () => NP.onOk(Number(NP.val||0)),
+  npok: () => { const n = Number(NP.val||0); if (npOver(n)){ npUpdate(); posBeep(); return; } NP.onOk(n); },
+  npfill: () => { NP.val = String(NP.fill.v); NP.fresh = false; npUpdate(); },
   npclose: () => { NP = null; render(); },
   cfno: () => { const f = CONF.no.f; CONF = null; f(); render(); },
   cfyes: () => { const f = CONF.yes.f; CONF = null; f(); render(); },
@@ -2409,10 +2468,10 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); if (k === 'Enter') return ae.click();
     const it = navItems().filter(x => !x.matches('input')), i = it.indexOf(ae), n = it[i + (k === 'ArrowDown' ? 1 : -1)];
     if (n) return navFocus(n); if (k === 'ArrowUp'){ const q = document.getElementById('q'); if (q){ q.focus(); q.select(); } } return; }
-  if (NP && !inText){
-    if (/^[0-9]$/.test(k)){ e.preventDefault(); A.npk({v:k}); }
+  if (NP && !inText){   // сканер (быстрая серия + Enter) окно не меняет и не подтверждает
+    if (/^[0-9]$/.test(k)){ e.preventDefault(); kbTrack(k, () => ({val:NP.val, fresh:NP.fresh})); A.npk({v:k}); }
     else if (k === 'Backspace'){ e.preventDefault(); A.npk({v:'⌫'}); }
-    else if (k === 'Enter'){ e.preventDefault(); const b = document.getElementById('npok'); if (b && !b.disabled) A.npok(); }
+    else if (k === 'Enter'){ e.preventDefault(); if (kbIsScan()) return npScanned(); kbDone(); const b = document.getElementById('npok'); if (b && !b.disabled) A.npok(); }
     return; }
   if (ae && ae.classList && ae.classList.contains('gin') && !e.altKey && !mod){   // ячейки таблиц ввода
     const dir = {Enter:e.shiftKey ? 'up' : 'down', ArrowDown:'down', ArrowUp:'up', ArrowLeft:'left', ArrowRight:'right'}[k];
@@ -2515,14 +2574,14 @@ function tryConnect(s){
     if (!j.u || !j.k) return false;
     CFG = {u:j.u, k:j.k}; ls.set(CFG_KEY, CFG);
     try { history.replaceState(null, '', location.pathname + location.search); } catch(e){}
-    DB = null; ls.del(DB_KEY); IDB.del('db').catch(() => {}); OUT = []; ls.set(OUT_KEY, OUT);
+    DB = null; SDB = emptySDB(); ls.del(DB_KEY); IDB.clear().catch(() => {}); OUT = []; ls.set(OUT_KEY, OUT);
     firstLoad(); return true;
   } catch(e){ return false; }
 }
 function firstLoad(){ const p = firstLoadRun(); window.splashHold = p; return p; }
 async function firstLoadRun(){
   LOADERR = ''; render();
-  try { await pull(true); S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); DATAV++; SYNC.state = 'ok'; SYNC.last = Date.now(); ls.set('chorsu_last', SYNC.last); HIST.length = 0; R = {s:'home'}; render(); }
+  try { await pull(true); S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); DATAV++; SYNC.state = 'ok'; SYNC.last = Date.now(); ls.set('chorsu_last', SYNC.last); startScreen(); render(); }
   catch(e){ if (e.message === 'login'){ NEEDLOGIN = true; LOADERR = ''; return render(); } LOADERR = e.message === 'key' ? 'ключ не подходит — нужна новая ссылка подключения' : (navigator.onLine ? 'база не отвечает' : 'нет интернета'); render(); }
 }
 function loadXLSX(){
@@ -2603,80 +2662,127 @@ function render(){
    POS-касса: продажа на сенсорном мониторе (режим той же программы)
    Чек → оплата (наличные / карта / смешанная / в долг) → запись в «Чеки» и «Чек_строки».
    Незакрытые и отложенные чеки — только на этом устройстве (LOC.pos), закрытые — в базу.
+   v17: сканер не попадает в окна оплаты и чисел; цена строки фиксируется при добавлении; без цены не продаём;
+   возврат, долг без лимита и выход в программу — по ПИН управляющего; остаток на кассе без Запаса; номер чека
+   с буквой устройства («К-12»); удалённые строки и очищенные чеки — в «Журнал_кассы».
    ===================================================================== */
 const blockOf = p => !p ? 0 : (p.block != null ? p.block : (p.cat === 'cig' ? 10 : 0));
 function unitPrice(pid, unit, date){ const pr = priceAt(pid, date || TODAY), p = P(pid); return unit === 'b' ? (pr.bsale || pr.sale * blockOf(p)) : pr.sale; }
+const linePrice = l => l.price != null ? l.price : unitPrice(l.pid, l.unit);   // цена строки — та, что была при добавлении (у старых строк — по прайсу)
 const unitName = (p, u) => u === 'b' ? (p && p.cat === 'cig' ? 'бл' : 'уп') : 'шт';
-const barcodesOf = pid => Object.keys(S.barcodes || {}).filter(c => S.barcodes[c].pid === pid);
-const POSDEV = () => ls.get('chorsu_posdev', {on:false, name:'Касса'});
+let BCX = null, BCXK = -1, BCXS = null;
+function barcodesOf(pid){   // обратный индекс «товар → штрихкоды»: строится один раз после изменения базы
+  if (BCXK !== DATAV || BCXS !== S.barcodes){ BCX = {}; const b = S.barcodes || {}; for (const c in b) (BCX[b[c].pid] = BCX[b[c].pid] || []).push(c); BCXK = DATAV; BCXS = S.barcodes; }
+  return BCX[pid] || [];
+}
+const POSDEV = () => ls.get('chorsu_posdev', {on:false, name:''});
+const setPosDev = o => ls.set('chorsu_posdev', Object.assign(POSDEV(), o));
+const devName = () => (POSDEV().name || '').trim() || (POSDEV().on ? 'Касса' : DESK ? 'Компьютер' : 'Телефон');
+const posNewLim = () => { const v = POSDEV().newlim; return v == null ? 500000 : v; };   // лимит, который продавец ставит новому клиенту без ПИН
 let POSU = null;                       // кто сейчас за кассой {id, name, role}
-const POS = {grp:'*', q:'', all:false, osk:false, lay:'ru', sel:-1, pay:null, ov:null, price:false, msg:'', chg:null, docsDate:null, docsTab:'all', cq:'', bind:null};
+const NOTES = [5000, 10000, 20000, 50000, 100000, 200000];
+const POS = {grp:'*', q:'', all:false, osk:false, lay:'ru', sel:-1, pay:null, ov:null, price:false, msg:'', chg:null, docsDate:null, docsTab:'all', cq:'', bind:null, mul:0, act:0};
 LOC.pos = LOC.pos || {cur:null, held:[]};
 const posKeep = () => ls.set(LOC_KEY, LOC);
 const newPosDoc = () => ({id:'s' + uid() + uid(), ts:Date.now(), lines:[], did:'', note:''});
 function posCur(){ if (!LOC.pos.cur) LOC.pos.cur = newPosDoc(); return LOC.pos.cur; }
+const posHasUsers = () => (S.posusers || []).some(u => u.active);
 const posMgr = () => POSU && (POSU.role === 'админ' || POSU.role === 'управляющий');
+const posBoss = () => posMgr() || (!POSU && !isSeller());   // за кассой управляющий/админ (или кассиров нет и вход устройства — не продавец)
+const posBossEdit = () => posBoss() && !isSeller();   // + вход устройства не «продавец»: сервер примет цены и кассиров, откроются их экраны
+const posOwn = () => SHOW && !isSeller() && (!POSU || posMgr());   // остаток с Запасом — только управляющему/админу с включённым 👁
+const posCanPay = () => { const l = posCur().lines; return l.length > 0 && l.every(x => linePrice(x) > 0); };
 const hhmm = ts => { const d = new Date(ts); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
 
 /* ---------- продажи по кассе: индексы ---------- */
-let SIX = null, SIXK = '';
+let SIX = null, SIXK = '', SALEV = 0;   // SALEV — версия чеков (новый чек не сбрасывает индексы прихода и цен)
 function salesIdx(){
-  const k = DATAV + '|' + (S.sales || []).length; if (SIXK === k && SIX) return SIX;
+  const k = DATAV + '|' + SALEV; if (SIXK === k && SIX) return SIX;
   const by = {}, cnt = {}, from30 = addD(TODAY, -30);
   (S.sales || []).forEach(s => { if (s.status === 'cancel' || s.kind === 'pay') return; const sg = s.kind === 'ret' ? -1 : 1;
     s.lines.forEach(l => { (by[l.pid] = by[l.pid] || []).push({date:s.date, packs:sg * l.packs}); if (sg > 0 && s.date >= from30) cnt[l.pid] = (cnt[l.pid] || 0) + 1; }); });
   SIXK = k; return SIX = {by, cnt};
 }
 const posSold = (pid, from, to) => (salesIdx().by[pid] || []).reduce((a, x) => a + (x.date >= from && (!to || x.date < to) ? x.packs : 0), 0);
-function stockNow(pid){   // примерный остаток: последняя инвентаризация + приход − продано по кассе
+function stockNow(pid, own = true){   // примерный остаток: последняя инвентаризация + приход − продано по кассе; own = false — без Запаса
   const p = P(pid); if (!p) return null; const inv = invList(p.cat).slice(-1)[0]; if (!inv) return null;
   const r = inv.rows[pid], pr = prihodSum(pid, inv.date);
-  const base = p.cat === 'goods' ? ((r || [0])[0] || 0) : (r ? r[0] + r[1] + r[2] + r[3] + (r[4] || 0) : 0);
-  const inc = p.cat === 'goods' ? pr.g - pr.rg : pr.kkm + pr.om + pr.own - pr.rkkm - pr.rom - pr.rown;
+  const base = p.cat === 'goods' ? ((r || [0])[0] || 0) : (r ? r[0] + r[1] + r[2] + r[3] + (own ? r[4] || 0 : 0) : 0);
+  const inc = p.cat === 'goods' ? pr.g - pr.rg : pr.kkm + pr.om - pr.rkkm - pr.rom + (own ? pr.own - pr.rown : 0);
   return base + inc - posSold(pid, inv.date);
 }
+const posStock = pid => stockNow(pid, posOwn());
 function dayTotals(date){
   const z = {n:0, sum:0, cash:0, card:0, debt:0, rn:0, rsum:0, rcash:0, rcard:0, rdebt:0, pcash:0, pcard:0, pn:0, cn:0, change:0};
   (S.sales || []).forEach(s => { if (s.date !== date) return; if (s.status === 'cancel'){ z.cn++; return; }
     if (s.kind === 'sale'){ z.n++; z.sum += s.total; z.cash += s.cash; z.card += s.card; z.debt += s.debt; z.change += s.change; }
     else if (s.kind === 'ret'){ z.rn++; z.rsum += s.total; z.rcash += s.cash; z.rcard += s.card; z.rdebt += s.debt; }
     else if (s.kind === 'pay'){ z.pn++; z.pcash += s.cash; z.pcard += s.card; } });
-  z.drawer = z.cash + z.pcash - z.rcash; z.cardAll = z.card + z.pcard - z.rcard; return z;
+  z.drawer = z.cash + z.pcash - z.rcash; z.cardAll = z.card + z.pcard - z.rcard; return z;   // возврат «в счёт долга» наличных в кассе не уменьшает
 }
+/* буква устройства в номере чека: «К-12» — касса, «Т-3» — телефон; совпали первые буквы — «К2-…» (по порядку появления) */
+let DEVT = {k:'', m:{}};
+function devTags(){
+  const k = DATAV + '|' + SALEV + '|' + devName(); if (DEVT.k === k) return DEVT.m;
+  const first = {}; (S.sales || []).forEach(s => { if (s.dev && !(s.dev in first)) first[s.dev] = s.ts; }); if (!(devName() in first)) first[devName()] = Infinity;
+  const m = {}, used = {};
+  Object.keys(first).sort((a, b) => first[a] === first[b] ? 0 : first[a] < first[b] ? -1 : 1).forEach(n => { const L = (n.trim()[0] || '?').toUpperCase(); used[L] = (used[L] || 0) + 1; m[n] = used[L] > 1 ? L + used[L] : L; });
+  DEVT = {k, m}; return m;
+}
+const saleNo = s => s.dev ? devTags()[s.dev] + '-' + s.no : String(s.no);   // старые чеки без имени устройства — как раньше
 
 /* ---------- запись чека в базу (по одному, без полного сравнения) ---------- */
 const saleRow = d => [d.id, d.no, d.date, d.time, SKINDn[d.kind], SSTn[d.status], d.seller || '', d.dev || '', d.did || '', d.cname || '', d.total, d.cash || 0, d.card || 0, d.debt || 0, d.change || 0, d.note || '', d.ref || '', d.canc || '', d.ts];
 const lineRow = (d, l) => [l.id, d.id, d.date, l.pid, l.name, l.unit === 'b' ? 'блок' : 'шт', l.qty, l.packs, l.price, l.sum];
 function writeSale(d, withLines){
-  if (!DB) return; DB.t.sales = DB.t.sales || {}; DB.t.salelines = DB.t.salelines || {};
-  const ops = [], r = saleRow(d); DB.t.sales[d.id] = r; ops.push({t:'sales', id:d.id, row:r});
-  if (withLines !== false) d.lines.forEach(l => { const lr = lineRow(d, l); DB.t.salelines[l.id] = lr; ops.push({t:'salelines', id:l.id, row:lr}); });
+  if (!DB) return;
+  const ops = [], r = saleRow(d); SDB.sales[d.id] = r; persistRow('sales', d.id); ops.push({t:'sales', id:d.id, row:r});
+  if (withLines !== false) d.lines.forEach(l => { const lr = lineRow(d, l); SDB.salelines[l.id] = lr; persistRow('salelines', l.id); ops.push({t:'salelines', id:l.id, row:lr}); });
   const i = S.sales.findIndex(x => x.id === d.id); if (i >= 0) S.sales[i] = d; else S.sales.push(d);
-  DATAV++; queue(ops); persistDB(); schedulePush();
+  if (!POSDEV().name && d.dev === devName()) setPosDev({name:d.dev});   // имя по умолчанию закрепляется с первым чеком: номера и буква не меняются
+  SALEV++; queue(ops); schedulePush();
 }
-const nextNo = date => (S.sales || []).filter(s => s.date === date).reduce((m, s) => Math.max(m, s.no || 0), 0) + 1;
+/* журнал кассы (лист «Журнал_кассы»): удалённые строки, возвращённые строки, очищенные чеки */
+const LOGA = {del:'Удалил строку', undo:'Вернул строку', clear:'Очистил чек'};
+const logRow = x => [x.id, x.sale, x.date, x.time, x.who, x.dev, x.act, x.name, x.qty, x.sum];
+function posLog(act, doc, lines){
+  if (!DB || !lines.length) return; const now = Date.now(), ops = [];
+  lines.forEach(l => { const p = P(l.pid), x = {id:'j' + uid() + uid(), sale:doc.id, date:TODAY, time:hhmm(now), who:posSeller(), dev:devName(), act, name:p ? p.name : '?', qty:l.qty + ' ' + unitName(p, l.unit), sum:linePrice(l) * l.qty};
+    const r = logRow(x); SDB.poslog[x.id] = r; persistRow('poslog', x.id); ops.push({t:'poslog', id:x.id, row:r}); S.poslog.push(x); });
+  queue(ops); schedulePush();
+}
+function dayLog(date){   // «Удалено из чеков» за день: удалённые и очищенные строки минус возвращённые «Вернуть»
+  const list = (S.poslog || []).filter(x => x.date === date).sort((a, b) => a.time < b.time ? -1 : a.time > b.time ? 1 : 0); if (!list.length) return null;
+  let n = 0, sum = 0; list.forEach(x => { const sg = x.act === LOGA.undo ? -1 : 1; n += sg; sum += sg * x.sum; });
+  return {list, n, sum};
+}
+const nextNo = date => { const dv = devName(); return (S.sales || []).filter(s => s.date === date && s.dev === dv).reduce((m, s) => Math.max(m, s.no || 0), 0) + 1; };   // свой счётчик у каждого устройства
 const posSeller = () => POSU ? POSU.name : (CFG && CFG.user ? CFG.user.name : 'Касса');
 
 /* ---------- чек ---------- */
-function posTotal(doc){ return (doc || posCur()).lines.reduce((a, l) => a + l.qty * unitPrice(l.pid, l.unit), 0); }
+function posTotal(doc){ return (doc || posCur()).lines.reduce((a, l) => a + l.qty * linePrice(l), 0); }
 function posAdd(pid, unit, qty){
   const p = P(pid); if (!p) return;
-  if (POS.price){ POS.price = false; POS.ov = {k:'info', pid}; return render(); }
+  if (POS.price){ POS.price = false; POS.msg = ''; POS.ov = {k:'info', pid}; return render(); }
   unit = unit === 'b' && blockOf(p) ? 'b' : 'p';
+  const price = unitPrice(pid, unit);
+  if (!(price > 0)){ posBeep(); POS.ov = {k:'noprice', pid, unit}; return render(); }   // за 0 не продаём
+  if (POS.mul){ qty = POS.mul; POS.mul = 0; }
   const doc = posCur(), i = doc.lines.findIndex(l => l.pid === pid && l.unit === unit);
-  if (i >= 0){ doc.lines[i].qty += qty || 1; POS.sel = i; } else { doc.lines.push({pid, unit, qty:qty || 1}); POS.sel = doc.lines.length - 1; }
-  const st = stockNow(pid), packs = doc.lines.filter(l => l.pid === pid).reduce((a, l) => a + l.qty * (l.unit === 'b' ? blockOf(p) : 1), 0);
+  if (i >= 0){ doc.lines[i].qty += qty || 1; POS.sel = i; } else { doc.lines.push({pid, unit, qty:qty || 1, price}); POS.sel = doc.lines.length - 1; }
+  const st = posStock(pid), packs = doc.lines.filter(l => l.pid === pid).reduce((a, l) => a + l.qty * (l.unit === 'b' ? blockOf(p) : 1), 0);
   POS.msg = st != null && packs > st ? `⚠ ${p.name}: по учёту осталось ${Math.max(st, 0)} шт` : '';
   POS.undo = null; posKeep(); render();
   const el = document.querySelector('.pos-lines .pl.on'); if (el) el.scrollIntoView({block:'nearest'});
 }
 function posScan(code){
   code = String(code || '').trim(); if (!code) return false;
+  POS.chg = null;
   const b = S.barcodes && S.barcodes[code];
   if (b && P(b.pid)){ posAdd(b.pid, b.unit, 1); return true; }
   posBeep();
   POS.msg = `Штрихкод ${code} не найден`;
-  if (posMgr() || (!POSU && !isSeller())){ POS.ov = {k:'bind', code, q:''}; }
+  if (posBoss()){ POS.ov = {k:'bind', code, q:''}; }
   render(); return false;
 }
 function posBeep(){ try { const c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(), g = c.createGain(); o.frequency.value = 330; g.gain.value = 0.15; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 0.18); } catch(e){} }
@@ -2692,57 +2798,74 @@ function posGroups(){
   return list.filter(x => x.ids.length).map(x => Object.assign(x, {w:w(x)}));
 }
 function posTiles(){
-  const cnt = salesIdx().cnt, sc = useScore(), w = id => (cnt[id] || 0) * 3 + (sc[id] || 0), all = ordered('cig').concat(ordered('goods'));
+  const cnt = salesIdx().cnt, sc = useScore(), w = id => (cnt[id] || 0) * 3 + (sc[id] || 0), cig = ordered('cig'), gd = ordered('goods'), all = cig.concat(gd);
   const q = POS.q.trim();
-  if (q){ const n = Number(q); return all.filter(p => match(p.name, q) || (n && numOf(p.id) === n) || barcodesOf(p.id).some(c => c === q)).slice(0, 60); }
+  if (q){   // штрихкод и номер — прямой поиск, без перебора штрихкодов по каждому товару
+    const bc = S.barcodes && S.barcodes[q], n = /^\d+$/.test(q) ? +q : 0, byNo = n ? [cig[n - 1], gd[n - 1]] : [], ws = norm(q).split(' ').filter(Boolean);
+    return all.filter(p => (bc && bc.pid === p.id) || byNo.includes(p) || ws.every(x => norm(p.name).includes(x))).slice(0, 60); }
   if (POS.grp === '*') return all.slice().sort((a, b) => w(b.id) - w(a.id)).slice(0, 24);
   const gr = posGroups().find(x => x.key === POS.grp); if (!gr) return [];
   return gr.ids.map(P).filter(Boolean).sort((a, b) => w(b.id) - w(a.id));
 }
 function posTileHtml(p){
-  const st = stockNow(p.id), b = blockOf(p);
-  return `<button class="ptile" data-a="padd2" data-v="${p.id}"><span class="pn">${esc(p.name)}</span><span class="pp"><b>${fmt(unitPrice(p.id, 'p'))}</b>${b && p.cat === 'cig' ? `<small>бл ${fmt(unitPrice(p.id, 'b'))}</small>` : ''}</span>${st != null ? `<span class="ps ${st <= 0 ? 'neg' : ''}">ост. ${st}</span>` : ''}</button>`;
+  const st = posStock(p.id), b = blockOf(p), pp = unitPrice(p.id, 'p'), bp = b ? unitPrice(p.id, 'b') : 0;
+  return `<div class="ptw"><button class="ptile" data-a="padd2" data-v="${p.id}"><span class="pn">${esc(p.name)}</span><span class="pp">${pp > 0 ? `<b>${fmt(pp)}</b>` : '<b class="nop">нет цены</b>'}${st != null ? `<span class="ps ${st <= 0 ? 'neg' : ''}">ост. ${Math.max(st, 0)}</span>` : ''}</span></button>${bp > 0 ? `<button class="pblk" data-a="padd3" data-v="${p.id}|b">+ ${unitName(p, 'b')} ${fmt(bp)}</button>` : ''}</div>`;
 }
+const posTilesHtml = () => posTiles().map(posTileHtml).join('') || '<div class="pos-empty">Ничего не найдено</div>';
 
 /* ---------- экран кассы ---------- */
 V.pos = () => {
   if (!DB) return V.loading();
-  if (!POSU && (S.posusers || []).some(u => u.active)) return posLogin();
-  const doc = posCur(), lines = doc.lines, tot = posTotal(doc), cl = doc.did ? S.debtors.find(d => d.id === doc.did) : null;
+  if (!POSU && posHasUsers()) return posLogin();
+  const doc = posCur(), lines = doc.lines, tot = posTotal(doc), cl = doc.did ? S.debtors.find(d => d.id === doc.did) : null, canPay = posCanPay();
   if (POS.sel >= lines.length) POS.sel = lines.length - 1;
-  const held = LOC.pos.held.length, [sc, st] = statusText();
+  const held = LOC.pos.held.length, [sc, st] = statusText(), last = LOC.pos.last, sl = lines[POS.sel];
   const groups = posGroups(), N = 7, top = POS.all ? groups : groups.slice().sort((a, b) => b.w - a.w).slice(0, N);
   if (!POS.all && POS.grp !== '*' && !top.some(g => g.key === POS.grp)){ const g = groups.find(x => x.key === POS.grp); if (g) top.unshift(g); }
-  const tiles = posTiles(), packs = lines.reduce((a, l) => a + l.qty * (l.unit === 'b' ? blockOf(P(l.pid)) : 1), 0);
+  const packs = lines.reduce((a, l) => a + l.qty * (l.unit === 'b' ? blockOf(P(l.pid)) : 1), 0);
   const left = `<div class="pos-left">
     <button class="pos-client ${cl ? 'on' : ''}" data-a="pclient">${cl ? `👤 <b>${esc(cl.name)}</b> · долг ${fmt(debtOf(cl.id))}` : '👤 Клиент: не выбран'}</button>
-    <div class="pos-lines">${lines.length ? lines.map((l, i) => { const p = P(l.pid), pr = unitPrice(l.pid, l.unit);
-      return `<button class="pl ${i === POS.sel ? 'on' : ''}" data-a="psel" data-v="${i}"><span class="q">${l.qty} ${unitName(p, l.unit)}</span><span class="n">${esc(p ? p.name : '?')}<small>${fmt(pr)} × ${l.qty}</small></span><span class="s">${fmt(pr * l.qty)}</span></button>`; }).join('')
+    <div class="pos-lines">${lines.length ? lines.map((l, i) => { const p = P(l.pid), pr = linePrice(l);
+      return `<button class="pl ${i === POS.sel ? 'on' : ''} ${pr > 0 ? '' : 'zero'}" data-a="psel" data-v="${i}"><span class="q">${l.qty} ${unitName(p, l.unit)}</span><span class="n">${esc(p ? p.name : '?')}<small>${pr > 0 ? fmt(pr) + ' × ' + l.qty : 'нет цены — оплата недоступна'}</small></span><span class="s">${fmt(pr * l.qty)}</span></button>`; }).join('')
       : `<div class="pos-empty">Сканируйте товар или выберите справа</div>`}</div>
     <div class="pos-lc">
-      <button data-a="pminus" ${POS.sel < 0 ? 'disabled' : ''} aria-label="Меньше">−</button><button data-a="pplus" ${POS.sel < 0 ? 'disabled' : ''} aria-label="Больше">+</button>
-      <button data-a="punit" ${POS.sel < 0 || !blockOf(P((lines[POS.sel] || {}).pid)) ? 'disabled' : ''}>шт ⇄ бл</button>
-      <button class="del" data-a="pdel" ${POS.sel < 0 ? 'disabled' : ''}>Удалить</button>${POS.undo ? `<button data-a="pundo">Вернуть</button>` : ''}
+      <button data-a="pminus" ${!sl || sl.qty <= 1 ? 'disabled' : ''} aria-label="Меньше">−</button><button data-a="pplus" ${sl ? '' : 'disabled'} aria-label="Больше">+</button>
+      <button data-a="punit" ${!sl || !blockOf(P(sl.pid)) ? 'disabled' : ''}>шт ⇄ бл</button>
+      <button class="del" data-a="pdel" ${sl ? '' : 'disabled'}>Удалить</button>${POS.undo ? `<button data-a="pundo">Вернуть</button>` : ''}
     </div>
     <div class="pos-tot"><span>${lines.length} поз. · ${packs} шт</span><b>${fmt(tot)}</b></div>
+    ${POS.pay ? '' : `<div class="pos-qp"><button class="cash" data-a="pcashq" title="F2" ${canPay ? '' : 'disabled'}>Наличные</button><button class="card" data-a="pcardq" title="F3" ${canPay ? '' : 'disabled'}>Карта</button>
+      <div class="pos-notes">${NOTES.map(n => `<button data-a="pnote" data-v="${n}" ${canPay ? '' : 'disabled'}>${fmt(n)}</button>`).join('')}</div></div>`}
   </div>`;
   const right = `<div class="pos-right">
-    <div class="pos-top"><span class="pos-st ${sc}">${esc(POSU ? POSU.name : posSeller())} · ${esc(st)}</span>
+    <div class="pos-top"><div class="pos-who"><div class="r1"><b>${esc(POSU ? POSU.name : posSeller())}</b>${last ? `<span class="pos-last">Посл. чек ${esc(last.no)}: ${last.change ? 'сдача ' + fmt(last.change) : 'без сдачи'}</span>` : ''}</div><span class="pos-st ${sc}">${esc(st)}</span></div>
       <button data-a="pdocs">Документы${held ? ` <i>${held}</i>` : ''}</button><button data-a="pday">Итог дня</button><button data-a="pmenu" aria-label="Меню">☰</button></div>
-    <div class="pos-search"><input id="pq" data-in="pq" value="${esc(POS.q)}" placeholder="Поиск: название, номер или штрихкод" autocomplete="off" ${POS.osk ? 'inputmode="none"' : ''}><button data-a="posk" class="${POS.osk ? 'on' : ''}" aria-label="Экранная клавиатура">⌨</button><button data-a="pqclr" aria-label="Очистить поиск" ${POS.q ? '' : 'hidden'}>✕</button></div>
-    ${POS.msg ? `<div class="pos-msg">${esc(POS.msg)}</div>` : ''}
+    <div class="pos-search"><input id="pq" data-in="pq" value="${esc(POS.q)}" placeholder="Поиск: название, номер или штрихкод" aria-label="Поиск товара" autocomplete="off" spellcheck="false" ${POS.osk ? 'inputmode="none"' : ''}><button data-a="posk" class="${POS.osk ? 'on' : ''}" aria-label="Экранная клавиатура">⌨</button><button data-a="pqclr" aria-label="Очистить поиск" ${POS.q ? '' : 'hidden'}>✕</button></div>
+    ${POS.msg ? `<div class="pos-msg" role="status">${esc(POS.msg)}</div>` : ''}
     ${POS.q ? '' : `<div class="pos-gw ${POS.all ? 'all' : ''}"><div class="pos-grp ${POS.all ? 'all' : ''}"><button class="${POS.grp === '*' ? 'on' : ''}" data-a="pgrp" data-v="*">★ Частые</button>${top.map(g => `<button class="${POS.grp === g.key ? 'on' : ''}" data-a="pgrp" data-v="${esc(g.key)}">${esc(g.name)}</button>`).join('')}</div><button class="more" data-a="pgall">${POS.all ? 'Свернуть ▴' : 'Все ▾'}</button></div>`}
-    <div class="pos-tiles" id="ptiles">${tiles.map(posTileHtml).join('') || '<div class="pos-empty">Ничего не найдено</div>'}</div>
+    <div class="pos-tiles" id="ptiles">${posTilesHtml()}</div>
     ${POS.osk ? oskHtml() : `<div class="pos-act">
-      <button data-a="pqty" ${POS.sel < 0 ? 'disabled' : ''}>× Кол-во</button><button class="${POS.price ? 'on' : ''}" data-a="pprice">Цена?</button><button data-a="phold" ${lines.length ? '' : 'disabled'}>Отложить</button><button data-a="pclear" ${lines.length ? '' : 'disabled'}>Очистить</button>
-      <button class="pay" data-a="ppay" ${lines.length ? '' : 'disabled'}>Оплата <b>${fmt(tot)}</b></button></div>`}
+      <button class="${POS.mul ? 'on' : ''}" data-a="pqty">${POS.mul ? '× ' + POS.mul : '× Кол-во'}</button><button class="${POS.price ? 'on' : ''}" data-a="pprice">Цена?</button><button data-a="phold" ${lines.length ? '' : 'disabled'}>Отложить</button><button data-a="pclear" ${lines.length ? '' : 'disabled'}>Очистить</button>
+      <button class="pay" data-a="ppay" ${canPay ? '' : 'disabled'}>Оплата <b>${fmt(tot)}</b></button></div>`}
   </div>`;
-  return `<div class="pos">${left}${right}</div>${posOverlay()}`;
+  return `<div class="pos ${POS.osk ? 'oskon' : ''}">${left}${right}</div>${posOverlay()}`;
 };
+/* ПИН кассира: после 5 неверных подряд — пауза 1 минута (общая для входа и ПИН управляющего) */
+const PINLOCK_KEY = 'chorsu_pinlock';
+const pinLock = () => ls.get(PINLOCK_KEY, {n:0, until:0});
+const pinLocked = () => pinLock().until > Date.now();
+const lockLeft = () => { const s = Math.max(0, Math.ceil((pinLock().until - Date.now()) / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const lockText = () => `Подождите ${lockLeft()} — было 5 неверных ПИН подряд`;
+const pinOk = () => ls.set(PINLOCK_KEY, {n:0, until:0});
+function pinFail(){ const x = pinLock(); x.n++; if (x.n >= 5){ x.n = 0; x.until = Date.now() + 60000; lockTick(); } ls.set(PINLOCK_KEY, x); }
+function lockTick(){ clearInterval(lockTick.h); lockTick.h = setInterval(() => { const on = pinLocked(); if (!on) clearInterval(lockTick.h);
+  const el = document.getElementById('plerr'); if (R.s === 'pos' && !POSU && el) el.textContent = on ? lockText() : 'Можно вводить ПИН'; }, 1000); }
+async function pinUser(v, roles){ for (const u of (S.posusers || []).filter(x => x.active && (!roles || roles.includes(x.role)))) if (u.pin && u.pin === await pinHash(u.id, v)) return u; return null; }
 function posLogin(){
-  return `<div class="pos-login"><h1>Касса</h1><p class="muted">Введите свой ПИН-код</p><div class="disp" id="plpin">${'•'.repeat((POS.pin || '').length) || '&nbsp;'}</div>
-    ${POS.pinErr ? `<p class="neg">${esc(POS.pinErr)}</p>` : ''}
-    <div class="keys">${['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k => `<button data-a="plk" data-v="${k}">${k}</button>`).join('')}</div>
+  const lk = pinLocked();
+  return `<div class="pos-login"><div class="muted">Касса · ${esc(devName())}</div><h1>Введите свой ПИН-код</h1><div class="disp" id="plpin">${'•'.repeat((POS.pin || '').length) || '&nbsp;'}</div>
+    ${lk || POS.pinErr ? `<p class="neg" id="plerr" role="status">${esc(lk ? lockText() : POS.pinErr)}</p>` : ''}
+    <div class="keys ${lk ? 'off' : ''}">${['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k => `<button data-a="plk" data-v="${k}" ${k === '⌫' ? 'aria-label="Стереть"' : k === 'C' ? 'aria-label="Очистить"' : ''}>${k}</button>`).join('')}</div>
     <button class="btn sec" data-a="pexit">В программу</button></div>`;
 }
 
@@ -2751,20 +2874,29 @@ const OSK = {ru:['йцукенгшщзхъ', 'фывапролджэ', 'ячсм
 function oskHtml(){
   const rows = OSK[POS.lay];
   return `<div class="osk">${['1234567890'].concat(rows).map(r => `<div class="okr">${[...r].map(c => `<button data-a="pok" data-v="${c}">${c}</button>`).join('')}</div>`).join('')}
-    <div class="okr"><button class="w" data-a="playt">${POS.lay === 'ru' ? 'LAT' : 'РУС'}</button><button class="sp" data-a="pok" data-v=" ">пробел</button><button class="w" data-a="pok" data-v="⌫">⌫</button><button class="w" data-a="posk">Готово</button></div></div>`;
+    <div class="okr"><button class="w" data-a="playt">${POS.lay === 'ru' ? 'LAT' : 'РУС'}</button><button class="sp" data-a="pok" data-v=" ">пробел</button><button class="w" data-a="pok" data-v="⌫" aria-label="Стереть">⌫</button><button class="w" data-a="posk">Готово</button></div></div>`;
 }
 
 /* ---------- окна поверх кассы ---------- */
 function posOverlay(){
-  const o = POS.ov; if (POS.chg) return `<div class="pos-ov" data-a="pchgok"><div class="pos-chg"><span>Чек № ${POS.chg.no} закрыт</span>${POS.chg.change ? `<b>Сдача ${fmt(POS.chg.change)}</b>` : `<b>Без сдачи</b>`}${POS.chg.debt ? `<span>В долг: ${fmt(POS.chg.debt)}</span>` : ''}</div></div>`;
+  const o = POS.ov;
+  if (POS.chg){ const c = POS.chg;   // сдача на экране, пока кассир не коснулся экрана, не нажал клавишу или не отсканировал следующий товар
+    return `<div class="pos-ov" data-a="pchgok" role="status"><button class="pos-chg" data-a="pchgok"><span class="hd">Чек № ${esc(c.no)} закрыт</span>
+      <span class="pcg-r"><span>Итого</span><b>${fmt(c.total)}</b></span>${c.got ? `<span class="pcg-r"><span>Получено наличными</span><b>${fmt(c.got)}</b></span>` : ''}${c.card ? `<span class="pcg-r"><span>Картой</span><b>${fmt(c.card)}</b></span>` : ''}${c.debt ? `<span class="pcg-r"><span>В долг</span><b>${fmt(c.debt)}</b></span>` : ''}
+      <b class="big">${c.change ? 'Сдача ' + fmt(c.change) : 'Без сдачи'}</b><small>Коснитесь экрана или сканируйте следующий товар</small></button></div>`; }
   if (POS.pay) return payHtml();
   if (!o) return '';
-  const wrap = (t, body, wide) => `<div class="pos-ov"><div class="pos-sh ${wide ? 'wide' : ''}"><div class="psh"><b>${t}</b><button data-a="povx" aria-label="Закрыть">✕</button></div>${body}</div></div>`;
-  if (o.k === 'info'){ const p = P(o.pid), st = stockNow(o.pid), b = blockOf(p);
-    return wrap(esc(p.name), `<div class="pinfo"><div><span>Пачка</span><b>${fmt(unitPrice(p.id, 'p'))}</b></div>${b ? `<div><span>Блок (${b} шт)</span><b>${fmt(unitPrice(p.id, 'b'))}</b></div>` : ''}<div><span>Остаток по учёту</span><b>${st == null ? '—' : st}</b></div></div>
-      <div class="grid2"><button class="btn pri" data-a="padd3" data-v="${p.id}|p">Добавить пачку</button>${b ? `<button class="btn sec" data-a="padd3" data-v="${p.id}|b">Добавить блок</button>` : ''}</div>`); }
+  const wrap = (t, body, wide) => `<div class="pos-ov"><div class="pos-sh ${wide ? 'wide' : ''}" role="dialog" aria-label="${esc(t)}"><div class="psh"><b>${esc(t)}</b><button data-a="povx" aria-label="Закрыть">✕</button></div>${body}</div></div>`;
+  if (o.k === 'info'){ const p = P(o.pid), st = posStock(o.pid), b = blockOf(p), pp = unitPrice(p.id, 'p'), bp = b ? unitPrice(p.id, 'b') : 0;
+    return wrap(p.name, `<div class="pinfo"><div><span>${p.cat === 'cig' ? 'Пачка' : 'Штука'}</span><b>${pp > 0 ? fmt(pp) : 'нет цены'}</b></div>${b ? `<div><span>${p.cat === 'cig' ? 'Блок' : 'Упаковка'} (${b} шт)</span><b>${bp > 0 ? fmt(bp) : 'нет цены'}</b></div>` : ''}<div><span>Остаток по учёту</span><b>${st == null ? '—' : Math.max(st, 0)}</b></div></div>
+      <div class="grid2"><button class="btn pri" data-a="padd3" data-v="${p.id}|p">Добавить ${p.cat === 'cig' ? 'пачку' : 'штуку'}</button>${b ? `<button class="btn sec" data-a="padd3" data-v="${p.id}|b">Добавить ${p.cat === 'cig' ? 'блок' : 'упаковку'}</button>` : ''}</div>`); }
+  if (o.k === 'noprice'){ const p = P(o.pid), can = posBossEdit();
+    return wrap('Нет цены', `<p class="pos-big">У товара «${esc(p.name)}» нет цены — продать его нельзя.</p>
+      ${can ? `<button class="btn pri" data-a="psetprice" data-v="${p.id}|${o.unit}">Задать цену</button>` : `<p class="muted">${posBoss() ? 'Цену задают в программе управляющего: Настройки → товары.' : 'Позовите управляющего.'}</p>`}`); }
   if (o.k === 'client') return wrap('Клиент', clientPickHtml(), true);
-  if (o.k === 'newcl') return wrap('Новый клиент', `<div class="field txt"><label for="nc_name">Имя</label><input id="nc_name" autocomplete="off"></div><div class="field txt"><label for="nc_ph">Телефон</label><input id="nc_ph" inputmode="tel" autocomplete="off"></div>
+  if (o.k === 'newcl') return wrap('Новый клиент', `<div class="field txt"><label for="nc_name">Имя</label><input id="nc_name" value="${esc(o.name || '')}" autocomplete="off"></div><div class="field txt"><label for="nc_ph">Телефон</label><input id="nc_ph" value="${esc(o.ph || '')}" inputmode="tel" autocomplete="off"></div>
+    <div class="field txt"><label for="nc_lim">Лимит долга${posBoss() ? ' (необязательно)' : ''}</label><input id="nc_lim" value="${o.lim ? fmt(o.lim) : ''}" inputmode="numeric" autocomplete="off" placeholder="${posBoss() ? 'без лимита' : 'до ' + fmt(posNewLim()) + ' без ПИН'}"></div>
+    ${posBoss() ? '' : `<p class="small muted">Без лимита в долг — только с ПИН управляющего. Лимит больше ${fmt(posNewLim())} — тоже по ПИН.</p>`}
     <button class="btn pri" data-a="pnewclok">Добавить и выбрать</button>`);
   if (o.k === 'docs') return wrap('Документы', docsHtml(), true);
   if (o.k === 'sale') return wrap('Чек', saleHtml(o.id), true);
@@ -2772,21 +2904,22 @@ function posOverlay(){
   if (o.k === 'day') return wrap('Итог дня', dayHtml(o.date || TODAY), true);
   if (o.k === 'menu') return wrap('Меню кассы', `<div class="stack">
     <button class="btn sec" data-a="pdocs">Документы</button><button class="btn sec" data-a="pday">Итог дня</button>
-    ${posMgr() || (!POSU && !isSeller()) ? `<button class="btn sec" data-a="pgo" data-v="bcbind">Привязать штрихкоды</button><button class="btn sec" data-a="pgo" data-v="posusers">Кассиры и ПИН-коды</button>` : ''}
-    <label class="chk"><input type="checkbox" id="pdev" data-in="pdev" ${POSDEV().on ? 'checked' : ''}> Это устройство — касса (открывать сразу кассу)</label>
+    ${posBossEdit() ? `<button class="btn sec" data-a="pgo" data-v="bcbind">Привязать штрихкоды</button><button class="btn sec" data-a="pgo" data-v="posusers">Кассиры и ПИН-коды</button>` : ''}
+    ${posBoss() ? `<label class="chk"><input type="checkbox" id="pdev" data-in="pdev" ${POSDEV().on ? 'checked' : ''}> Это устройство — касса (открывать сразу кассу)</label>${devNameField()}` : ''}
     ${POSU ? `<button class="btn sec" data-a="plogout">Сменить кассира (${esc(POSU.name)})</button>` : ''}
     <button class="btn sec" data-a="pexit">Выйти в программу</button></div>`);
   if (o.k === 'bind') return wrap('Неизвестный штрихкод', bindHtml(o), true);
   return '';
 }
+const devNameField = () => `<div class="field txt"><label for="pdevname">Имя устройства (в номере чека: «${esc(devTags()[devName()] || '')}-12»)</label><input id="pdevname" data-in="pdevname" value="${esc(devName())}" autocomplete="off"></div>`;
 function clientPickHtml(){
   const q = POS.cq.trim(), list = S.debtors.filter(d => !q || match(d.name, q) || (dInfo(d.id).ph || '').replace(/\D/g, '').includes(q.replace(/\D/g, '') || '§'))
-    .sort((a, b) => (a.grp === 'n') - (b.grp === 'n') || b.ts - a.ts).slice(0, 80), cur = posCur().did;
-  return `<div class="pos-search"><input id="pcq" data-in="pcq" value="${esc(POS.cq)}" placeholder="Имя или телефон" autocomplete="off"></div>
+    .sort((a, b) => (a.grp === 'n') - (b.grp === 'n') || b.ts - a.ts).slice(0, 80), cur = posCur().did, curD = cur ? S.debtors.find(d => d.id === cur) : null;
+  return `<div class="pos-search"><input id="pcq" data-in="pcq" value="${esc(POS.cq)}" placeholder="Имя или телефон" aria-label="Поиск клиента" autocomplete="off"></div>
     <div class="pcl">${list.map(d => { const x = dInfo(d.id), v = debtOf(d.id), lim = x.limOn && x.lim;
       return `<button class="pcr ${d.grp === 'n' ? 'ns' : ''} ${d.id === cur ? 'on' : ''}" data-a="pclpick" data-v="${d.id}"><span><b>${esc(d.name)}</b>${x.ph ? `<small>☎ ${esc(x.ph)}</small>` : ''}${d.grp === 'n' ? '<small>Несгор</small>' : ''}</span><span class="r">${fmt(v)}${lim ? `<small>лимит ${fmt(x.lim)}</small>` : ''}</span></button>`; }).join('') || '<div class="pos-empty">Никого не нашли</div>'}</div>
     <div class="grid2"><button class="btn sec" data-a="pnewcl">+ Новый клиент</button>${cur ? `<button class="btn sec" data-a="pclnone">Убрать клиента</button>` : ''}</div>
-    ${cur ? `<button class="btn sec" data-a="pdebtpay">Принять долг от ${esc((S.debtors.find(d => d.id === cur) || {}).name || '')}</button>` : ''}`;
+    ${curD && debtOf(cur) > 0 ? `<button class="btn sec" data-a="pdebtpay">Принять долг от ${esc(curD.name)}</button>` : ''}`;
 }
 function docsHtml(){
   const date = POS.docsDate || TODAY, tab = POS.docsTab, cur = LOC.pos.cur;
@@ -2794,49 +2927,67 @@ function docsHtml(){
   const sales = (S.sales || []).filter(s => s.date === date).filter(s => tab === 'all' || (tab === 'held' ? false : tab === 'debt' ? s.status === 'debt' : tab === 'cancel' ? s.status === 'cancel' : tab === 'ret' ? s.kind === 'ret' : s.status === 'paid' && s.kind === 'sale')).slice().reverse();
   const held = date === TODAY && (tab === 'all' || tab === 'held') ? LOC.pos.held.slice().reverse() : [];
   const cl = id => { const d = S.debtors.find(x => x.id === id); return d ? d.name : ''; };
-  return `<div class="pdn"><button data-a="pdd" data-v="-1">‹</button><b>${date === TODAY ? 'Сегодня' : dLong(date)}</b><button data-a="pdd" data-v="1" ${date >= TODAY ? 'disabled' : ''}>›</button></div>
+  return `<div class="pdn"><button data-a="pdd" data-v="-1" aria-label="Предыдущий день">‹</button><b>${date === TODAY ? 'Сегодня' : dLong(date)}</b><button data-a="pdd" data-v="1" aria-label="Следующий день" ${date >= TODAY ? 'disabled' : ''}>›</button></div>
     <div class="pos-grp">${[['all', 'Все'], ['held', 'Отложенные'], ['paid', 'Оплаченные'], ['debt', 'В долг'], ['ret', 'Возвраты'], ['cancel', 'Отменённые']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" data-a="pdtab" data-v="${k}">${l}</button>`).join('')}</div>
     <div class="pdl">${date === TODAY && cur && cur.lines.length && (tab === 'all' || tab === 'held') ? `<button class="pdr" data-a="povx"><span class="tm">${hhmm(cur.ts)}</span><span class="stt o">Открыт</span><span class="nm">текущий чек · ${cur.lines.length} поз.</span><b>${fmt(posTotal(cur))}</b></button>` : ''}
       ${held.map(h => `<button class="pdr" data-a="presume" data-v="${h.id}"><span class="tm">${hhmm(h.ts)}</span><span class="stt h">Отложен</span><span class="nm">${h.lines.length} поз.${h.did ? ' · ' + esc(cl(h.did)) : ''}</span><b>${fmt(posTotal(h))}</b></button>`).join('')}
-      ${sales.map(s => { const [l, c] = st(s); return `<button class="pdr" data-a="psale" data-v="${s.id}"><span class="tm">${s.time}</span><span class="stt ${c}">${l}</span><span class="nm">№ ${s.no}${s.cname ? ' · ' + esc(s.cname) : ''} <small>${[s.cash ? 'нал' : '', s.card ? 'карта' : '', s.debt ? 'долг' : ''].filter(Boolean).join(' + ')}</small></span><b>${s.kind === 'ret' ? '−' : ''}${fmt(s.total)}</b></button>`; }).join('')}
+      ${sales.map(s => { const [l, c] = st(s); return `<button class="pdr" data-a="psale" data-v="${s.id}"><span class="tm">${s.time}</span><span class="stt ${c}">${l}</span><span class="nm">№ ${esc(saleNo(s))}${s.cname ? ' · ' + esc(s.cname) : ''} <small>${[s.cash ? 'нал' : '', s.card ? 'карта' : '', s.debt ? 'долг' : ''].filter(Boolean).join(' + ')}</small></span><b>${s.kind === 'ret' ? '−' : ''}${fmt(s.total)}</b></button>`; }).join('')}
       ${!held.length && !sales.length && !(date === TODAY && cur && cur.lines.length) ? '<div class="pos-empty">Документов нет</div>' : ''}</div>`;
 }
+const saleRets = s => s.kind === 'sale' ? (S.sales || []).filter(x => x.kind === 'ret' && x.ref === s.id && x.status !== 'cancel') : [];
 function saleHtml(id){
   const s = (S.sales || []).find(x => x.id === id); if (!s) return '<div class="pos-empty">Чек не найден</div>';
-  const canRet = s.kind === 'sale' && s.status !== 'cancel', canCancel = s.status !== 'cancel' && s.date === TODAY;
-  return `<div class="small muted">${SKINDn[s.kind]} № ${s.no} · ${dLong(s.date)} ${s.time} · ${esc(s.seller)}${s.cname ? ' · клиент ' + esc(s.cname) : ''}${s.status === 'cancel' ? ' · <b class="neg">отменён ' + esc(s.canc) + '</b>' : ''}</div>
+  const rets = saleRets(s), canRet = s.kind === 'sale' && s.status !== 'cancel', canCancel = s.status !== 'cancel' && s.date === TODAY && !rets.length;
+  return `<div class="small muted">${SKINDn[s.kind]} № ${esc(saleNo(s))} · ${dLong(s.date)} ${s.time} · ${esc(s.seller)}${s.cname ? ' · клиент ' + esc(s.cname) : ''}${s.status === 'cancel' ? ' · <b class="neg">отменён ' + esc(s.canc) + '</b>' : ''}</div>
     ${s.lines.length ? `<div class="tbl-wrap"><table class="tight"><tr><th class="l">Товар</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr>${s.lines.map(l => `<tr><td class="l">${esc(l.name)}</td><td>${l.qty} ${l.unit === 'b' ? 'бл' : 'шт'}</td><td>${fmt(l.price)}</td><td>${fmt(l.sum)}</td></tr>`).join('')}</table></div>` : ''}
     <div class="pinfo"><div><span>Итого</span><b>${fmt(s.total)}</b></div>${s.cash ? `<div><span>Наличные</span><b>${fmt(s.cash)}</b></div>` : ''}${s.card ? `<div><span>Карта</span><b>${fmt(s.card)}</b></div>` : ''}${s.debt ? `<div><span>${s.kind === 'ret' ? 'В счёт долга' : 'В долг'}</span><b>${fmt(s.debt)}</b></div>` : ''}${s.change ? `<div><span>Сдача</span><b>${fmt(s.change)}</b></div>` : ''}</div>
-    <div class="grid2">${canRet ? `<button class="btn sec" data-a="pret" data-v="${s.id}">Возврат</button>` : ''}${canCancel ? `<button class="btn dang ghost" data-a="pcancel" data-v="${s.id}">Отменить чек</button>` : ''}</div>`;
+    <div class="grid2">${canRet ? `<button class="btn sec" data-a="pret" data-v="${s.id}">Возврат</button>` : ''}${canCancel ? `<button class="btn dang ghost" data-a="pcancel" data-v="${s.id}">Отменить чек</button>` : ''}</div>
+    ${rets.length && s.status !== 'cancel' ? `<p class="small">По чеку был возврат № ${rets.map(r => esc(saleNo(r))).join(', ')} — сначала отмените возврат, потом можно отменить чек.</p>` : ''}`;
 }
+/* возврат тем же способом, каким платили: сначала долг этого чека, потом карта, потом наличные (за вычетом прошлых возвратов) */
+function retAvail(s){
+  const a = {debt:s.did ? s.debt || 0 : 0, card:s.card || 0, cash:s.cash || 0};
+  saleRets(s).forEach(x => { a.debt -= x.debt || 0; a.card -= x.card || 0; a.cash -= x.cash || 0; });
+  return a;
+}
+function retSplit(s, sum){
+  const a = retAvail(s), debt = Math.min(sum, Math.max(a.debt, 0)), card = Math.min(sum - debt, Math.max(a.card, 0)), cash = Math.min(sum - debt - card, Math.max(a.cash, 0));
+  return {debt, card, cash, left:sum - debt - card - cash};
+}
+const RETW = [['debt', 'в счёт долга'], ['card', 'на карту'], ['cash', 'наличными']];
 function retHtml(o){
   const s = S.sales.find(x => x.id === o.id); if (!s) return '';
-  const done = {}; S.sales.filter(x => x.kind === 'ret' && x.ref === s.id && x.status !== 'cancel').forEach(x => x.lines.forEach(l => done[l.pid + l.unit] = (done[l.pid + l.unit] || 0) + l.qty));
-  const sum = s.lines.reduce((a, l, i) => a + (o.q[i] || 0) * l.price, 0);
-  return `<div class="small muted">Сколько возвращает покупатель (чек № ${s.no})</div>
-    <div class="pdl">${s.lines.map((l, i) => { const max = l.qty - (done[l.pid + l.unit] || 0); return `<div class="pdr"><span class="nm">${esc(l.name)} <small>куплено ${l.qty} ${l.unit === 'b' ? 'бл' : 'шт'}${done[l.pid + l.unit] ? ', уже вернули ' + done[l.pid + l.unit] : ''}</small></span><span class="rq"><button data-a="prq" data-v="${i}|-1" ${(o.q[i] || 0) <= 0 ? 'disabled' : ''}>−</button><b>${o.q[i] || 0}</b><button data-a="prq" data-v="${i}|1" ${(o.q[i] || 0) >= max ? 'disabled' : ''}>+</button></span></div>`; }).join('')}</div>
-    <div class="pinfo"><div><span>Вернуть покупателю</span><b>${fmt(sum)}</b></div></div>
-    <div class="grid2"><button class="btn sec" data-a="pretok" data-v="cash" ${sum ? '' : 'disabled'}>Наличными</button><button class="btn sec" data-a="pretok" data-v="card" ${sum ? '' : 'disabled'}>На карту</button></div>
-    ${s.did ? `<button class="btn sec" data-a="pretok" data-v="debt" ${sum ? '' : 'disabled'}>В счёт долга ${esc(s.cname)}</button>` : ''}`;
+  const done = {}; saleRets(s).forEach(x => x.lines.forEach(l => done[l.pid + l.unit] = (done[l.pid + l.unit] || 0) + l.qty));
+  const sum = s.lines.reduce((a, l, i) => a + (o.q[i] || 0) * l.price, 0), sp = retSplit(s, sum), av = retAvail(s);
+  const ways = RETW.filter(([k]) => sum ? sp[k] > 0 : av[k] > 0), one = ways.length === 1 ? ways[0][0] : 'mix';
+  const label = {debt:'В счёт долга ' + esc(s.cname), card:'Вернуть на карту', cash:'Вернуть наличными', mix:'Вернуть'}[one];
+  return `<div class="small muted">Сколько возвращает покупатель (чек № ${esc(saleNo(s))})</div>
+    <div class="pdl">${s.lines.map((l, i) => { const max = l.qty - (done[l.pid + l.unit] || 0); return `<div class="pdr"><span class="nm">${esc(l.name)} <small>куплено ${l.qty} ${l.unit === 'b' ? 'бл' : 'шт'}${done[l.pid + l.unit] ? ', уже вернули ' + done[l.pid + l.unit] : ''}</small></span><span class="rq"><button data-a="prq" data-v="${i}|-1" aria-label="Меньше" ${(o.q[i] || 0) <= 0 ? 'disabled' : ''}>−</button><b>${o.q[i] || 0}</b><button data-a="prq" data-v="${i}|1" aria-label="Больше" ${(o.q[i] || 0) >= max ? 'disabled' : ''}>+</button></span></div>`; }).join('')}</div>
+    <div class="pinfo"><div><span>Вернуть покупателю</span><b>${fmt(sum)}</b></div>${sum && ways.length > 1 ? ways.map(([k, l]) => `<div><span>— ${l}</span><b>${fmt(sp[k])}</b></div>`).join('') : ''}</div>
+    ${sp.left > 0 ? '<p class="neg small">Больше, чем оплачено по чеку, вернуть нельзя</p>' : ''}
+    <button class="btn pri" data-a="pretok" data-v="${one}" ${sum && !sp.left ? '' : 'disabled'}>${label}${sum ? ' ' + fmt(sum) : ''}</button>
+    ${posBoss() ? '' : '<p class="small muted">Возврат подтверждает управляющий своим ПИН-кодом.</p>'}`;
 }
+const plLine = n => plural(n, 'строка', 'строки', 'строк');
 function dayHtml(date){
-  const z = dayTotals(date), c = cashOf(date);
-  return `<div class="pdn"><button data-a="pdayd" data-v="-1">‹</button><b>${date === TODAY ? 'Сегодня' : dLong(date)}</b><button data-a="pdayd" data-v="1" ${date >= TODAY ? 'disabled' : ''}>›</button></div>
+  const z = dayTotals(date), c = cashOf(date), boss = R.s === 'pos' ? posBoss() : !isSeller(), lg = boss ? dayLog(date) : null;
+  return `<div class="pdn"><button data-a="pdayd" data-v="-1" aria-label="Предыдущий день">‹</button><b>${date === TODAY ? 'Сегодня' : dLong(date)}</b><button data-a="pdayd" data-v="1" aria-label="Следующий день" ${date >= TODAY ? 'disabled' : ''}>›</button></div>
     <div class="pinfo">
       <div><span>Продаж (чеков)</span><b>${z.n}</b></div><div><span>Продано на сумму</span><b>${fmt(z.sum)}</b></div>
       <div><span>— наличными</span><b>${fmt(z.cash)}</b></div><div><span>— картой</span><b>${fmt(z.card)}</b></div><div><span>— в долг</span><b>${fmt(z.debt)}</b></div>
       ${z.pn ? `<div><span>Принято долгов (${z.pn})</span><b>${fmt(z.pcash + z.pcard)}</b></div>` : ''}
-      ${z.rn ? `<div><span>Возвратов (${z.rn})</span><b>−${fmt(z.rsum)}</b></div>` : ''}${z.cn ? `<div><span>Отменено чеков</span><b>${z.cn}</b></div>` : ''}
+      ${z.rn ? `<div><span>Возвратов (${z.rn})</span><b>−${fmt(z.rsum)}</b></div>` : ''}${z.rdebt ? `<div><span>— из них в счёт долга</span><b>${fmt(z.rdebt)}</b></div>` : ''}${z.cn ? `<div><span>Отменено чеков</span><b>${z.cn}</b></div>` : ''}
       <div class="tot"><span>Наличных должно быть в кассе</span><b>${fmt(z.drawer)}</b></div>
       <div class="tot"><span>Картой всего (для «Терминала»)</span><b>${fmt(z.cardAll)}</b></div>
     </div>
-    ${posMgr() || (!POSU && !isSeller()) ? (c.t === z.cardAll ? `<p class="small muted">В «Терминал и касса» за этот день записано ${fmt(c.t)} — совпадает.</p>` : `<button class="btn sec" data-a="pterm" data-v="${date}">Записать ${fmt(z.cardAll)} в «Терминал»${c.t ? ` (сейчас ${fmt(c.t)})` : ''}</button>`) : ''}`;
+    ${lg ? `<details class="plog"><summary>Удалено из чеков: ${lg.n} ${plLine(lg.n)} на ${fmt(lg.sum)}</summary><div class="pdl">${lg.list.map(x => `<div class="pdr"><span class="tm">${esc(x.time)}</span><span class="nm">${esc(x.act)}: ${esc(x.name)} · ${esc(x.qty)}<small>${esc(x.who)} · ${esc(x.dev)}</small></span><b>${x.act === LOGA.undo ? '+' : '−'}${fmt(x.sum)}</b></div>`).join('')}</div></details>` : ''}
+    ${boss ? (c.t === z.cardAll ? `<p class="small muted">В «Терминал и касса» за этот день записано ${fmt(c.t)} — совпадает.</p>` : `<button class="btn sec" data-a="pterm" data-v="${date}">Записать ${fmt(z.cardAll)} в «Терминал»${c.t ? ` (сейчас ${fmt(c.t)})` : ''}</button>`) : ''}`;
 }
 function bindHtml(o){
   const q = (o.q || '').trim(), list = q ? ordered('cig').concat(ordered('goods')).filter(p => match(p.name, q)).slice(0, 40) : [];
   if (o.pid){ const p = P(o.pid); return `<p>Штрихкод <b>${esc(o.code)}</b> → <b>${esc(p.name)}</b>. Это пачка или блок?</p><div class="grid2"><button class="btn pri" data-a="pbindok" data-v="p">Пачка (шт)</button><button class="btn sec" data-a="pbindok" data-v="b">Блок</button></div>`; }
   return `<p class="small muted">Штрихкод <b>${esc(o.code)}</b> ещё не привязан. Найдите товар — штрихкод запомнится, и товар добавится в чек.</p>
-    <div class="pos-search"><input id="pbq" data-in="pbq" value="${esc(o.q || '')}" placeholder="Название товара" autocomplete="off"></div>
+    <div class="pos-search"><input id="pbq" data-in="pbq" value="${esc(o.q || '')}" placeholder="Название товара" aria-label="Название товара" autocomplete="off"></div>
     <div class="pcl">${list.map(p => `<button class="pcr" data-a="pbindp" data-v="${p.id}"><span><b>${esc(p.name)}</b><small>${barcodesOf(p.id).length} штрихкодов</small></span></button>`).join('') || `<div class="pos-empty">${q ? 'Не нашли' : 'Начните писать название'}</div>`}</div>`;
 }
 
@@ -2847,44 +2998,59 @@ function payResume(){   // вернуться в оплату после выб�
   else if (POS.wantDebtRest || k.act === 'debt') k.act = posCur().did ? 'debt' : 'cash';
   POS.wantDebtRest = false;
 }
-function payState(){ const t = posTotal(), p = POS.pay, paid = p.cash + p.card + p.debt; return {t, paid, rest:Math.max(0, t - paid), change:Math.max(0, Math.min(p.cash, paid - t)), over:p.card + p.debt > t}; }
+function payState(){ const t = posTotal(), p = POS.pay, paid = p.cash + p.card + p.debt; return {t, paid, rest:Math.max(0, t - paid), change:Math.max(0, Math.min(p.cash, paid - t)), over:p.card + p.debt > t, big:p.cash > t + 1000000}; }
+function debtNeedsPin(cl, debt){   // продавцу: долг клиенту без лимита или из Несгора — только по ПИН управляющего
+  if (!debt || !cl || posBoss()) return ''; const x = dInfo(cl.id);
+  return !(x.limOn && x.lim) ? `Долг ${fmt(debt)} без лимита · ${cl.name}` : cl.grp === 'n' ? `Долг ${fmt(debt)} клиенту из Несгора · ${cl.name}` : '';
+}
 function payHtml(){
   const p = POS.pay, s = payState(), doc = posCur(), cl = doc.did ? S.debtors.find(d => d.id === doc.did) : null, x = cl ? dInfo(cl.id) : {}, lim = cl && x.limOn && x.lim ? x.lim - debtOf(cl.id) : null;
   const f = (k, l) => `<button class="pf ${p.act === k ? 'on' : ''}" data-a="pact" data-v="${k}"><span>${l}</span><b>${fmt(p[k])}</b></button>`;
-  const ok = s.rest === 0 && !s.over && !(p.debt && !cl) && !(lim != null && p.debt > lim);
-  return `<div class="pos-ov"><div class="pos-pay">
+  const ok = s.rest === 0 && !s.over && !s.big && !(p.debt && !cl) && !(lim != null && p.debt > lim);
+  return `<div class="pos-ov"><div class="pos-pay" role="dialog" aria-label="Оплата">
     <div class="pp-l"><div class="pp-tot"><span>Итого</span><b>${fmt(s.t)}</b></div>
       ${f('cash', 'Наличные')}${f('card', 'Карта')}${f('debt', cl ? 'В долг · ' + esc(cl.name) : 'В долг (нужен клиент)')}
       ${lim != null ? `<div class="small ${p.debt > lim ? 'neg' : 'muted'}">Лимит: можно ещё ${fmt(Math.max(lim, 0))}</div>` : ''}
-      ${s.over ? '<div class="neg small">Картой и в долг — не больше итога</div>' : ''}
+      ${debtNeedsPin(cl, p.debt) ? '<div class="small muted">Долг без лимита — подтвердит управляющий своим ПИН-кодом</div>' : ''}
+      ${s.over ? '<div class="neg small">Картой и в долг — не больше итога</div>' : ''}${s.big ? '<div class="neg small">Проверьте сумму наличных</div>' : ''}
+      ${p.msg ? `<div class="pos-msg" role="status">${esc(p.msg)}</div>` : ''}
       <div class="pp-res ${s.rest ? 'rest' : 'chg'}">${s.rest ? `<span>Осталось</span><b>${fmt(s.rest)}</b>` : `<span>Сдача</span><b>${fmt(s.change)}</b>`}</div>
     </div>
     <div class="pp-r">
-      <div class="pp-notes">${[5000, 10000, 20000, 50000, 100000, 200000].map(n => `<button data-a="pnote" data-v="${n}">${fmt(n)}</button>`).join('')}</div>
+      <div class="pp-notes">${NOTES.map(n => `<button data-a="pnote" data-v="${n}">${fmt(n)}</button>`).join('')}</div>
       <div class="pp-quick"><button data-a="pexact">Наличные ровно</button><button data-a="pallcard">Всё картой</button><button data-a="prest" data-v="card">Остальное картой</button><button data-a="prest" data-v="debt">Остальное в долг</button></div>
-      <div class="keys pp-keys">${['1','2','3','4','5','6','7','8','9','000','0','⌫'].map(k => `<button data-a="ppk" data-v="${k}">${k}</button>`).join('')}</div>
+      <div class="keys pp-keys">${['1','2','3','4','5','6','7','8','9','000','0','⌫'].map(k => `<button data-a="ppk" data-v="${k}" ${k === '⌫' ? 'aria-label="Стереть"' : ''}>${k}</button>`).join('')}</div>
       <div class="pp-btns"><button class="btn sec" data-a="ppcancel">Отмена</button><button class="btn sec" data-a="ppreset">Сброс</button><button class="btn pri" data-a="ppok" ${ok ? '' : 'disabled'}>Закрыть чек</button></div>
     </div></div></div>`;
 }
-function posClose(){
-  const doc = posCur(), p = POS.pay, s = payState(), cl = doc.did ? S.debtors.find(d => d.id === doc.did) : null;
-  if (s.rest || s.over) return;
+const newPay = o => Object.assign({cash:0, card:0, debt:0, act:'cash', fresh:true}, o);   // состояние окна оплаты
+const posFocusOk = () => { const b = document.querySelector('[data-a="ppok"]'); if (b && !b.disabled) b.focus({preventScroll:true}); };
+function posClose(force){
+  const doc = posCur(), p = POS.pay; if (!p) return;
+  const s = payState(), cl = doc.did ? S.debtors.find(d => d.id === doc.did) : null;
+  if (s.rest || s.over || s.big || !posCanPay()) return;
+  const why = force ? '' : debtNeedsPin(cl, p.debt); if (why) return needMgr(why, () => posClose(true));
   const no = nextNo(TODAY), now = Date.now();
-  const sale = {id:doc.id, no, date:TODAY, time:hhmm(now), kind:'sale', status:p.debt ? 'debt' : 'paid', seller:posSeller(), dev:POSDEV().name || 'Касса', did:cl ? cl.id : '', cname:cl ? cl.name : '',
+  const sale = {id:doc.id, no, date:TODAY, time:hhmm(now), kind:'sale', status:p.debt ? 'debt' : 'paid', seller:posSeller(), dev:devName(), did:cl ? cl.id : '', cname:cl ? cl.name : '',
     total:s.t, cash:p.cash - s.change, card:p.card, debt:p.debt, change:s.change, note:doc.note || '', ref:'', canc:'', ts:now,
-    lines:doc.lines.map(l => { const pp = P(l.pid), pr = unitPrice(l.pid, l.unit), k = l.unit === 'b' ? blockOf(pp) : 1; return {id:doc.id + '-' + uid(), pid:l.pid, name:pp.name, unit:l.unit, qty:l.qty, packs:l.qty * k, price:pr, sum:pr * l.qty}; })};
-  writeSale(sale);
-  if (p.debt && cl){ S.moves.push({id:uid(), did:cl.id, date:TODAY, amt:p.debt, note:'Покупка, чек № ' + no, sale:sale.id}); save(); }
-  LOC.pos.cur = newPosDoc(); POS.sel = -1; POS.pay = null; POS.msg = ''; POS.undo = null; POS.chg = {no, change:s.change, debt:p.debt}; posKeep();
-  render(); clearTimeout(POS.chgT); POS.chgT = setTimeout(() => { if (POS.chg){ POS.chg = null; render(); } }, 3500);
+    lines:doc.lines.map(l => { const pp = P(l.pid), pr = linePrice(l), k = l.unit === 'b' ? blockOf(pp) : 1; return {id:doc.id + '-' + uid(), pid:l.pid, name:pp.name, unit:l.unit, qty:l.qty, packs:l.qty * k, price:pr, sum:pr * l.qty}; })};
+  writeSale(sale); const lbl = saleNo(sale);
+  if (p.debt && cl){ S.moves.push({id:uid(), did:cl.id, date:TODAY, amt:p.debt, note:'Покупка, чек № ' + lbl, sale:sale.id}); save(); }
+  LOC.pos.cur = newPosDoc(); LOC.pos.last = {no:lbl, change:s.change}; POS.sel = -1; POS.pay = null; POS.msg = ''; POS.undo = null;
+  POS.chg = {no:lbl, total:s.t, got:p.cash, card:p.card, debt:p.debt, change:s.change}; posKeep();
+  render();
 }
 function needMgr(title, fn){   // действие только с ПИН управляющего / админа
   const mgrs = (S.posusers || []).filter(u => u.active && (u.role === 'админ' || u.role === 'управляющий'));
+  const sub = t => { const e = document.getElementById('npsub'); if (e) e.innerHTML = t; };
   if (posMgr()) return fn();
-  if (!mgrs.length){ if (isSeller()) return toast('Нужен управляющий'); return pinGuard(title, fn); }
-  openNP({title:'ПИН управляющего', sub:title, mask:true, allowZero:true, ok:'Подтвердить', onOk:async () => { const v = NP.val;
-    for (const u of mgrs) if (u.pin && u.pin === await pinHash(u.id, v)){ NP = null; fn(); return render(); }
-    NP.val = ''; npUpdate(); document.getElementById('npsub').innerHTML = '<span class="neg">Неверный ПИН</span>'; }});
+  if (!mgrs.length){ if (isSeller()) return toast('Нужен управляющий');   // кассиров-управляющих нет — ПИН из настроек
+    return openNP({title:'ПИН-код', sub:esc(title) + '<br>Введите ПИН-код из настроек.', mask:true, allowZero:true, ok:'Подтвердить', onOk:() => {
+      if (NP.val === S.pin){ NP = null; fn(); return render(); } NP.val = ''; npUpdate(); sub('<span class="neg">Неверный ПИН</span>'); }}); }
+  openNP({title:'ПИН управляющего', sub:esc(title), mask:true, allowZero:true, ok:'Подтвердить', onOk:async () => { const v = NP.val;
+    if (pinLocked()){ NP.val = ''; npUpdate(); return sub(`<span class="neg">${esc(lockText())}</span>`); }
+    const u = await pinUser(v, ['админ', 'управляющий']); if (u){ pinOk(); NP = null; fn(); return render(); }
+    pinFail(); NP.val = ''; npUpdate(); sub(`<span class="neg">${pinLocked() ? esc(lockText()) : 'Неверный ПИН'}</span>`); }});
 }
 async function pinHash(id, pin){
   const enc = new TextEncoder(), key = await crypto.subtle.importKey('raw', enc.encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
@@ -2894,7 +3060,7 @@ async function pinHash(id, pin){
 
 /* ---------- кассиры (ПИН-коды) и привязка штрихкодов — обычные экраны ---------- */
 V.posusers = () => hdr('Кассиры') + `<div class="wrap stack nar">
-  <p class="small muted">У каждого, кто работает на кассе, свой ПИН из 4 цифр. ПИН управляющего или админа нужен, чтобы отменить закрытый чек и привязывать штрихкоды.</p>
+  <p class="small muted">У каждого, кто работает на кассе, свой ПИН из 4 цифр. ПИН управляющего или админа нужен, чтобы отменить чек, сделать возврат, дать в долг без лимита, привязать штрихкод и выйти из кассы в программу.</p>
   <div class="list">${(S.posusers || []).map(u => `<button class="row" data-a="puedit" data-v="${u.id}"><span class="nm"><b>${esc(u.name)}</b><div class="small muted">${esc(u.role)}${u.active ? '' : ' · отключён'}</div></span><span class="chev">›</span></button>`).join('') || '<div class="empty-st">Кассиров ещё нет — касса открывается без ПИН-кода</div>'}</div>
   <button class="btn pri" data-a="puedit" data-v="">+ Добавить кассира</button></div>`;
 V.puedit = () => { const u = (S.posusers || []).find(x => x.id === R.id) || {id:'', name:'', role:'продавец', active:true};
@@ -2923,7 +3089,7 @@ function bindCode(code, pid, unit){
 }
 /* итог дня по кассе в обычной программе (отчёты) */
 V.rpos = () => { R.date = R.date || TODAY; return hdr('Касса: итог дня') + `<div class="wrap stack nar">${datenav(R.date, 'rposd')}${dayHtml(R.date).replace(/<div class="pdn">[\s\S]*?<\/div>/, '')}
-  <div class="sec-h">Чеки</div><div class="list">${(S.sales || []).filter(s => s.date === R.date).slice().reverse().map(s => `<button class="row" data-a="go" data-v="possale" data-id="${s.id}"><span class="nm">${s.time} · ${SKINDn[s.kind]} № ${s.no}${s.cname ? ' · ' + esc(s.cname) : ''}<div class="small muted">${SSTn[s.status]} · ${esc(s.seller)}</div></span><span class="rt">${s.kind === 'ret' ? '−' : ''}${fmt(s.total)}</span></button>`).join('') || '<div class="empty-st">Чеков нет</div>'}</div></div>`; };
+  <div class="sec-h">Чеки</div><div class="list">${(S.sales || []).filter(s => s.date === R.date).slice().reverse().map(s => `<button class="row" data-a="go" data-v="possale" data-id="${s.id}"><span class="nm">${s.time} · ${SKINDn[s.kind]} № ${esc(saleNo(s))}${s.cname ? ' · ' + esc(s.cname) : ''}<div class="small muted">${SSTn[s.status]} · ${esc(s.seller)}</div></span><span class="rt">${s.kind === 'ret' ? '−' : ''}${fmt(s.total)}</span></button>`).join('') || '<div class="empty-st">Чеков нет</div>'}</div></div>`; };
 V.possale = () => hdr('Чек') + `<div class="wrap stack nar">${saleHtml(R.id).replace(/<div class="grid2">[\s\S]*$/, '')}</div>`;
 
 
@@ -2953,29 +3119,46 @@ function posCmp(rows, per){
 /* ---------- действия ---------- */
 Object.assign(A, {
   pos: () => { HIST.length = 0; HIST.push({s:'home'}); R = {s:'pos'}; render(); },
-  pexit: () => { POS.ov = null; HIST.length = 0; R = {s:'home'}; render(); },
-  plk: async d => { if (d.v === 'C') POS.pin = ''; else if (d.v === '⌫') POS.pin = (POS.pin || '').slice(0, -1); else POS.pin = ((POS.pin || '') + d.v).slice(0, 4);
+  pexit: () => { const out = () => { POS.ov = null; HIST.length = 0; R = {s:'home'}; render(); };   // из кассы в программу — только управляющий/админ
+    if (posHasUsers() && !posMgr()) return needMgr('Выход из кассы в программу', out);
+    out(); },
+  plk: async d => { if (pinLocked()) return render();   // пауза после 5 неверных ПИН: клавиши не работают, видно сколько ждать
+    if (d.v === 'C') POS.pin = ''; else if (d.v === '⌫') POS.pin = (POS.pin || '').slice(0, -1); else POS.pin = ((POS.pin || '') + d.v).slice(0, 4);
     POS.pinErr = ''; const el = document.getElementById('plpin'); if (el) el.innerHTML = '•'.repeat(POS.pin.length) || '&nbsp;';
     if (POS.pin.length === 4){ const v = POS.pin; POS.pin = '';
-      for (const u of S.posusers.filter(x => x.active)) if (u.pin && u.pin === await pinHash(u.id, v)){ POSU = {id:u.id, name:u.name, role:u.role}; POS.pinErr = ''; return render(); }
-      POS.pinErr = 'Неверный ПИН'; render(); } },
+      const u = await pinUser(v); if (u){ POSU = {id:u.id, name:u.name, role:u.role}; POS.pinErr = ''; POS.act = Date.now(); pinOk(); return render(); }
+      pinFail(); POS.pinErr = 'Неверный ПИН'; render(); } },
   plogout: () => { POSU = null; POS.ov = null; render(); },
   padd2: d => { posAdd(d.v, 'p', 1); },
   padd3: d => { const [pid, u] = d.v.split('|'); POS.ov = null; posAdd(pid, u, 1); },
   psel: d => { POS.sel = +d.v; render(); },
   pplus: () => { const l = posCur().lines[POS.sel]; if (!l) return; l.qty++; posKeep(); render(); },
   pminus: () => { const l = posCur().lines[POS.sel]; if (!l || l.qty <= 1) return; l.qty--; posKeep(); render(); },
-  punit: () => { const doc = posCur(), l = doc.lines[POS.sel]; if (!l || !blockOf(P(l.pid))) return; const nu = l.unit === 'b' ? 'p' : 'b', j = doc.lines.findIndex((x, i) => i !== POS.sel && x.pid === l.pid && x.unit === nu);
-    if (j >= 0){ doc.lines[j].qty += l.qty; doc.lines.splice(POS.sel, 1); POS.sel = j > POS.sel ? j - 1 : j; } else l.unit = nu; posKeep(); render(); },
-  pdel: () => { const doc = posCur(), l = doc.lines[POS.sel]; if (!l) return; POS.undo = {l, i:POS.sel}; doc.lines.splice(POS.sel, 1); POS.sel = Math.min(POS.sel, doc.lines.length - 1); POS.msg = ''; posKeep(); render(); },
-  pundo: () => { const u = POS.undo; if (!u) return; posCur().lines.splice(u.i, 0, u.l); POS.sel = u.i; POS.undo = null; posKeep(); render(); },
-  pclear: () => confirmBox('Очистить чек? Все строки пропадут.', 'Очистить', () => { const doc = posCur(); doc.lines = []; doc.did = ''; POS.sel = -1; POS.undo = null; POS.msg = ''; posKeep(); }),
-  pqty: () => { const l = posCur().lines[POS.sel]; if (!l) return; const p = P(l.pid);
-    openNP({title:p.name, sub:'Количество, ' + unitName(p, l.unit), val:String(l.qty), ok:'Готово', extra:n => n > 100 ? '⚠ Проверьте: больше 100' : '', onOk:n => { if (!n) return; l.qty = n; posKeep(); NP = null; render(); }}); },
+  punit: () => { const doc = posCur(), l = doc.lines[POS.sel]; if (!l || !blockOf(P(l.pid))) return; const nu = l.unit === 'b' ? 'p' : 'b', np = unitPrice(l.pid, nu);
+    if (!(np > 0)){ POS.msg = 'Нет цены — так продать нельзя'; return render(); }
+    const j = doc.lines.findIndex((x, i) => i !== POS.sel && x.pid === l.pid && x.unit === nu);
+    if (j >= 0){ doc.lines[j].qty += l.qty; doc.lines.splice(POS.sel, 1); POS.sel = j > POS.sel ? j - 1 : j; } else { l.unit = nu; l.price = np; } posKeep(); render(); },
+  pdel: () => { const doc = posCur(), l = doc.lines[POS.sel]; if (!l) return; POS.undo = {l, i:POS.sel}; doc.lines.splice(POS.sel, 1); POS.sel = Math.min(POS.sel, doc.lines.length - 1); POS.msg = ''; posLog(LOGA.del, doc, [l]); posKeep(); render(); },
+  pundo: () => { const u = POS.undo; if (!u) return; posCur().lines.splice(u.i, 0, u.l); POS.sel = u.i; POS.undo = null; posLog(LOGA.undo, posCur(), [u.l]); posKeep(); render(); },
+  pclear: () => confirmBox('Очистить чек? Все строки пропадут.', 'Очистить', () => { const doc = posCur(); posLog(LOGA.clear, doc, doc.lines); doc.lines = []; doc.did = ''; POS.sel = -1; POS.undo = null; POS.msg = ''; posKeep(); }),
+  pqty: () => { const l = posCur().lines[POS.sel];
+    if (POS.mul){ POS.mul = 0; POS.msg = ''; return render(); }   // повторное касание «× 5» — отмена
+    if (!l) return openNP({title:'Сколько следующего товара?', sub:'Следующий скан или касание плитки добавит столько штук (или блоков)', ok:'Готово', max:999, maxMsg:'Больше 999 нельзя',
+      onOk:n => { if (!n) return; POS.mul = n; POS.msg = ''; NP = null; render(); }});
+    const p = P(l.pid);
+    openNP({title:p.name, sub:'Количество, ' + unitName(p, l.unit), val:String(l.qty), ok:'Готово', max:999, maxMsg:'Больше 999 нельзя', extra:n => n > 100 ? '⚠ Проверьте: больше 100' : '', onOk:n => { if (!n) return; l.qty = n; posKeep(); NP = null; render(); }}); },
   pprice: () => { POS.price = !POS.price; POS.msg = POS.price ? 'Цена: сканируйте товар или нажмите на плитку' : ''; render(); },
+  psetprice: d => { const [pid, unit] = d.v.split('|'), p = P(pid); if (!p || !posBossEdit()) return; POS.ov = null;
+    openNP({title:'Цена: ' + p.name, sub:`Продажная цена за ${p.cat === 'cig' ? 'пачку' : 'штуку'} с сегодняшнего дня (${dShort(TODAY)}) — как в карточке товара`, money:true, ok:'Сохранить и добавить', onOk:n => { if (!n) return;
+      const c = curPrice(pid); S.prices = S.prices.filter(x => !(x.pid === pid && x.from === TODAY)); S.prices.push(Object.assign({pid, from:TODAY, cost:c.cost || 0, sale:n}, c.bsale ? {bsale:c.bsale} : {})); save();
+      NP = null; toast('Цена записана: ' + fmt(n)); posAdd(pid, unit, 1); }}); },
   phold: () => { const doc = posCur(); if (!doc.lines.length) return; LOC.pos.held.push(doc); LOC.pos.cur = newPosDoc(); POS.sel = -1; POS.msg = 'Чек отложен — он в «Документах»'; posKeep(); render(); },
   presume: d => { const i = LOC.pos.held.findIndex(h => h.id === d.v); if (i < 0) return; const h = LOC.pos.held.splice(i, 1)[0], cur = LOC.pos.cur;
-    if (cur && cur.lines.length) LOC.pos.held.push(cur); LOC.pos.cur = h; POS.sel = h.lines.length - 1; POS.ov = null; POS.msg = ''; posKeep(); render(); },
+    if (cur && cur.lines.length) LOC.pos.held.push(cur); LOC.pos.cur = h; POS.sel = h.lines.length - 1; POS.ov = null; POS.msg = ''; posKeep();
+    const diff = h.lines.filter(l => P(l.pid) && l.price != null && unitPrice(l.pid, l.unit) > 0 && unitPrice(l.pid, l.unit) !== l.price);   // цена в отложенном чеке — та, что была; если поменялась — спросить
+    if (diff.length){ CONF = {text:'Цена изменилась:' + diff.map(l => `<br><b>${esc(P(l.pid).name)}: ${fmt(l.price)} → ${fmt(unitPrice(l.pid, l.unit))}</b>`).join('') + '<br>Обновить?',
+      yes:{l:'Обновить', c:'pri', f:() => { diff.forEach(l => { l.price = unitPrice(l.pid, l.unit); }); posKeep(); }}, no:{l:'Оставить', f:() => {}}}; ANIM = true; }
+    render(); },
   pgrp: d => { POS.grp = d.v; POS.all = false; render(); const t = document.getElementById('ptiles'); if (t) t.scrollTop = 0; },
   pgall: () => { POS.all = !POS.all; render(); },
   posk: () => { POS.osk = !POS.osk; render(); if (!POS.osk){ const q = document.getElementById('pq'); if (q) q.blur(); } },
@@ -2998,42 +3181,56 @@ Object.assign(A, {
   pclient: () => { POS.cq = ''; POS.ov = {k:'client'}; render(); },
   pclpick: d => { const doc = posCur(), dd = S.debtors.find(x => x.id === d.v);
     const pick = () => { doc.did = d.v; POS.ov = null; posKeep(); payResume(); render(); };
-    if (dd && dd.grp === 'n') return confirmBox(`«${esc(dd.name)}» — в Несгоре. Всё равно выбрать?`, 'Выбрать', pick);
+    if (dd && dd.grp === 'n') return confirmBox(`«${esc(dd.name)}» — в Несгоре. Всё равно выбрать?${posBoss() ? '' : '<br>В долг — только с ПИН управляющего.'}`, 'Выбрать', pick);
     pick(); },
   pclnone: () => { posCur().did = ''; POS.ov = null; posKeep(); render(); },
   pnewcl: () => { POS.ov = {k:'newcl'}; render(); setTimeout(() => { const e = document.getElementById('nc_name'); if (e) e.focus(); }); },
-  pnewclok: () => { const name = (document.getElementById('nc_name').value || '').trim(), ph = (document.getElementById('nc_ph').value || '').trim();
-    if (!name) return toast('Введите имя'); const id = 'd' + uid(); S.debtors.push({id, name, grp:'a', ts:Date.now()}); if (ph){ S.dinfo = S.dinfo || {}; S.dinfo[id] = {ph}; }
-    save(); posCur().did = id; POS.ov = null; posKeep(); toast('Клиент добавлен'); },
-  pdebtpay: () => { const did = posCur().did, dd = S.debtors.find(x => x.id === did); if (!dd) return; POS.ov = null;
-    openNP({title:'Принять долг: ' + dd.name, sub:'Долг сейчас ' + fmt(debtOf(did)), money:true, ok:'Дальше', onOk:n => { if (!n) return; NP = null;
-      CONF = {text:`Принять ${fmt(n)} от ${esc(dd.name)}?`, alt:{l:'Картой', c:'sec', f:() => A.pdebtpay2({n, did, m:'card'})}, yes:{l:'Наличными', c:'pri', f:() => A.pdebtpay2({n, did, m:'cash'})}, no:{l:'Отмена', f:() => {}}}; render(); }}); },
+  pnewclok: () => { const g = id => (document.getElementById(id).value || '').trim(), name = g('nc_name'), ph = g('nc_ph'), lim = +g('nc_lim').replace(/\D/g, '') || 0;
+    if (!name) return toast('Введите имя');
+    Object.assign(POS.ov, {name, ph, lim});   // если спросим ПИН — форма не сотрётся
+    const add = () => { const id = 'd' + uid(); S.debtors.push({id, name, grp:'a', ts:Date.now()});
+      if (ph || lim){ S.dinfo = S.dinfo || {}; S.dinfo[id] = Object.assign(ph ? {ph} : {}, lim ? {lim, limOn:true} : {}); }
+      save(); posCur().did = id; POS.ov = null; posKeep(); payResume(); toast('Клиент добавлен'); };
+    if (lim > posNewLim() && !posBoss()) return needMgr(`Лимит ${fmt(lim)} новому клиенту ${name}`, add);
+    add(); },
+  pdebtpay: () => { const did = posCur().did, dd = S.debtors.find(x => x.id === did); if (!dd) return; const debt = debtOf(did); if (debt <= 0) return toast('Долга нет'); POS.ov = null;
+    openNP({title:'Принять долг: ' + dd.name, sub:'Долг сейчас ' + fmt(debt), money:true, ok:'Дальше', max:debt, maxMsg:'Больше долга нельзя: максимум ' + fmt(debt), fill:{l:'Весь долг', v:debt},
+      onOk:n => { if (!n) return; NP = null;
+        CONF = {text:`Принять ${fmt(n)} от ${esc(dd.name)}?`, alt:{l:'Картой', c:'sec', f:() => A.pdebtpay2({n, did, m:'card'})}, yes:{l:'Наличными', c:'pri', f:() => A.pdebtpay2({n, did, m:'cash'})}, no:{l:'Отмена', f:() => {}}}; render(); }}); },
   pdebtpay2: x => { const dd = S.debtors.find(d => d.id === x.did), now = Date.now(), no = nextNo(TODAY);
-    const s = {id:'s' + uid() + uid(), no, date:TODAY, time:hhmm(now), kind:'pay', status:'paid', seller:posSeller(), dev:POSDEV().name || 'Касса', did:x.did, cname:dd.name, total:x.n, cash:x.m === 'cash' ? x.n : 0, card:x.m === 'card' ? x.n : 0, debt:0, change:0, note:'', ref:'', canc:'', ts:now, lines:[]};
+    const s = {id:'s' + uid() + uid(), no, date:TODAY, time:hhmm(now), kind:'pay', status:'paid', seller:posSeller(), dev:devName(), did:x.did, cname:dd.name, total:x.n, cash:x.m === 'cash' ? x.n : 0, card:x.m === 'card' ? x.n : 0, debt:0, change:0, note:'', ref:'', canc:'', ts:now, lines:[]};
     writeSale(s); S.moves.push({id:uid(), did:x.did, date:TODAY, amt:-x.n, note:'Погашение на кассе (' + (x.m === 'cash' ? 'нал' : 'карта') + ')', sale:s.id}); save(); POS.ov = null; toast('Принято ' + fmt(x.n)); },
   pret: d => { POS.ov = {k:'ret', id:d.v, q:{}}; render(); },
   prq: d => { const [i, s] = d.v.split('|'); const o = POS.ov; o.q[i] = Math.max(0, (o.q[i] || 0) + +s); render(); },
-  pretok: d => { const o = POS.ov, s = S.sales.find(x => x.id === o.id); if (!s) return;
+  pretok: () => { const o = POS.ov, s = S.sales.find(x => x.id === o.id); if (!s) return;
     const lines = s.lines.map((l, i) => ({l, q:o.q[i] || 0})).filter(x => x.q > 0); if (!lines.length) return;
-    const total = lines.reduce((a, x) => a + x.q * x.l.price, 0), now = Date.now(), no = nextNo(TODAY), m = d.v;
-    const r = {id:'s' + uid() + uid(), no, date:TODAY, time:hhmm(now), kind:'ret', status:'paid', seller:posSeller(), dev:POSDEV().name || 'Касса', did:s.did, cname:s.cname, total, cash:m === 'cash' ? total : 0, card:m === 'card' ? total : 0, debt:m === 'debt' ? total : 0, change:0, note:'', ref:s.id, canc:'', ts:now,
-      lines:lines.map(x => ({id:'r' + uid() + uid(), pid:x.l.pid, name:x.l.name, unit:x.l.unit, qty:x.q, packs:x.q * (x.l.packs / x.l.qty), price:x.l.price, sum:x.q * x.l.price}))};
-    writeSale(r); if (m === 'debt' && s.did){ S.moves.push({id:uid(), did:s.did, date:TODAY, amt:-total, note:'Возврат товара, чек № ' + no, sale:r.id}); save(); }
-    POS.ov = {k:'sale', id:r.id}; toast('Возврат ' + fmt(total) + (m === 'cash' ? ' — отдайте наличными' : m === 'card' ? ' — верните на карту' : ' — долг уменьшен')); },
+    const total = lines.reduce((a, x) => a + x.q * x.l.price, 0), sp = retSplit(s, total); if (sp.left > 0) return toast('Больше, чем оплачено по чеку, вернуть нельзя');
+    const doRet = () => { const now = Date.now(), no = nextNo(TODAY);
+      const r = {id:'s' + uid() + uid(), no, date:TODAY, time:hhmm(now), kind:'ret', status:'paid', seller:posSeller(), dev:devName(), did:s.did, cname:s.cname, total, cash:sp.cash, card:sp.card, debt:sp.debt, change:0, note:'', ref:s.id, canc:'', ts:now,
+        lines:lines.map(x => ({id:'r' + uid() + uid(), pid:x.l.pid, name:x.l.name, unit:x.l.unit, qty:x.q, packs:x.q * (x.l.packs / x.l.qty), price:x.l.price, sum:x.q * x.l.price}))};
+      writeSale(r); if (sp.debt && s.did){ S.moves.push({id:uid(), did:s.did, date:TODAY, amt:-sp.debt, note:'Возврат товара, чек № ' + saleNo(r), sale:r.id}); save(); }
+      POS.ov = {k:'sale', id:r.id};
+      toast('Возврат ' + fmt(total) + ': ' + RETW.filter(([k]) => sp[k]).map(([k, l]) => (k === 'cash' ? 'отдайте наличными ' : k === 'card' ? 'верните на карту ' : 'в счёт долга ') + fmt(sp[k])).join(', ')); };
+    if (posBoss()) return doRet();
+    needMgr(`Возврат ${fmt(total)} по чеку № ${saleNo(s)}`, doRet); },
   pcancel: d => { const s = S.sales.find(x => x.id === d.v); if (!s) return;
-    confirmBox(`Отменить чек № ${s.no} на ${fmt(s.total)}?${s.debt ? '<br><b>Долг клиента по этому чеку тоже снимется.</b>' : ''}`, 'Отменить чек', () => setTimeout(() => needMgr(`Отмена чека № ${s.no} на ${fmt(s.total)}`, () => {
+    if (saleRets(s).length) return toast('По чеку был возврат — сначала отмените возврат');   // иначе деньги «вернутся» дважды
+    confirmBox(`Отменить чек № ${esc(saleNo(s))} на ${fmt(s.total)}?${s.debt ? '<br><b>Долг клиента по этому чеку тоже снимется.</b>' : ''}`, 'Отменить чек', () => setTimeout(() => needMgr(`Отмена чека № ${saleNo(s)} на ${fmt(s.total)}`, () => {
       const c = Object.assign({}, s, {status:'cancel', canc:(POSU ? POSU.name : posSeller()) + ' ' + hhmm(Date.now())}); writeSale(c, false);
       const n = S.moves.length; S.moves = S.moves.filter(m => m.sale !== s.id); if (S.moves.length !== n) save(); POS.ov = {k:'sale', id:s.id}; toast('Чек отменён'); render(); }), 0)); },
-  ppay: () => { if (!posCur().lines.length) return; POS.pay = {cash:0, card:0, debt:0, act:'cash', fresh:true}; render(); },
+  ppay: () => { if (!posCanPay()) return; POS.pay = newPay(); render(); },
+  pcashq: () => { if (!posCanPay()) return; POS.pay = newPay({cash:posTotal()}); posClose(); },   // «Наличные» на экране чека: ровно + закрыть
+  pcardq: () => { if (!posCanPay()) return; POS.pay = newPay({card:posTotal(), act:'card'}); posClose(); },   // «Карта»: всё картой + закрыть
   pact: d => { POS.pay.act = d.v; POS.pay.fresh = true; if (d.v === 'debt' && !posCur().did){ POS.ov = {k:'client'}; POS.cq = ''; POS.payKeep = POS.pay; POS.pay = null; } render(); },
-  pnote: d => { const p = POS.pay; p.cash += +d.v; p.act = 'cash'; p.fresh = true; render(); },
-  pexact: () => { const p = POS.pay, t = posTotal(); p.cash = Math.max(0, t - p.card - p.debt); render(); },
-  pallcard: () => { const p = POS.pay; p.card = posTotal(); p.cash = 0; p.debt = 0; render(); },
+  pnote: d => { if (!POS.pay){ if (!posCanPay()) return; POS.pay = newPay(); }   // купюра на экране чека открывает оплату с этой суммой
+    const p = POS.pay; p.cash += +d.v; p.act = 'cash'; p.fresh = true; p.msg = ''; render(); posFocusOk(); },
+  pexact: () => { const p = POS.pay, t = posTotal(); p.cash = Math.max(0, t - p.card - p.debt); p.msg = ''; render(); posFocusOk(); },
+  pallcard: () => { const p = POS.pay; p.card = posTotal(); p.cash = 0; p.debt = 0; p.msg = ''; render(); posFocusOk(); },
   prest: d => { const p = POS.pay, t = posTotal(); if (d.v === 'debt' && !posCur().did){ POS.payKeep = p; POS.pay = null; POS.ov = {k:'client'}; POS.cq = ''; POS.wantDebtRest = true; return render(); }
-    p[d.v] = 0; const rest = Math.max(0, t - p.cash - p.card - p.debt); p[d.v] = rest; render(); },
-  ppk: d => { const p = POS.pay, k = p.act; let s = p.fresh ? '' : String(p[k] || ''); p.fresh = false;
+    p[d.v] = 0; const rest = Math.max(0, t - p.cash - p.card - p.debt); p[d.v] = rest; p.msg = ''; render(); posFocusOk(); },
+  ppk: d => { const p = POS.pay, k = p.act; let s = p.fresh ? '' : String(p[k] || ''); p.fresh = false; p.msg = '';
     if (d.v === '⌫') s = s.slice(0, -1); else s = (s + d.v).replace(/^0+/, '').slice(0, 10); p[k] = +s || 0; render(); },
-  ppreset: () => { POS.pay = {cash:0, card:0, debt:0, act:'cash', fresh:true}; render(); },
+  ppreset: () => { POS.pay = newPay(); render(); },
   ppcancel: () => { POS.pay = null; render(); },
   ppok: () => posClose(),
   pchgok: () => { POS.chg = null; render(); },
@@ -3054,103 +3251,164 @@ Object.assign(A, {
   sbcdel: d => confirmBox('Убрать штрихкод ' + esc(d.v) + '?', 'Убрать', () => { delete S.barcodes[d.v]; save(); }),
   bcpick: d => { R.bc.pid = d.v; if (!blockOf(P(d.v))) return A.bcunit({v:'p'}); render(); },
   bcunit: d => { const b = R.bc, err = bindCode(b.code, b.pid, d.v); R.bcLast = (R.bcLast || []).concat(err ? [] : [{code:b.code, pid:b.pid, unit:d.v}]);
-    R.bc = {msg:err || `Привязано: ${b.code} → ${P(b.pid).name} (${d.v === 'b' ? 'блок' : 'пачка'})`, err:!!err}; render(); setTimeout(() => { const e = document.getElementById('bc_code'); if (e) e.focus(); }); }
+    R.bc = {msg:err || `Привязано: ${b.code} → ${P(b.pid).name} (${d.v === 'b' ? 'блок' : 'пачка'})`, err:!!err}; render(); setTimeout(() => { const e = document.getElementById('bc_code'); if (e) e.focus(); }); },
+  rejretry: () => { queue(REJ.map(o => o.del ? {t:o.t, id:o.id, del:1} : {t:o.t, id:o.id, row:o.row})); REJ = []; ls.set(REJ_KEY, REJ); sync(); toast('Отправляю снова'); },
+  rejdrop: () => confirmBox(`Убрать ${REJ.length} ${plRec(REJ.length)} из «Не сохранено»? В базу они не попадут.`, 'Убрать', () => { REJ = []; ls.set(REJ_KEY, REJ); })
 });
 const keepPu = () => { const g = id => document.getElementById(id); if (g('pu_name')) R.puName = g('pu_name').value; if (g('pu_on')) R.puOn = g('pu_on').checked; };
 
 /* поля ввода кассы */
 document.addEventListener('input', e => {
   const el = e.target, k = el.dataset && el.dataset.in; if (!k) return;
-  if (k === 'pq'){ POS.q = el.value; const box = document.getElementById('ptiles'); if (box){ box.innerHTML = posTiles().map(posTileHtml).join('') || '<div class="pos-empty">Ничего не найдено</div>'; const g = document.querySelector('.pos-gw'); if (g) g.style.display = POS.q ? 'none' : ''; const x = document.querySelector('[data-a="pqclr"]'); if (x) x.hidden = !POS.q; } }
+  if (k === 'pq'){ POS.q = el.value; const box = document.getElementById('ptiles'); if (box){ box.innerHTML = posTilesHtml(); const g = document.querySelector('.pos-gw'); if (g) g.style.display = POS.q ? 'none' : ''; const x = document.querySelector('[data-a="pqclr"]'); if (x) x.hidden = !POS.q; } }
   else if (k === 'pcq'){ POS.cq = el.value; const pos = el.selectionStart; render(); const n = document.getElementById('pcq'); if (n){ n.focus(); n.setSelectionRange(pos, pos); } }
   else if (k === 'pbq'){ POS.ov.q = el.value; const pos = el.selectionStart; render(); const n = document.getElementById('pbq'); if (n){ n.focus(); n.setSelectionRange(pos, pos); } }
   else if (k === 'bcq'){ R.bc.q = el.value; const pos = el.selectionStart; render(); const n = document.getElementById('bc_q'); if (n){ n.focus(); n.setSelectionRange(pos, pos); } }
 });
-document.addEventListener('change', e => { const el = e.target; if (el.dataset && el.dataset.in === 'pdev'){ const d = POSDEV(); d.on = el.checked; ls.set('chorsu_posdev', d); toast(el.checked ? 'Это устройство открывает сразу кассу' : 'Обычный режим'); } });
-/* сканер и клавиатура на кассе: цифры + Enter без поля ввода = штрихкод */
+document.addEventListener('change', e => { const el = e.target, k = el.dataset && el.dataset.in;
+  if (k === 'pdev'){ setPosDev({on:el.checked}); toast(el.checked ? 'Это устройство открывает сразу кассу' : 'Обычный режим'); }
+  else if (k === 'pdevname'){ setPosDev({name:el.value.trim()}); toast('Имя устройства: ' + devName()); }
+  else if (k === 'posnewlim'){ const v = +el.value.replace(/\D/g, '') || 0; setPosDev({newlim:v}); el.value = fmt(v); toast('Продавец без ПИН ставит лимит до ' + fmt(v)); } });
+/* сканер и клавиатура на кассе: цифры + Enter без поля ввода = штрихкод.
+   Сканер в окнах (оплата, количество, ПИН, принять долг) и в поиске узнаём по скорости: ≥ 6 символов с интервалом < 50 мс
+   и сразу Enter — так человек не печатает. Такой ввод ничего не меняет в окне и не подтверждает его. */
 let SCANBUF = '', SCANT = 0;
+const KB = {t:0, n:0, buf:'', snap:null};
+function kbTrack(key, snap){   // очередной символ; snap() — что было в окне до начала быстрой серии
+  const now = performance.now(); if (now - KB.t >= 50){ KB.n = 0; KB.buf = ''; KB.snap = snap ? snap() : null; }
+  KB.t = now; KB.n++; KB.buf += key;
+}
+const kbIsScan = () => KB.n >= 6 && performance.now() - KB.t < 150;
+const kbDone = () => { KB.t = 0; KB.n = 0; KB.buf = ''; KB.snap = null; };
+function npScanned(){   // сканер в цифровом окне: вернуть, как было, и подсказать
+  const sn = KB.snap; kbDone(); if (sn){ NP.val = sn.val; NP.fresh = sn.fresh; } npUpdate(); posBeep();
+  const x = document.getElementById('npx'); if (x){ x.textContent = 'Это сканер — сначала закройте окно. Товар не добавлен'; x.classList.add('neg'); }
+}
 document.addEventListener('keydown', e => {
   if (R.s === 'bcbind' && e.key === 'Enter' && e.target.id === 'bc_code'){ e.preventDefault(); const code = e.target.value.trim(); if (!code) return; const old = S.barcodes[code];
     R.bc = old ? {code:'', msg:`${code} уже привязан: ${(P(old.pid) || {}).name} (${old.unit === 'b' ? 'блок' : 'пачка'})`, err:true} : {code, q:'', msg:''}; render(); setTimeout(() => { const n = document.getElementById(old ? 'bc_code' : 'bc_q'); if (n) n.focus(); }); return; }
   if (e.key === 'Enter' && e.target.id === 'e_bc'){ e.preventDefault(); e.stopPropagation(); return A.sbcadd({v:'p'}); }
   if (R.s !== 'pos' || NP || CONF || !DB) return;
-  if (!POSU && (S.posusers || []).some(u => u.active)){ if (/^[0-9]$/.test(e.key)){ e.preventDefault(); A.plk({v:e.key}); } else if (e.key === 'Backspace'){ e.preventDefault(); A.plk({v:'⌫'}); } e.stopPropagation(); return; }
+  const k = e.key;
+  if (!POSU && posHasUsers()){   // экран ПИН кассира: штрихкод не должен «набрать» ПИН
+    if (/^[0-9]$/.test(k)){ e.preventDefault(); kbTrack(k, () => POS.pin || ''); if (KB.n >= 2){ POS.pin = KB.snap || ''; const el = document.getElementById('plpin'); if (el) el.innerHTML = '•'.repeat(POS.pin.length) || '&nbsp;'; } else A.plk({v:k}); }
+    else if (k === 'Backspace'){ e.preventDefault(); A.plk({v:'⌫'}); }
+    else if (k === 'Enter' && KB.n >= 2){ e.preventDefault(); kbDone(); posBeep(); POS.pinErr = 'Сначала войдите по ПИН — штрихкод не принят'; render(); }
+    e.stopPropagation(); return; }
   e.stopPropagation();
   const t = e.target, inInput = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
+  if (POS.chg && !['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'NumLock'].includes(k)){ POS.chg = null; render(); if (k === 'Escape' || (k === 'Enter' && !SCANBUF)){ e.preventDefault(); return; } }   // окно сдачи — до любого действия кассира
   if (POS.pay && !inInput){
-    if (/^[0-9]$/.test(e.key)){ e.preventDefault(); return A.ppk({v:e.key}); }
-    if (e.key === 'Backspace'){ e.preventDefault(); return A.ppk({v:'⌫'}); }
-    if (e.key === 'Enter'){ e.preventDefault(); const b = document.querySelector('[data-a="ppok"]'); if (b && !b.disabled) posClose(); return; }
-    if (e.key === 'Escape'){ e.preventDefault(); return A.ppcancel(); }
+    if (/^[0-9]$/.test(k)){ e.preventDefault(); kbTrack(k, () => Object.assign({}, POS.pay)); return A.ppk({v:k}); }
+    if (k === 'Backspace'){ e.preventDefault(); return A.ppk({v:'⌫'}); }
+    if (k === 'Enter'){ e.preventDefault();
+      if (kbIsScan()){ const sn = KB.snap; kbDone(); Object.assign(POS.pay, sn || {}, {msg:'Сначала закройте оплату — товар не добавлен'}); posBeep(); return render(); }
+      kbDone(); const b = document.querySelector('[data-a="ppok"]'); if (b && !b.disabled) posClose(); return; }
+    if (k === 'Escape'){ e.preventDefault(); return A.ppcancel(); }
     return;
   }
-  if (e.key === 'Escape' && (POS.ov || POS.chg)){ e.preventDefault(); POS.ov = null; POS.chg = null; return render(); }
-  if (inInput && t.id === 'pq' && e.key === 'Enter'){ e.preventDefault(); const v = t.value.trim(); if (!v) return;
+  if (k === 'Escape' && POS.ov){ e.preventDefault(); POS.ov = null; payResume(); return render(); }
+  if (inInput && t.id === 'pq'){
+    if (k.length === 1){ kbTrack(k, () => t.value); return; }
+    if (k !== 'Enter') return;
+    e.preventDefault();
+    if (kbIsScan()){ const code = KB.buf, was = KB.snap || ''; kbDone(); t.value = POS.q = was; posScan(code); return; }   // сканер при фокусе в поиске: товар — в чек, текст поиска — как был
+    kbDone(); const v = t.value.trim(); if (!v) return;
     if (S.barcodes[v]){ POS.q = ''; posScan(v); return; }
     const it = posTiles(); if (it.length === 1){ POS.q = ''; posAdd(it[0].id, 'p', 1); return; }
     if (/^\d{6,}$/.test(v)){ POS.q = ''; posScan(v); } return; }
   if (inInput) return;
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); return A.ppay(); }
+  if ((e.ctrlKey || e.metaKey) && k === 'Enter'){ e.preventDefault(); return A.ppay(); }
+  if (k === 'F2'){ e.preventDefault(); return A.pcashq(); }
+  if (k === 'F3'){ e.preventDefault(); return A.pcardq(); }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const now = Date.now(); if (now - SCANT > 600) SCANBUF = ''; SCANT = now;
-  if (e.key === 'Enter'){ if (SCANBUF.length >= 3){ e.preventDefault(); const c = SCANBUF; SCANBUF = ''; posScan(c); } return; }
-  if (e.key.length === 1 && /[0-9A-Za-z]/.test(e.key)){ SCANBUF += e.key; if (!/[0-9]/.test(e.key) && SCANBUF.length === 1){ e.preventDefault(); const q = document.getElementById('pq'); if (q){ q.focus(); q.value = POS.q = e.key; q.dispatchEvent(new Event('input', {bubbles:true})); } SCANBUF = ''; } }
-  if (e.key === '+' ){ e.preventDefault(); A.pplus(); } else if (e.key === '-'){ e.preventDefault(); A.pminus(); } else if (e.key === 'Delete'){ e.preventDefault(); A.pdel(); }
+  if (k === 'Enter'){ if (SCANBUF.length >= 3){ e.preventDefault(); const c = SCANBUF; SCANBUF = ''; posScan(c); } return; }
+  if (k === '*' && /^\d{1,3}$/.test(SCANBUF)){ e.preventDefault(); POS.mul = +SCANBUF || 0; SCANBUF = ''; POS.msg = POS.mul ? `Следующий товар × ${POS.mul}` : ''; return render(); }   // «5 *» — количество следующего товара
+  if (k.length === 1 && /^[\p{L}\p{N}]$/u.test(k)){
+    if (!SCANBUF && /^\p{L}$/u.test(k)){ e.preventDefault(); kbTrack(k, () => ''); const q = document.getElementById('pq');   // любая буква (рус., узб., лат.) начинает поиск
+      if (q){ q.focus(); q.value = POS.q = k; q.dispatchEvent(new Event('input', {bubbles:true})); } return; }
+    SCANBUF += k; }
+  if (k === '+'){ e.preventDefault(); A.pplus(); } else if (k === '-'){ e.preventDefault(); A.pminus(); } else if (k === 'Delete'){ e.preventDefault(); A.pdel(); }
 }, true);
+/* 10 минут без касаний и чек пуст — касса закрывается на ПИН (открытый чек остаётся) */
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { POS.act = Date.now(); }, true));
+setInterval(() => { if (R.s === 'pos' && POSU && posHasUsers() && !NP && !CONF && !POS.pay && !(LOC.pos.cur && LOC.pos.cur.lines.length) && Date.now() - POS.act > 600000){ POSU = null; POS.ov = null; POS.chg = null; render(); } }, 30000);
+if (pinLocked()) lockTick();
 
 /* стили кассы */
 document.head.insertAdjacentHTML('beforeend', `<style>
 body.posmode{display:block!important;font-size:16px}body.posmode #side{display:none!important}body.posmode #app{max-width:none;margin:0;padding:0;width:100%}body.posmode #app>*{max-width:none}
-.pos{display:grid;grid-template-columns:minmax(300px,36%) 1fr;gap:12px;height:100vh;height:100dvh;padding:12px;box-sizing:border-box;background:var(--bg)}
+body.posmode #app>.pos-login{max-width:480px}
+.pos{display:grid;grid-template-columns:minmax(300px,36%) 1fr;gap:12px;height:100vh;height:100dvh;padding:12px;box-sizing:border-box;background:var(--bg)}.pos.oskon{grid-template-columns:300px 1fr}
+.pos button,.pos-ov button,.pos-login button{touch-action:manipulation}.pos-ov{overscroll-behavior:contain}
 .pos-left,.pos-right{display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}.pos-search button[hidden]{display:none}
-.pos-client{min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;padding:0 14px;font-size:16px;color:var(--muted)}.pos-client.on{color:var(--text);border-color:var(--accent)}
-.pos-lines{flex:1;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
-.pl{display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:center;width:100%;text-align:left;padding:10px;border-radius:10px;min-height:56px;font-size:16px}
-.pl .q{color:var(--muted);font-weight:700}.pl .n{min-width:0;font-weight:600}.pl .n small{display:block;color:var(--muted);font-weight:400;font-size:13px}.pl .s{font-weight:800;font-size:17px}
+.pos-client{min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;padding:0 14px;font-size:16px;color:var(--muted)}.pos-client.on{color:var(--ink);border-color:var(--accent)}
+.pos-lines{flex:1;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;min-height:96px}
+.pl{display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:center;width:100%;text-align:left;padding:10px;border-radius:10px;min-height:56px;font-size:17px;font-variant-numeric:tabular-nums}
+.pl .q{color:var(--muted);font-weight:700}.pl .n{min-width:0;font-weight:600;font-size:17px}.pl .n small{display:block;color:var(--muted);font-weight:400;font-size:14px}.pl .s{font-weight:800;font-size:18px}.pl.zero .n small{color:var(--bad);font-weight:700}
 .pl.on{background:var(--accent-soft);outline:2px solid var(--accent)}
 .pos-empty{padding:24px;text-align:center;color:var(--muted)}
 .pos-lc{display:grid;grid-template-columns:64px 64px 1fr 1fr;gap:8px}.pos-lc button{min-height:56px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:20px;font-weight:700}
 .pos-lc button.del{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent);font-size:16px}.pos-lc button:disabled{opacity:.4}
-.pos-tot{display:flex;justify-content:space-between;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px}.pos-tot span{color:var(--muted)}.pos-tot b{font-size:34px;font-weight:800}
-.pos-top{display:flex;gap:8px;align-items:center}.pos-st{flex:1;font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pos-st.warn{color:var(--warn)}.pos-st.bad{color:var(--bad)}
-.pos-top button{min-height:48px;padding:0 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-weight:700;font-size:15px}.pos-top button i{font-style:normal;background:var(--warn);color:#fff;border-radius:99px;padding:1px 8px;margin-left:4px}
-.pos-search{display:flex;gap:8px}.pos-search input{flex:1;min-height:52px;font-size:18px;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface);color:var(--text)}.pos-search button{width:56px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:20px}.pos-search button.on{background:var(--accent-soft);border-color:var(--accent)}
-.pos-msg{background:color-mix(in srgb,var(--warn) 14%,var(--surface));color:var(--text);border-radius:10px;padding:8px 12px;font-weight:600}
-.pos-grp{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pos-grp.all{flex-wrap:wrap}.pos-grp button{flex:none;min-height:46px;padding:0 14px;border:1px solid var(--line);border-radius:99px;background:var(--surface);font-weight:700;font-size:15px;white-space:nowrap}
+.pos-tot{display:flex;justify-content:space-between;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-variant-numeric:tabular-nums}.pos-tot span{color:var(--muted)}.pos-tot b{font-size:34px;font-weight:800}
+.pos-qp{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pos-qp>button{min-height:56px;border-radius:12px;font-weight:800;font-size:19px;color:var(--surface)}.pos-qp .cash{background:var(--good)}.pos-qp .card{background:var(--kkm)}
+.pos-notes{grid-column:span 2;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pos-notes button{min-height:48px;border-radius:12px;border:1px solid color-mix(in srgb,var(--good) 40%,var(--line));background:color-mix(in srgb,var(--good) 8%,var(--surface));font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.pos-qp button:disabled{background:var(--sunk);color:var(--muted);border-color:var(--line)}
+.pos-top{display:flex;gap:8px;align-items:center}.pos-who{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}.pos-who .r1{display:flex;gap:10px;align-items:baseline;min-width:0}.pos-who .r1 b{font-size:18px;white-space:nowrap;flex:none;max-width:60%;overflow:hidden;text-overflow:ellipsis}
+.pos-last{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-variant-numeric:tabular-nums}
+.pos-st{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pos-st.warn{color:var(--warn)}.pos-st.bad{color:var(--bad)}
+.pos-top button{min-height:48px;min-width:48px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-weight:700;font-size:15px}.pos-top button i{font-style:normal;background:var(--warn);color:#fff;border-radius:99px;padding:1px 8px;margin-left:4px}
+.pos-search{display:flex;gap:8px}.pos-search input{flex:1;min-width:0;min-height:52px;font-size:18px;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:var(--surface);color:var(--ink)}.pos-search button{width:56px;min-height:52px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:20px}.pos-search button.on{background:var(--accent-soft);border-color:var(--accent)}
+.pos-msg{background:color-mix(in srgb,var(--warn) 14%,var(--surface));color:var(--ink);border-radius:10px;padding:8px 12px;font-weight:600}
+.pos-grp{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.pos-grp.all{flex-wrap:wrap}.pos-grp button{flex:none;min-height:48px;padding:0 16px;border:1px solid var(--line);border-radius:99px;background:var(--surface);font-weight:700;font-size:15px;white-space:nowrap}
 .pos-grp button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.pos-grp button.more{border-style:dashed;color:var(--accent)}
-.pos-tiles{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-content:start}
-.ptile{min-height:92px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;padding:10px 12px;display:flex;flex-direction:column;gap:4px;justify-content:space-between}
-.ptile:active{background:var(--accent-soft)}.ptile .pn{font-weight:700;font-size:15px;line-height:1.2}.ptile .pp{display:flex;justify-content:space-between;align-items:baseline;gap:6px;flex-wrap:wrap}.ptile .pp b{font-size:17px}.ptile .pp small{font-size:12px;color:var(--muted)}.ptile .ps{font-size:12px;color:var(--muted);margin-top:-2px}
-.pos-gw{display:flex;gap:6px;align-items:flex-start}.pos-gw .pos-grp{flex:1;min-width:0}.pos-gw>.more{flex:none;min-height:46px;padding:0 14px;border:1px dashed var(--accent);border-radius:99px;background:var(--surface);color:var(--accent);font-weight:700;font-size:15px}.pos-gw.all .pos-grp{max-height:40vh;overflow:auto}.ptile .ps.neg{color:var(--bad)}
-.pos-act{display:grid;grid-template-columns:repeat(4,1fr) 1.6fr;gap:8px}.pos-act button{min-height:64px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-weight:700;font-size:16px}.pos-act button.on{background:var(--accent-soft);border-color:var(--accent)}
-.pos-act button.pay{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-size:18px}.pos-act button.pay b{display:block;font-size:22px}.pos-act button:disabled{opacity:.45}
-.osk{display:flex;flex-direction:column;gap:6px;background:var(--sunk);border-radius:12px;padding:8px}.okr{display:flex;gap:6px}.okr button{flex:1;min-height:50px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:19px;font-weight:600}.okr button.w{flex:1.4;font-size:15px}.okr button.sp{flex:5;font-size:15px}
+.pos-tiles{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;align-content:start}
+.ptw{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.ptw button:focus-visible{outline-offset:-3px}
+.ptile{flex:1;min-height:80px;text-align:left;padding:8px 10px;display:flex;flex-direction:column;gap:4px;justify-content:space-between;width:100%;border-radius:11px}.ptile:not(:last-child){border-radius:11px 11px 0 0}
+.ptile:active,.pblk:active{background:var(--accent-soft)}.ptile .pn{font-weight:700;font-size:15px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.ptile .pp{display:flex;justify-content:space-between;align-items:baseline;column-gap:6px;flex-wrap:wrap}.ptile .pp b{font-size:21px;font-weight:800;font-variant-numeric:tabular-nums}.ptile .pp b.nop{font-size:16px;color:var(--bad)}
+.ptile .ps{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}.ptile .ps.neg{color:var(--bad);font-weight:700}
+.pblk{min-height:48px;width:100%;border-radius:0 0 11px 11px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--accent) 7%,var(--surface));color:var(--accent);font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+.pos-gw{display:flex;gap:8px;align-items:flex-start}.pos-gw .pos-grp{flex:1;min-width:0}.pos-gw>.more{flex:none;min-height:48px;padding:0 16px;border:1px dashed var(--accent);border-radius:99px;background:var(--surface);color:var(--accent);font-weight:700;font-size:15px}.pos-gw.all .pos-grp{max-height:40vh;overflow:auto}
+.pos-act{display:grid;grid-template-columns:repeat(4,1fr) 1.6fr;gap:8px}.pos-act button{min-height:64px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-weight:700;font-size:16px}.pos-act button.on{background:var(--accent-soft);border-color:var(--accent);outline:2px solid var(--accent)}
+.pos-act button.pay{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-size:18px}.pos-act button.pay b{display:block;font-size:22px;font-variant-numeric:tabular-nums}.pos-act button:disabled{opacity:.45}
+.pos-act button.pay:disabled{opacity:1;background:var(--sunk);border-color:var(--line);color:var(--muted)}
+.osk{display:flex;flex-direction:column;gap:8px;background:var(--sunk);border-radius:12px;padding:8px}.okr{display:flex;gap:8px}.okr button{flex:1;min-width:48px;min-height:52px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:19px;font-weight:600}.okr button.w{flex:1.4;font-size:15px}.okr button.sp{flex:5;font-size:15px}
 .pos-ov{position:fixed;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;z-index:15;padding:16px}
-.pos-sh{background:var(--bg);border-radius:16px;width:min(560px,100%);max-height:92vh;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}.pos-sh.wide{width:min(820px,100%)}
+.pos-sh{background:var(--bg);border-radius:16px;width:min(560px,100%);max-height:92vh;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;overscroll-behavior:contain}.pos-sh.wide{width:min(820px,100%)}
+.pos-sh .btn,.pos-pay .btn,.pos-login .btn,body.posmode .sheet .btn{min-height:52px;font-size:17px}body.posmode .sheet .keys button{min-height:60px;font-size:24px}.pos-big{font-size:19px;margin:0}
 .psh{display:flex;justify-content:space-between;align-items:center}.psh b{font-size:20px}.psh button{width:48px;height:48px;border-radius:12px;background:var(--sunk);font-size:20px}
-.pinfo{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px}.pinfo>div{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line)}.pinfo>div:last-child{border-bottom:0}.pinfo b{font-size:17px}.pinfo .tot b{font-size:22px}.pinfo .tot span{font-weight:700}
-.pcl,.pdl{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto}
-.pcr,.pdr{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:56px;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;font-size:15px}
-.pcr small,.pdr small{display:block;color:var(--muted);font-size:13px}.pcr .r{text-align:right;font-weight:700}.pcr.ns{opacity:.6}.pcr.on{border-color:var(--accent);background:var(--accent-soft)}
-.pdr .tm{color:var(--muted);width:48px}.pdr .nm{flex:1;min-width:0}.pdr .stt{font-size:12px;font-weight:800;border-radius:99px;padding:3px 9px;background:var(--sunk)}.stt.ok{background:var(--accent-soft);color:var(--accent)}.stt.d{background:color-mix(in srgb,var(--om) 18%,transparent);color:var(--om)}.stt.x{background:var(--bad-soft);color:var(--bad)}.stt.h,.stt.o{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}.stt.r,.stt.p{background:color-mix(in srgb,var(--kkm) 16%,transparent);color:var(--kkm)}
+.pinfo{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;font-variant-numeric:tabular-nums}.pinfo>div{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line)}.pinfo>div:last-child{border-bottom:0}.pinfo b{font-size:17px}.pinfo .tot b{font-size:22px}.pinfo .tot span{font-weight:700}
+.plog summary{min-height:48px;display:flex;align-items:center;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-weight:700;cursor:pointer}.plog .pdl{margin-top:8px}
+.pcl,.pdl{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
+.pcr,.pdr{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:56px;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);text-align:left;font-size:15px;font-variant-numeric:tabular-nums}
+.pcr small,.pdr small{display:block;color:var(--muted);font-size:14px}.pcr .r{text-align:right;font-weight:700}.pcr.ns{opacity:.6}.pcr.on{border-color:var(--accent);background:var(--accent-soft)}
+.pdr .tm{color:var(--muted);width:48px}.pdr .nm{flex:1;min-width:0}.pdr .stt{font-size:13px;font-weight:800;border-radius:99px;padding:3px 9px;background:var(--sunk)}.stt.ok{background:var(--accent-soft);color:var(--accent)}.stt.d{background:color-mix(in srgb,var(--om) 18%,transparent);color:var(--om)}.stt.x{background:var(--bad-soft);color:var(--bad)}.stt.h,.stt.o{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}.stt.r,.stt.p{background:color-mix(in srgb,var(--kkm) 16%,transparent);color:var(--kkm)}
 .pdr .rq{display:flex;align-items:center;gap:10px}.pdr .rq button{width:48px;height:48px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:22px}.pdr .rq b{min-width:28px;text-align:center;font-size:18px}
 .pdn{display:flex;align-items:center;justify-content:space-between;gap:8px}.pdn button{width:52px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:20px}.pdn button:disabled{opacity:.4}
-.pos-pay{background:var(--bg);border-radius:18px;width:min(980px,100%);max-height:94vh;overflow:auto;display:grid;grid-template-columns:1fr 1.15fr;gap:16px;padding:16px}
+.pos-pay{background:var(--bg);border-radius:18px;width:min(980px,100%);max-height:94vh;overflow:auto;display:grid;grid-template-columns:1fr 1.15fr;gap:16px;padding:16px;overscroll-behavior:contain;font-variant-numeric:tabular-nums}
 .pp-l{display:flex;flex-direction:column;gap:10px}.pp-tot{display:flex;justify-content:space-between;align-items:baseline;padding:4px 4px 8px}.pp-tot b{font-size:38px;font-weight:800}
 .pf{display:flex;justify-content:space-between;align-items:center;min-height:62px;padding:0 16px;border:2px solid var(--line);border-radius:14px;background:var(--surface);font-size:17px}.pf b{font-size:24px}.pf.on{border-color:var(--accent);background:var(--accent-soft)}
 .pp-res{display:flex;justify-content:space-between;align-items:baseline;border-radius:14px;padding:14px 16px}.pp-res b{font-size:34px;font-weight:800}.pp-res.rest{background:color-mix(in srgb,var(--warn) 14%,var(--surface))}.pp-res.chg{background:var(--accent-soft);color:var(--accent)}
 .pp-r{display:flex;flex-direction:column;gap:10px}.pp-notes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pp-notes button{min-height:52px;border-radius:12px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));background:color-mix(in srgb,var(--accent) 7%,var(--surface));font-weight:700;font-size:16px}
 .pp-quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pp-quick button{min-height:50px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:15px}
 .pp-keys button{min-height:56px}.pp-btns{display:grid;grid-template-columns:1fr 1fr 1.6fr;gap:8px}.pp-btns .btn{min-height:60px}
-.pos-chg{background:var(--bg);border-radius:20px;padding:36px 48px;display:flex;flex-direction:column;align-items:center;gap:10px;font-size:18px}.pos-chg b{font-size:54px;font-weight:800;color:var(--accent)}
-.pos-login{max-width:380px;margin:8vh auto;display:flex;flex-direction:column;gap:14px;text-align:center;padding:16px}.pos-login .disp{font-size:40px;letter-spacing:12px;min-height:56px}.pos-login .keys button{min-height:68px;font-size:26px}
-@media (max-width:899px){.pos{grid-template-columns:1fr;height:auto;min-height:100vh}.pos-lines{max-height:34vh}.pos-tiles{max-height:46vh}.pos-act{grid-template-columns:1fr 1fr}.pos-act button.pay{grid-column:span 2}.pos-pay{grid-template-columns:1fr}}
+.pos-chg{background:var(--bg);border-radius:20px;padding:28px 44px;display:flex;flex-direction:column;align-items:stretch;gap:8px;font-size:18px;width:min(460px,100%);text-align:left;font-variant-numeric:tabular-nums}
+.pos-chg .hd{text-align:center;font-weight:700}.pos-chg .pcg-r{display:flex;justify-content:space-between;gap:24px}.pos-chg .pcg-r b{font-size:22px}
+.pos-chg b.big{font-size:56px;font-weight:800;color:var(--accent);text-align:center;line-height:1.1;margin-top:6px}.pos-chg small{color:var(--muted);text-align:center;font-size:14px}
+.pos-login{max-width:480px;margin:6vh auto;display:flex;flex-direction:column;gap:14px;text-align:center;padding:16px}.pos-login h1{font-size:26px;margin:0}.pos-login .disp{font-size:40px;letter-spacing:12px;min-height:56px}
+.pos-login .keys{gap:10px}.pos-login .keys button{height:76px;min-height:76px;font-size:28px}.pos-login .keys.off button{opacity:.4}
+@media (max-width:899px){.pos{grid-template-columns:1fr;height:auto;min-height:100vh}.pos-lines{max-height:34vh}.pos-tiles{max-height:46vh}.pos-act{grid-template-columns:1fr 1fr}.pos-act button.pay{grid-column:span 2}.pos-pay{grid-template-columns:1fr}.pos.oskon{grid-template-columns:1fr}}
 .bcl{display:flex;flex-wrap:wrap;gap:6px}.bcc{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:4px 6px 4px 12px;font-variant-numeric:tabular-nums}.bcc small{color:var(--muted)}.bcc button{width:32px;height:32px;border-radius:99px;background:var(--sunk)}
-.bcadd{display:flex;gap:8px}.bcadd input{flex:1;min-width:0;min-height:52px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:17px;background:var(--surface);color:var(--text)}.bcadd .btn{width:auto;padding:0 14px}
+.bcadd{display:flex;gap:8px}.bcadd input{flex:1;min-width:0;min-height:52px;border:1px solid var(--line);border-radius:12px;padding:0 12px;font-size:17px;background:var(--surface);color:var(--ink)}.bcadd .btn{width:auto;padding:0 14px}
+.npx.neg{color:var(--bad);font-weight:700}#npok.off{background:var(--sunk);color:var(--muted)}
 </style>`);
 
-/* устройство-касса: сразу открыть продажу */
-if (POSDEV().on && R.s === 'home'){ HIST.length = 0; HIST.push({s:'home'}); R = {s:'pos'}; }
+/* устройство-касса: сразу открыть продажу (и после первой загрузки базы, и после входа) */
+function startScreen(){ HIST.length = 0; if (POSDEV().on){ HIST.push({s:'home'}); R = {s:'pos'}; } else R = {s:'home'}; }
+if (POSDEV().on && R.s === 'home') startScreen();
 
 /* Кнопка и жест «Назад» телефона: каждый экран и окно — шаг в истории браузера, чтобы «назад» не закрывало приложение */
 let HSKIP = 0;
@@ -3186,7 +3444,8 @@ window.splashResult = () => {
   return '✓ База обновлена';
 };
 if (location.hash.includes('connect=')) tryConnect(location.hash);
-else if (CFG && !DB){ render(); window.splashHold = IDB.get('db').then(d => { if (d && d.t && !DB){ DB = d; S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); DATAV++; render(); return sync(); } return firstLoad(); }).catch(() => firstLoad()); }
+else if (CFG && !DB){ render(); window.splashHold = loadLocal().then(x => { if (x && !DB){ DB = x.d; SDB = x.s; if (x.all){ PERS.all = true; schedulePersist(); } OUT.forEach(applyOut);
+  S = Object.assign(fromTables(), {drafts:S.drafts, wip:S.wip}); DATAV++; render(); return sync(); } return firstLoad(); }).catch(() => firstLoad()); }
 else { render(); window.splashHold = CFG ? sync() : null; }
 if (window.splashHold === undefined) window.splashHold = null;
 if ('serviceWorker' in navigator){ const had = !!navigator.serviceWorker.controller; navigator.serviceWorker.register('sw.js').then(r => { try { r.update(); } catch(e){} }).catch(() => {});
