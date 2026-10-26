@@ -3142,7 +3142,7 @@ function saleHtml(id){
   return `<div class="small muted">${SKINDn[s.kind]} № ${esc(saleNo(s))} · ${dLong(s.date)} ${s.time} · ${esc(s.seller)}${s.cname ? ' · клиент ' + esc(s.cname) : ''}${s.status === 'cancel' ? ' · <b class="neg">отменён ' + esc(s.canc) + '</b>' : ''}</div>
     ${s.lines.length ? `<div class="tbl-wrap"><table class="tight"><tr><th class="l">Товар</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr>${s.lines.map(l => `<tr><td class="l">${esc(l.name)}</td><td>${l.qty} ${l.unit === 'b' ? 'бл' : 'шт'}</td><td>${fmt(l.price)}</td><td>${fmt(l.sum)}</td></tr>`).join('')}</table></div>` : ''}
     <div class="pinfo"><div><span>Итого</span><b>${fmt(s.total)}</b></div>${s.cash ? `<div><span>Наличные</span><b>${fmt(s.cash)}</b></div>` : ''}${s.card ? `<div><span>Карта</span><b>${fmt(s.card)}</b></div>` : ''}${s.debt ? `<div><span>${s.kind === 'ret' ? 'В счёт долга' : 'В долг'}</span><b>${fmt(s.debt)}</b></div>` : ''}${s.change ? `<div><span>Сдача</span><b>${fmt(s.change)}</b></div>` : ''}</div>
-    <div class="grid2">${canRet ? `<button class="btn sec" data-a="pret" data-v="${s.id}">Возврат</button>` : ''}${canCancel ? `<button class="btn dang ghost" data-a="pcancel" data-v="${s.id}">Отменить чек</button>` : ''}</div>
+    <div class="grid2">${canRet ? `<button class="btn sec" data-a="pret" data-v="${s.id}">Возврат</button>` : ''}${canCancel ? `<button class="btn dang ghost" data-a="psalecancel" data-v="${s.id}">Отменить чек</button>` : ''}</div>
     ${rets.length && s.status !== 'cancel' ? `<p class="small">По чеку был возврат № ${rets.map(r => esc(saleNo(r))).join(', ')} — сначала отмените возврат, потом можно отменить чек.</p>` : ''}`;
 }
 /* возврат тем же способом, каким платили: сначала долг этого чека, потом карта, потом наличные (за вычетом прошлых возвратов) */
@@ -3414,7 +3414,7 @@ Object.assign(A, {
       toast('Возврат ' + fmt(total) + ': ' + RETW.filter(([k]) => sp[k]).map(([k, l]) => (k === 'cash' ? 'отдайте наличными ' : k === 'card' ? 'верните на карту ' : 'в счёт долга ') + fmt(sp[k])).join(', ')); };
     if (posBoss()) return doRet();
     needMgr(`Возврат ${fmt(total)} по чеку № ${saleNo(s)}`, doRet); },
-  pcancel: d => { const s = S.sales.find(x => x.id === d.v); if (!s) return;
+  psalecancel: d => { const s = S.sales.find(x => x.id === d.v); if (!s) return;
     if (saleRets(s).length) return toast('По чеку был возврат — сначала отмените возврат');   // иначе деньги «вернутся» дважды
     confirmBox(`Отменить чек № ${esc(saleNo(s))} на ${fmt(s.total)}?${s.debt ? '<br><b>Долг клиента по этому чеку тоже снимется.</b>' : ''}`, 'Отменить чек', () => setTimeout(() => needMgr(`Отмена чека № ${saleNo(s)} на ${fmt(s.total)}`, () => {
       const c = Object.assign({}, s, {status:'cancel', canc:(POSU ? POSU.name : posSeller()) + ' ' + hhmm(Date.now())}); writeSale(c, false);
